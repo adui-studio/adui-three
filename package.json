@@ -1,0 +1,25 @@
+{
+  "name": "adui-three",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ready": "vp run docs:test && vp run docs:check && vp check && vp run -r test && vp run -r build",
+    "docs:check": "node scripts/check-docs.mjs",
+    "docs:test": "node --test scripts/check-docs.test.mjs",
+    "dev": "vp run website#dev"
+  },
+  "devDependencies": {
+    "vite-plus": "catalog:"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.16.1",
+      "onFail": "download"
+    }
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}
