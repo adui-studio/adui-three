@@ -7,9 +7,12 @@
     "ready": "vp run docs:test && vp run docs:check && vp check && vp run -r test && vp run -r build",
     "docs:check": "node scripts/check-docs.mjs",
     "docs:test": "node --test scripts/check-docs.test.mjs",
-    "dev": "vp run website#dev"
+    "dev": "vp run @adui/three#build && vp run website#dev",
+    "test:browser": "playwright test",
+    "fixtures:models": "node scripts/generate-model-fixtures.mjs && vp fmt apps/website/public/models"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "vite-plus": "catalog:"
   },
   "devEngines": {

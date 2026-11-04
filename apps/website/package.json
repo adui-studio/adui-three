@@ -8,7 +8,12 @@
     "build": "tsc && vp build",
     "preview": "vp preview"
   },
+  "dependencies": {
+    "@adui/three": "workspace:*",
+    "three": "0.187.0"
+  },
   "devDependencies": {
+    "@types/three": "0.187.0",
     "typescript": "^7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"

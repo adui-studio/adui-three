@@ -2,54 +2,56 @@
 
 ## 环境与安装
 
-根 engines 要求 Node >=22.18.0；devEngines 声明 pnpm 12.16.1；Vite+ 锁定 1.4.0。当前无产品环境变量要求、后端服务或模型资产；旧项目的 VITE AES 配置不是本仓库配置。
+Node.js >=22.18.0，pnpm 12.16.1，Vite+ 1.4.0。工作区只含主包与演示，无后端服务或秘密环境变量要求；模型 fixtures 由项目本地生成。
 
 ```sh
 pnpm install --frozen-lockfile
 ```
 
-不升级依赖或重新生成锁文件来掩盖安装失败。首次安装需要包缓存或网络。命令从仓库根运行；可用 pnpm 调用本地工具，无需依赖全局 vp。
+首次安装需要网络或缓存。锁文件失败应定位原因，不通过随意升级或重建锁文件隐藏问题。
 
 ## 命令
 
-| 命令                        | 真实范围                                                                                     |
-| --------------------------- | -------------------------------------------------------------------------------------------- |
-| `pnpm run dev`              | 启动 website 模板开发服务器                                                                  |
-| `pnpm run docs:check`       | 核心文档/章节、相对文件与 Markdown 锚点、需求、追踪、ADR、Skills 基础结构、pnpm run 脚本引用 |
-| `pnpm run docs:test`        | 用临时 fixture 验证检查器识别失败和正确输入                                                  |
-| `pnpm exec vp check`        | 现有根配置的格式、Lint 和类型检查                                                            |
-| `pnpm exec vp run -r test`  | 当前 utils 模板单测；不包含产品测试                                                          |
-| `pnpm exec vp run -r build` | utils 打包与声明、website TypeScript 检查和静态构建                                          |
-| `pnpm run ready`            | 顺序执行文档测试、文档校验及上述 check/test/build                                            |
+| 命令                        | 范围                                                               |
+| --------------------------- | ------------------------------------------------------------------ |
+| `pnpm run dev`              | 先构建主包声明，再启动演示；development 条件指向主包 src，支持 HMR |
+| `pnpm run docs:test`        | 文档检查器的正确输入与失败路径回归                                 |
+| `pnpm run docs:check`       | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
+| `pnpm exec vp check`        | 格式、Lint 与类型检查                                              |
+| `pnpm exec vp run -r test`  | 主包的 36 项单元测试                                               |
+| `pnpm exec vp run -r build` | 主包 ESM/声明与 website 类型检查、生产构建                         |
+| `pnpm run ready`            | 文档测试/校验、静态检查、主包单测和全部构建                        |
+| `pnpm run test:browser`     | 构建演示并执行 3 项真实 Chromium 多步骤回归                        |
+| `pnpm run fixtures:models`  | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
 
-原有 `vp run ready`、`vp run dev`、`vp run -r test`、`vp run -r build` 命令保留可用。构建可能由工具更新 utils 的 exports 元数据；检查文件变化，不把模板声明结果误认为主包声明。
+首次浏览器回归需执行 `pnpm exec playwright install chromium`。测试使用 Playwright 1.64.1 / Chromium / SwiftShader，DPR=3 验证宿主上限 2；preview 使用 127.0.0.1:4173，端口需空闲，测试结束自动收尾。截图和失败 trace 位于忽略提交的 test-results。
 
 ## 文档校验边界
 
-[检查器](../scripts/check-docs.mjs) 使用 Node 内置模块，无新增依赖，非零退出并打印文件定位。检查核心文件与指定章节、非空文档、相对链接/锚点、需求定义唯一性/状态/验收、SDD 编号覆盖、ADR 状态/日期/架构索引、项目 Skill 基本 frontmatter/索引，以及文档中 pnpm run 引用的根脚本。扫描范围为根 README/AGENTS/CONTRIBUTING、docs、.github 和 .agents/skills 的 Markdown，跳过代码围栏，不检查互联网链接可用性。
+[检查器](../scripts/check-docs.mjs) 仅使用 Node 内置模块。扫描根 README/AGENTS/CONTRIBUTING、docs、.github 和 .agents/skills 的 Markdown，跳过代码围栏。README 检查存在、非空和链接，不强制初始化时期的标题。
 
-Skills 元数据检查支持 name、行内 description 和 YAML `>` / `|` 多行 description 的基本结构，不是完整 YAML/frontmatter 解析器。导入的 `.agents/skills/**` 保留上游格式，由 Vite+ 的 fmt.ignorePatterns 排除格式化；仍进行文档链接、索引和基础元数据检查。Issue Forms 的 YAML 语法纳入正常格式检查，GitHub 专属表单字段人工核对，未模拟服务端表单渲染。提交 emoji 当前为协作规则，无 commit hook。
+静态校验包括核心章节、相对文件/Markdown 锚点、需求编号/状态/验收/SDD 追踪、ADR 索引、Skills 的 name/description 基础元数据和根脚本引用。支持行内与 YAML 多行 description，不是完整 YAML 解析器。导入的 Skills 保留上游格式，但仍检查其元数据与引用。
 
-安全静态检查只识别明显私钥头；不宣称覆盖所有凭据、注入或危险命令。需求语义、设计合理性、第三方许可证、性能与真实资源释放必须人工审阅或运行验证；Mermaid 只验证其所在文档，不执行图形渲染检查。不安装 Skill 时不要求 Skill 目录存在。
-
-[检查器测试](../scripts/check-docs.test.mjs) 覆盖正确基线、缺文件、坏链接/锚点、重复需求、非法状态、缺验收、追踪缺失、ADR 索引和 Skill 元数据等场景。新增规则时补充相应失败场景，不通过跳过检查来修复失败。
+[13 项检查器测试](../scripts/check-docs.test.mjs) 覆盖正确基线、坏链接、重复需求、缺失验收/追踪、非法状态、ADR 索引、Skill 元数据和命令引用。互联网链接、Mermaid 渲染、需求语义和许可证不靠静态检查宣称正确。私钥头扫描不等同完整安全审计。
 
 ## 验证记录
 
-2026-11-04：`pnpm install --frozen-lockfile` 通过，复用锁文件安装 84 个包。初始化时环境报告系统 node v24.18.0、pnpm 12.16.1、全局 vp 1.4.0；vp 另报告其托管 Node v26.13.0，以实际运行输出为准。
+2026-11-05 模型阶段：13 项文档检查器测试、36 项主包单测和 3 项浏览器回归通过，ESM/类型与生产演示构建成功。浏览器验证双实例、resize、DPR、反复重建、GLTF/GLB 解码、同 URL 逻辑取消隔离、迟到 ImageBitmap 清理、宿主销毁和失败恢复。模型为项目原创资产。
 
-同日 `pnpm run ready` 退出码 0：11 项文档检查器测试通过；文档静态校验通过；29 个文件格式检查通过，8 个源文件无 Lint/类型错误；utils 模板 1 项单测通过；utils 包与声明、website 静态构建通过。首次检查发现格式化表格的对齐空格导致追踪误报，已修正为接受单元格两侧空白并重跑通过。
+同日初始化清理：删除 13 个未引用的模板文件，工作区仅保留主包与演示；冻结锁文件安装成功。ready 退出码 0：13 项文档测试、36 项主包单测通过，52 个文件格式与 20 个源文件 Lint/类型检查通过，主包和演示构建成功。
 
-构建提示 TypeScript 7.0 API 尚处实验阶段、部分选项不可用，属于现有工具链提示；本轮没有升级或降级依赖。尚未验证旧项目运行、新库 GPU 行为、浏览器交互、兼容性、安全审计或发布流程。
+清理后浏览器首轮两项模型回归通过，场景回归因多次页面操作耗时增加触发 30 秒总时限，trace 未显示断言失败。未修改超时或断言，执行 `pnpm run test:browser tests/browser/scene.spec.ts` 单独重跑通过（用例约 17.9 秒）。不将首轮命令描述为全量成功。
 
-同日接入用户新增 Skills 和贡献模板后，`pnpm run ready` 再次退出码 0：13 项文档检查器测试通过（新增合法多行 description 和空块拒绝用例），23 个 Skills 的索引及引用检查通过；35 个文件格式检查通过（包含 Issue YAML、PR 模板和贡献指南），8 个源文件无 Lint/类型错误；模板 1 项单测与两个工作区构建通过。GitHub 在线表单、远程 Issue/PR 创建和发布未执行。
+旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
-## 诊断与后续门禁
+## 限制与诊断
 
-先确定失败属于文档、环境还是代码，再按命令单独重现并修复。报告命令、退出码和有效错误信息，不写真实凭据或私有资产。代码实现时补充生命周期/资源单测、必要的浏览器集成及固定场景性能基准；当前无 E2E、GPU 测试或安全扫描工具。
+主包单测替换 renderer 和平台，不能代替真实 WebGL 验收；浏览器只实测 Chromium/软件 WebGL，完整硬件矩阵、长期资源与性能基准尚未完成。模型取消不保证运输/解码停止，原生解析失败中未返回的局部资源仍有边界，详见包 README 和 SDD。
 
-已评估 CI：仓库目前没有 workflow，先复用本地 ready 作为统一入口；远程 CI 平台、安装策略和发布权限未配置，本轮不创建部署或发布自动化。后续 CI 应调用同一门禁，不能声称本轮已经验证远程运行。
+现有 TypeScript 7 API 实验提示及演示大 chunk 提示仍存在；不通过提高阈值隐藏提示。先定位失败属于文档、环境还是代码，修复后按影响重验，记录实际命令和结果。
+
+当前没有远程 CI、发布自动化或 commit hook。后续 CI 应复用 ready 与适用浏览器门禁，不宣称已验证远程运行。
 
 ## 维护
 
-环境、脚本、测试范围、构建、文档规则或 CI 变化时更新；验证结果明确日期与范围。
+环境、命令、测试、构建、文档规则或验证范围变化时更新；只保留有用的近期证据，不累积初始化阶段的模板测试日志。

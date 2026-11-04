@@ -2,7 +2,7 @@
 
 ## 开发与验证
 
-先读 [AGENTS](AGENTS.md)、[需求](docs/REQUIREMENTS.md) 和相关 [SDD](docs/SDD.md)；当前主包尚未创建，不把草案当作已交付 API。环境和安装见 [Harness](docs/HARNESS.md)。
+先读 [AGENTS](AGENTS.md)、[需求](docs/REQUIREMENTS.md) 和相关 [SDD](docs/SDD.md)；当前主包已提供核心与模型加载能力，规划功能需明确标注。环境和安装见 [Harness](docs/HARNESS.md)。
 
 - 文档改动：`pnpm run docs:test`、`pnpm run docs:check`。
 - 代码或配置改动：`pnpm run ready`。

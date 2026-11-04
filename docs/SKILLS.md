@@ -25,7 +25,9 @@
 
 ## Three.js Skills
 
-本组来源按锁文件记录为 `cloudai-x/threejs-skills`；文档声明面向 r186。新库尚未选 Three.js 版本，不因安装 Skill 就采用 r186；执行示例前核对选定版本的官方 API。以下示例尚未运行，React/WebGPU 内容不表示项目已选择对应技术。
+本组来源按锁文件记录为 `cloudai-x/threejs-skills`；文档声明面向 r186。本轮使用 threejs-fundamentals 辅助核心设计，并核对 r187 官方 API 后选择 0.187.0；未直接运行或迁入整段 Skill 示例。React/WebGPU 内容不表示项目已选择对应技术。
+
+2026-11-05 模型阶段按需使用 threejs-loaders，另外核验 r187 FileLoader 的全局 URL 合并和 ImageBitmapLoader 缓存；采用独立逻辑取消而不直接套用 manager.abort 示例。未加载其他格式或压缩管线 Skills 来扩大本轮范围。
 
 | Skill                                                                             | 适用任务                                            |
 | --------------------------------------------------------------------------------- | --------------------------------------------------- |

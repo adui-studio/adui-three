@@ -27,6 +27,8 @@ function fixture(t) {
     "pnpm-lock.yaml",
     "vite.config.ts",
     "tsconfig.json",
+    "playwright.config.ts",
+    "tests",
   ]) {
     cpSync(join(source, name), join(root, name), {
       recursive: true,

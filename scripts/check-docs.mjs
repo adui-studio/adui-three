@@ -5,12 +5,12 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const coreSections = {
   "AGENTS.md": ["项目事实与导航", "工作流程与约束"],
-  "README.md": ["adui-three 项目初始化"],
+  "README.md": [],
   "CONTRIBUTING.md": ["开发与验证", "Issue 与 PR", "提交规范"],
   ".github/pull_request_template.md": ["变更与原因", "关联与兼容性", "验证", "检查"],
   "docs/REQUIREMENTS.md": ["正式需求", "待决策", "变更记录与维护"],
   "docs/ARCHITECTURE.md": ["当前架构", "目标与建议边界", "风险与维护"],
-  "docs/SDD.md": ["当前实现", "建议设计（待决策）", "需求追踪", "维护"],
+  "docs/SDD.md": ["当前实现", "核心 API", "需求追踪", "维护"],
   "docs/PROJECT_CONTEXT.md": ["目标与当前阶段", "验证状态", "维护"],
   "docs/CODEBASE_MAP.md": ["已存在文件", "规划目录（尚不存在）", "维护"],
   "docs/SKILLS.md": ["当前状态", "发现与创建原则", "维护"],

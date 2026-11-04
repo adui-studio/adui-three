@@ -1,0 +1,49 @@
+{
+  "name": "@adui/three",
+  "version": "0.0.0",
+  "description": "A small, lifecycle-focused Three.js scene host.",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "development": "./src/index.ts",
+      "import": "./dist/index.mjs"
+    },
+    "./controls": {
+      "types": "./dist/controls.d.mts",
+      "development": "./src/controls.ts",
+      "import": "./dist/controls.mjs"
+    },
+    "./loaders": {
+      "types": "./dist/loaders.d.mts",
+      "development": "./src/loaders.ts",
+      "import": "./dist/loaders.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "vp test",
+    "dev": "vp pack --watch"
+  },
+  "dependencies": {
+    "@types/three": "0.187.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "three": "0.187.0",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "three": ">=0.187.0 <0.188.0"
+  }
+}
