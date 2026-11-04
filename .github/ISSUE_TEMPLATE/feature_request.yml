@@ -1,0 +1,44 @@
+name: "✨ 功能请求"
+description: "提出新能力、API 或一份规格对应的实现请求"
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 使用场景与问题
+      description: 谁在什么场景遇到什么问题？新能力应改善什么行为？
+    validations:
+      required: true
+  - type: textarea
+    id: specification
+    attributes:
+      label: 需求或设计依据
+      description: 填写规格文件路径、章节、FR/NFR 编号或已有 Issue。新提案写“新提案，待确认”，不要当作已批准需求。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案与范围
+      description: 描述建议行为、API 示例和本次范围；区分必须项与可选项。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 给出可观察结果和验证方法；涉及生命周期时考虑多实例、重复调用、销毁与异步竞争。
+      placeholder: |
+        - [ ] 场景 / 操作 / 可观察结果
+        - [ ] 边界条件 / 验证方式
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代方案与兼容性
+      description: 可补充直接使用 Three.js 的替代办法、兼容性、依赖、性能或资源所有权影响。
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依赖与相关资料
+      description: 填写前置任务、相关 Issue、官方文档或示例。

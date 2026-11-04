@@ -26,7 +26,9 @@ pnpm install --frozen-lockfile
 
 ## 文档校验边界
 
-[检查器](../scripts/check-docs.mjs) 使用 Node 内置模块，无新增依赖，非零退出并打印文件定位。检查核心文件与指定章节、非空文档、相对链接/锚点、需求定义唯一性/状态/验收、SDD 编号覆盖、ADR 状态/日期/架构索引、项目 Skill 基本 frontmatter/索引，以及文档中 pnpm run 引用的根脚本。扫描范围为根 README/AGENTS、docs 和 .agents/skills 的 Markdown，跳过代码围栏，不检查互联网链接可用性。
+[检查器](../scripts/check-docs.mjs) 使用 Node 内置模块，无新增依赖，非零退出并打印文件定位。检查核心文件与指定章节、非空文档、相对链接/锚点、需求定义唯一性/状态/验收、SDD 编号覆盖、ADR 状态/日期/架构索引、项目 Skill 基本 frontmatter/索引，以及文档中 pnpm run 引用的根脚本。扫描范围为根 README/AGENTS/CONTRIBUTING、docs、.github 和 .agents/skills 的 Markdown，跳过代码围栏，不检查互联网链接可用性。
+
+Skills 元数据检查支持 name、行内 description 和 YAML `>` / `|` 多行 description 的基本结构，不是完整 YAML/frontmatter 解析器。导入的 `.agents/skills/**` 保留上游格式，由 Vite+ 的 fmt.ignorePatterns 排除格式化；仍进行文档链接、索引和基础元数据检查。Issue Forms 的 YAML 语法纳入正常格式检查，GitHub 专属表单字段人工核对，未模拟服务端表单渲染。提交 emoji 当前为协作规则，无 commit hook。
 
 安全静态检查只识别明显私钥头；不宣称覆盖所有凭据、注入或危险命令。需求语义、设计合理性、第三方许可证、性能与真实资源释放必须人工审阅或运行验证；Mermaid 只验证其所在文档，不执行图形渲染检查。不安装 Skill 时不要求 Skill 目录存在。
 
@@ -39,6 +41,8 @@ pnpm install --frozen-lockfile
 同日 `pnpm run ready` 退出码 0：11 项文档检查器测试通过；文档静态校验通过；29 个文件格式检查通过，8 个源文件无 Lint/类型错误；utils 模板 1 项单测通过；utils 包与声明、website 静态构建通过。首次检查发现格式化表格的对齐空格导致追踪误报，已修正为接受单元格两侧空白并重跑通过。
 
 构建提示 TypeScript 7.0 API 尚处实验阶段、部分选项不可用，属于现有工具链提示；本轮没有升级或降级依赖。尚未验证旧项目运行、新库 GPU 行为、浏览器交互、兼容性、安全审计或发布流程。
+
+同日接入用户新增 Skills 和贡献模板后，`pnpm run ready` 再次退出码 0：13 项文档检查器测试通过（新增合法多行 description 和空块拒绝用例），23 个 Skills 的索引及引用检查通过；35 个文件格式检查通过（包含 Issue YAML、PR 模板和贡献指南），8 个源文件无 Lint/类型错误；模板 1 项单测与两个工作区构建通过。GitHub 在线表单、远程 Issue/PR 创建和发布未执行。
 
 ## 诊断与后续门禁
 

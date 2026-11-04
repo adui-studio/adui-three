@@ -1,7 +1,10 @@
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  fmt: {},
+  fmt: {
+    // Preserve imported Skills; their metadata and references are checked separately.
+    ignorePatterns: [".agents/skills/**"],
+  },
   lint: {
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: { "vite-plus/prefer-vite-plus-imports": "error" },

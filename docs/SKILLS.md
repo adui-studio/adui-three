@@ -2,20 +2,56 @@
 
 ## 当前状态
 
-当前仓库未安装第三方 Skill，也未创建项目自有 Skill。八类工程资产中的 Skills 通过本索引覆盖，不为凑目录创建空技能。
+2026-11-04 用户已将 23 个第三方 Skills 安装在 `.agents/skills`，包含 36 个 Markdown 文件，无可执行脚本或捆绑程序；未创建项目自研 Skill。来源记录见 [skills-lock.json](../skills-lock.json)，其中 computedHash 为安装器记录，本轮未重新计算或验证上游内容未变。
 
-| 工作流                | 来源与位置                                    | 状态                             | 验证                          |
-| --------------------- | --------------------------------------------- | -------------------------------- | ----------------------------- |
-| 常规改动与同步        | [AGENTS](../AGENTS.md)、[Harness](HARNESS.md) | 已有版本化规则                   | 本轮静态检查与人工审阅        |
-| 旧能力迁移            | [旧版审查](LEGACY_REVIEW.md)、[SDD](SDD.md)   | 已记录建议；尚未出现重复实施流程 | 仅源码审查，未迁移执行        |
-| 自有项目 Skill        | 无                                            | 未创建                           | 不适用                        |
-| 第三方 Three.js Skill | 无                                            | 未检索、未安装                   | 来源/许可证/权限/脚本均未核验 |
+以下状态均为“本地已安装”，不等于功能示例已运行。按任务选择相关 Skill，避免全部加载。元数据和文件链接由文档检查器验证。
+
+## 工程与 GitHub Skills
+
+本组来源均按锁文件记录为 `github/awesome-copilot`。本轮读取提交、emoji、Issue 工作流及 release 的适用范围；README、EditorConfig 等保留为后续按需使用。
+
+| Skill                                                                                                                                             | 用途与项目适配                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [git-commit](../.agents/skills/git-commit/SKILL.md)                                                                                               | 用户要求提交时检查差异、暂存、提交；消息遵循贡献指南                           |
+| [gitmoji](../.agents/skills/gitmoji/SKILL.md)                                                                                                     | 选择一个与意图匹配的 emoji；只生成消息，不执行 Git                             |
+| [conventional-commit](../.agents/skills/conventional-commit/SKILL.md)                                                                             | 辅助 Conventional Commits；其 XML 和自动提交描述不覆盖项目格式与授权           |
+| [github-issues](../.agents/skills/github-issues/SKILL.md)                                                                                         | Issue 管理；使用实际可用的连接器或 CLI，先确认上下文和查重                     |
+| [create-github-issue-feature-from-specification](../.agents/skills/create-github-issue-feature-from-specification/SKILL.md)                       | 一份规格对应一个功能 Issue，使用 feature_request.yml                           |
+| [create-github-issues-feature-from-implementation-plan](../.agents/skills/create-github-issues-feature-from-implementation-plan/SKILL.md)         | 按实施阶段拆 Issue，使用 feature_request.yml / chore_request.yml               |
+| [create-github-issues-for-unmet-specification-requirements](../.agents/skills/create-github-issues-for-unmet-specification-requirements/SKILL.md) | 检查实现后按未满足正式需求拆 Issue，不把待决策草案转成承诺                     |
+| [create-readme](../.agents/skills/create-readme/SKILL.md)                                                                                         | 请求创建或大幅完善 README 时使用，增量保留已有事实                             |
+| [editorconfig](../.agents/skills/editorconfig/SKILL.md)                                                                                           | 请求统一编辑器配置时使用，与现有 Vite+ 格式规则保持一致                        |
+| [github-release](../.agents/skills/github-release/SKILL.md)                                                                                       | 面向单包发布的流程，当前 Monorepo 需先确定目标包和发布方式，不能直接对根包套用 |
+
+## Three.js Skills
+
+本组来源按锁文件记录为 `cloudai-x/threejs-skills`；文档声明面向 r186。新库尚未选 Three.js 版本，不因安装 Skill 就采用 r186；执行示例前核对选定版本的官方 API。以下示例尚未运行，React/WebGPU 内容不表示项目已选择对应技术。
+
+| Skill                                                                             | 适用任务                                            |
+| --------------------------------------------------------------------------------- | --------------------------------------------------- |
+| [threejs-fundamentals](../.agents/skills/threejs-fundamentals/SKILL.md)           | 场景、相机、renderer、resize、循环与清理            |
+| [threejs-animation](../.agents/skills/threejs-animation/SKILL.md)                 | 关键帧、骨骼、morph、动画混合                       |
+| [threejs-geometry](../.agents/skills/threejs-geometry/SKILL.md)                   | BufferGeometry、实例化、点线和几何合并              |
+| [threejs-interaction](../.agents/skills/threejs-interaction/SKILL.md)             | 拾取、控制器、拖拽与输入                            |
+| [threejs-lighting](../.agents/skills/threejs-lighting/SKILL.md)                   | 光照、阴影和环境照明                                |
+| [threejs-loaders](../.agents/skills/threejs-loaders/SKILL.md)                     | 模型、纹理与环境加载、进度、缓存和释放              |
+| [threejs-materials](../.agents/skills/threejs-materials/SKILL.md)                 | 材质选择、PBR 参数、混合和深度行为                  |
+| [threejs-textures](../.agents/skills/threejs-textures/SKILL.md)                   | 色彩空间、UV、纹理类型与内存                        |
+| [threejs-shaders](../.agents/skills/threejs-shaders/SKILL.md)                     | 自定义 GLSL、ShaderMaterial 与 TSL 参考             |
+| [threejs-postprocessing](../.agents/skills/threejs-postprocessing/SKILL.md)       | composer、Pass、泛光、描边等后处理                  |
+| [threejs-performance](../.agents/skills/threejs-performance/SKILL.md)             | 帧耗时、draw calls、GPU/CPU 与资源统计              |
+| [threejs-asset-pipeline](../.agents/skills/threejs-asset-pipeline/SKILL.md)       | 资产检查、压缩和 glTF 优化，操作资产前确认范围      |
+| [threejs-react-three-fiber](../.agents/skills/threejs-react-three-fiber/SKILL.md) | 仅在 React 适配任务中使用，当前原生 TS 演示无需加载 |
 
 ## 发现与创建原则
 
-先按任务读取本索引，复用现有规则；会话提供的主机 Skill 按平台发现与加载，不能写成仓库已安装资产。当前任务没有需要重复封装的复杂执行流程，暂不新增 Skill。若后续模型迁移、GPU 验证等工作流反复出现，再提取至 .agents/skills/<name>/SKILL.md（规划位置）。
+先按任务读取本索引，复用现有规则；会话提供的主机 Skill 按平台发现与加载，不能写成仓库已安装资产。若后续模型迁移、GPU 验证等流程反复出现，可再提取项目自有 Skill，不与第三方副本混淆。
 
 新 Skill 必须包含 name/description 元数据、触发、输入输出、步骤、限制、失败处理和验证。第三方技能先检查来源、许可证、权限、依赖和脚本；未审阅不得执行。新增后把真实路径、状态与验证记录写入本表，文档检查器会检查已发现 Skill 的基本元数据与索引链接。
+
+本轮权限与兼容评估：本地文件均为 Markdown；git-commit、gitmoji 元数据声明 MIT，其余本地元数据未声明许可证，尚未完成逐项上游许可证核验，不据此复制第三方实现到主库。git-commit 限定 Git shell 操作，部分技能要求 CLI、MCP 或修改远程数据；实际工具名与当前环境可能不同，应先发现工具再使用。发布 Skill 有单包假设，Three.js Skill 有版本假设，均不能替代项目决策。
+
+用户安装技能并允许按任务使用，不代表自动创建远程 Issue/PR、发布版本或执行所有代码块；按当前请求确定动作范围。保留第三方原文与锁文件；Vite+ 格式化排除导入副本，文档校验仍检查其元数据和引用。规范改动优先写在 [贡献指南](../CONTRIBUTING.md) 与 AGENTS 中。
 
 ## 维护
 

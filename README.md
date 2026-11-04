@@ -12,6 +12,8 @@ A starter for creating a Vite+ monorepo.
 
 环境、安装与验证详情见 [Harness](docs/HARNESS.md)。先运行 `pnpm install --frozen-lockfile`；文档检查使用 `pnpm run docs:test` 和 `pnpm run docs:check`，完整门禁使用 `pnpm run ready`。包名和架构演进记录见 [ADR-0001](docs/adr/0001-package-boundaries.md)。
 
+贡献流程、Issue/PR 模板及 emoji 提交格式见 [贡献指南](CONTRIBUTING.md)；按任务加载的本地技能见 [Skills 索引](docs/SKILLS.md)。
+
 ## Development
 
 - Check everything is ready:

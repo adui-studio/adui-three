@@ -14,6 +14,10 @@ function fixture(t) {
   for (const name of [
     "AGENTS.md",
     "README.md",
+    "CONTRIBUTING.md",
+    ".agents",
+    ".github",
+    "skills-lock.json",
     "docs",
     "scripts",
     "apps",
@@ -40,6 +44,24 @@ function change(root, file, before, after) {
 }
 
 test("repository baseline is valid", () => assert.deepEqual(validateDocs(source), []));
+
+test("folded and literal Skill descriptions are accepted", (t) => {
+  const root = fixture(t);
+  const directory = join(root, ".agents/skills/example");
+  mkdirSync(directory, { recursive: true });
+  const indexFile = join(root, "docs/SKILLS.md");
+  writeFileSync(
+    indexFile,
+    `${readFileSync(indexFile, "utf8")}\n[example](../.agents/skills/example/SKILL.md)\n`,
+  );
+  for (const style of [">", "|", ">-", "|-"]) {
+    writeFileSync(
+      join(directory, "SKILL.md"),
+      `---\nname: example\ndescription: ${style}\n  A multiline description.\n  Another line.\n---\n`,
+    );
+    assert.deepEqual(validateDocs(root), [], `description style ${style}`);
+  }
+});
 
 const cases = [
   [
@@ -89,6 +111,18 @@ const cases = [
       const directory = join(root, ".agents/skills/example");
       mkdirSync(directory, { recursive: true });
       writeFileSync(join(directory, "SKILL.md"), "# missing metadata\n");
+    },
+    /invalid Skill metadata/,
+  ],
+  [
+    "empty block Skill description",
+    (root) => {
+      const directory = join(root, ".agents/skills/example");
+      mkdirSync(directory, { recursive: true });
+      writeFileSync(
+        join(directory, "SKILL.md"),
+        "---\nname: example\ndescription: >\n  \ncompatibility: test\n---\n",
+      );
     },
     /invalid Skill metadata/,
   ],

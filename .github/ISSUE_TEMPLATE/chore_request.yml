@@ -1,0 +1,39 @@
+name: "🔧 工程任务"
+description: "跟踪工具链、测试、文档、重构或实施计划阶段"
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: 目标与原因
+      description: 说明当前问题和完成后的具体改善。
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: 计划或需求依据
+      description: 填写文件路径、阶段、需求编号或相关 Issue；独立工程任务可写“无关联需求”。
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 实施范围
+      description: 列出涉及的包、文件、改动边界和拆分任务。
+      placeholder: |
+        - [ ] 任务一
+        - [ ] 任务二
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收与验证方法
+      description: 写明完成标准、检查命令及需要同步的文档。
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依赖、风险与回退
+      description: 关联前置任务；说明兼容性、依赖变动或失败后的处理。

@@ -6,6 +6,8 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const coreSections = {
   "AGENTS.md": ["项目事实与导航", "工作流程与约束"],
   "README.md": ["adui-three 项目初始化"],
+  "CONTRIBUTING.md": ["开发与验证", "Issue 与 PR", "提交规范"],
+  ".github/pull_request_template.md": ["变更与原因", "关联与兼容性", "验证", "检查"],
   "docs/REQUIREMENTS.md": ["正式需求", "待决策", "变更记录与维护"],
   "docs/ARCHITECTURE.md": ["当前架构", "目标与建议边界", "风险与维护"],
   "docs/SDD.md": ["当前实现", "建议设计（待决策）", "需求追踪", "维护"],
@@ -63,6 +65,8 @@ export function validateDocs(root = repositoryRoot) {
   const files = [
     join(root, "README.md"),
     join(root, "AGENTS.md"),
+    join(root, "CONTRIBUTING.md"),
+    ...markdownFiles(join(root, ".github")),
     ...markdownFiles(join(root, "docs")),
     ...markdownFiles(join(root, ".agents", "skills")),
   ];
@@ -150,9 +154,14 @@ export function validateDocs(root = repositoryRoot) {
     path.endsWith("SKILL.md"),
   )) {
     const metadata = read(file).match(/^---\r?\n([\s\S]+?)\r?\n---/)?.[1] ?? "";
+    const description = metadata.match(/^description:[ \t]*(.*)$/m)?.[1]?.trim() ?? "";
+    const isBlock = /^[>|][-+]?$/.test(description);
+    const blockContent = metadata
+      .match(/^description:[ \t]*[>|][-+]?[ \t]*\r?\n((?:[ \t]+[^\r\n]*(?:\r?\n|$))+)/m)?.[1]
+      ?.trim();
     if (
       !/^name: [a-z0-9]+(?:-[a-z0-9]+)*\s*$/m.test(metadata) ||
-      !/^description: \S.+$/m.test(metadata)
+      !(isBlock ? blockContent : description && description !== "''" && description !== '""')
     )
       report(file, "invalid Skill metadata");
     const link = relative(join(root, "docs"), file).replaceAll("\\", "/");

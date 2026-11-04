@@ -10,6 +10,7 @@
 - 建立 [AGENTS](../AGENTS.md)、[需求](REQUIREMENTS.md)、[架构](ARCHITECTURE.md)、[SDD](SDD.md)、[代码地图](CODEBASE_MAP.md)、[Skills 索引](SKILLS.md)、[Harness](HARNESS.md)。
 - 对本机旧版只读审查，记录在 [LEGACY_REVIEW](LEGACY_REVIEW.md)，没有复制或修改旧项目。
 - 新增文档检查与检查器回归测试，接入 ready；未新增生产依赖。
+- 用户安装 23 个 Skills，索引已更新；补齐 Bug/功能/工程任务 Issue Forms、PR 模板与贡献指南。新提交采用 `type(scope): emoji description`，不改写已有历史。
 
 ## 验证状态
 

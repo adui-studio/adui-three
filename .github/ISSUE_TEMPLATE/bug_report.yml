@@ -1,0 +1,51 @@
+name: "🐛 Bug 报告"
+description: "报告可复现的功能、类型、构建或文档问题"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请先搜索已有 Issue。当前 @adui/three 主包尚未创建，可用仓库提交号定位问题。
+  - type: textarea
+    id: summary
+    attributes:
+      label: 问题描述
+      description: 描述具体触发条件和影响。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤或最小示例
+      description: 提供可访问的复现仓库、代码或逐步操作；模型问题请用可公开的最小资产。
+      placeholder: |
+        1. 执行命令或创建场景……
+        2. 操作……
+        3. 观察……
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: 预期与实际行为
+      placeholder: |
+        预期：
+        实际：
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 版本与运行环境
+      description: 填写适用信息；尚未发布的包使用提交号，不适用的项目写明不适用。
+      placeholder: |
+        仓库提交号 / 包版本：
+        Three.js / Node.js / pnpm：
+        操作系统 / 浏览器：
+        渲染问题补充 GPU、WebGL/WebGPU、视口和模型规模：
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 日志、截图及关联事项
+      description: 附相关错误、画面、需求编号或已有 Issue；日志中移除凭据与私有资产地址。

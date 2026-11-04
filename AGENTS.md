@@ -10,6 +10,7 @@
 - [旧版审查](docs/LEGACY_REVIEW.md)：来源、复用线索和风险。
 - [Skills](docs/SKILLS.md) / [Harness](docs/HARNESS.md)：工作流与真实命令。
 - [ADR](docs/adr/0001-package-boundaries.md)：主包名称和边界方案。
+- [贡献指南](CONTRIBUTING.md)：Issue/PR 模板及 emoji 提交规范。
 
 ## 工作流程与约束
 
@@ -23,9 +24,10 @@
 8. 根据 [Harness](docs/HARNESS.md) 运行适用检查；报告真实结果、失败与限制。GPU 行为不能用构建成功代替验收。
 9. 同步规则：需求改 REQUIREMENTS，接口改 SDD，边界改 ARCHITECTURE/ADR，阶段改 PROJECT_CONTEXT，重要目录改 CODEBASE_MAP，流程改 SKILLS/HARNESS。
 10. 文档变化执行 `pnpm run docs:test` 和 `pnpm run docs:check`；代码变化另运行 `pnpm run ready`。交付说明改动、原因、验证、未决事项。
+11. Git commit、PR 标题和 squash 消息采用 `type(scope): emoji description`，如 `feat(core): ✨ add scene lifecycle`；每条描述以一个匹配意图的 Unicode gitmoji 开头，详情见贡献指南。不改写已有提交。
 
 ## Skills 与维护
 
-按 [Skills 索引](docs/SKILLS.md) 按需发现、加载技能；不假设会话提供的全局技能已安装到仓库，不自动安装第三方技能。当前无项目自有 Skill。
+按 [Skills 索引](docs/SKILLS.md) 按需发现、加载 `.agents/skills` 中用户安装的技能；不假设会话提供的全局技能已安装到仓库，不自动安装第三方技能。提交任务用 git-commit 执行，gitmoji 辅助消息；Issue 任务沿用仓库模板并先查重。技能里的自动执行描述不扩大用户授权，实际工具以环境提供的为准。当前无项目自研 Skill。
 
 更新时机：协作规则、约束、导航或开发流程变化时更新本文件；不在这里复制具体模块设计。
