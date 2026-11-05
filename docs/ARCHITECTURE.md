@@ -61,6 +61,8 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 ## 关键取舍
 
+loaders 的 cloneGLTF 显式创建默认场景实例；内部将局部节点/骨骼与共享资产快照分离，源模型/实例各持租约，最后一个使用者才清共享 GPU 和图像。动画入口仅按类型接受模型或实例；不导入 loader 实现、不创建 URL 缓存或自动播放，见 [ADR-0018](adr/0018-gltf-instances.md)。
+
 environment 是独立可选入口，下载/解码后的 HDR 资产由宿主拥有，场景绑定借用资产并同时登记两方清理。加载不改变场景；应用决定请求版本及绑定/绘制时机。复用 renderer 自动环境转换，不反向导入 website 或重复生成 PMREM，见 [ADR-0012](adr/0012-hdr-environment.md)。
 
 - 保留现有 Monorepo 与工具链；公共能力先在主包中按职责组织，出现独立复用需求再拆包。

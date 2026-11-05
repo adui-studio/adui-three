@@ -163,6 +163,8 @@ if (animations.clips.length) animations.play(0);
 
 演示的“加载动画样例”提供原创 Lift / Slide 两个片段。加载不会自动播放；动画跟随宿主启停，控制器暂停与宿主暂停可分别操作。`animations.seek(seconds)` 精确定位后暂停，演示时间轴支持姿态检查。`crossFadeTo` 支持可中断渐变切换，沿用宿主时钟。
 
+`cloneGLTF(app, model)` 从已加载模型创建独立实例，也可指定另一个宿主；节点、骨骼和动画数据独立，几何体/材质/纹理由租约共享到最后一个使用者结束。演示提供“创建实例”和“复制到另一场景”，用于检查源模型移除后的持续使用；完整所有权边界见[主包 API](packages/three/README.md#复用模型资产)。
+
 ## 开发
 
 | 命令                       | 用途                                       |
@@ -181,7 +183,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 254 项主包单元测试和 50 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
+当前有 268 项主包单元测试和 53 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
 
 ## 项目结构
 

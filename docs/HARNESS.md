@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 254 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 268 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 50 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 53 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 模型实例阶段：ready 通过 13 项文档检查器测试、268 项主包单测、121 文件格式及 70 源文件 Lint/类型检查，十入口与演示构建成功。新增 14 项真实对象/Mixer 测试验证独立骨骼/morph/实例矩阵/轨道、UUID 重绑、跨宿主与租约清理、借用边界和同步失效回滚。首轮静态检查发现 nullable morph data 和旧声明入口，分别显式保留 null、先构建新声明后验证；原生 Source 弃用提示改用 r187 TextureSource，最终无静态警告。
+
+三项新增浏览器用例单独 3/3 通过（约 7.7 秒），完整 53/53 通过（约 81.9 秒），零重试；实际像素、源 renderer 销毁后另一宿主的独立动画/纹理、同宿主几何/纹理 GPU 共享、三轮 buffer/texture/位图回基线均验证，截图已目视检查。test:package 首次因运行时导出白名单尚未列 cloneGLTF 失败，补齐精确名单及核心隔离断言后十入口真实安装与四次严格消费编译通过，失败临时目录按设计保留。没有新资产、依赖、CI 或 npm 发布；骨骼/morph 此轮为原生数值验收，完整 GPU 变形矩阵仍待补充。
 
 2026-11-05 动画渐变阶段：ready 通过 13 项文档检查器测试、254 项主包单测、116 文件格式与 66 源文件 Lint/类型检查，十入口和演示构建成功。新增 14 项真实 Mixer 测试覆盖线性姿态/权重、中断切回、暂停/时钟、短一次播放、非法输入、事件队列、清理失败继续及 30 次快速改选后的有界动作集合。十入口 tarball 独立安装、无 DOM 导入与四次严格声明/消费编译通过。
 

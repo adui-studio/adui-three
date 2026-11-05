@@ -6,9 +6,13 @@ import type { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 import type { ThreeApp } from "./three-app.ts";
 import { collectGLTFResources } from "./gltf-resources.ts";
+import { gltfAssets, SharedGLTFAssets } from "./gltf-assets.ts";
 import { ResourceScope } from "./resources.ts";
 import { TaskKTX2Loader } from "./ktx2-task.ts";
 import type { TranscoderPath } from "./ktx2-task.ts";
+
+export { cloneGLTF } from "./gltf-clone.ts";
+export type { CloneGLTFOptions, GLTFInstance } from "./gltf-clone.ts";
 
 export interface ModelProgress {
   /** Bytes of the primary GLTF/GLB request, not total dependency/decode progress. */
@@ -62,7 +66,9 @@ function aborted(): DOMException {
 }
 
 function modelHandle(app: ThreeApp, gltf: GLTF, closeImages: boolean): GLTFModel {
-  const resources = collectGLTFResources(gltf, closeImages);
+  const snapshot = collectGLTFResources(gltf, closeImages);
+  const assets = new SharedGLTFAssets(snapshot.assets);
+  const lease = assets.acquire();
   const extensions = new ResourceScope();
   const roots = new Set([gltf.scene, ...gltf.scenes]);
   let disposed = false;
@@ -76,6 +82,7 @@ function modelHandle(app: ThreeApp, gltf: GLTF, closeImages: boolean): GLTFModel
     dispose(): void {
       if (disposed) return;
       disposed = true;
+      gltfAssets.delete(model);
       app.resources.untrack(model);
       const errors: unknown[] = [];
       try {
@@ -91,13 +98,19 @@ function modelHandle(app: ThreeApp, gltf: GLTF, closeImages: boolean): GLTFModel
         }
       }
       try {
-        resources.dispose();
+        snapshot.objects.dispose();
+      } catch (error) {
+        errors.push(error);
+      }
+      try {
+        lease.dispose();
       } catch (error) {
         errors.push(error);
       }
       if (errors.length) throw new AggregateError(errors, "GLTF model cleanup failed");
     },
   };
+  gltfAssets.set(model, assets);
   return model;
 }
 

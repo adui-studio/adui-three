@@ -69,6 +69,10 @@ test:package → 主包 build → 系统临时目录中 pack/install → Node �
 
 扩展包、后端服务与项目自研 Skill 尚未创建，不为空设想预建目录。用户明确不做任何 CI，不创建 workflow 或调整 Actions 设置。
 
+## 模型实例
+
+模型实例由 [gltf-clone.ts](../packages/three/src/gltf-clone.ts) 复制树/片段、重绑 UUID 并管理局部清理；[gltf-assets.ts](../packages/three/src/gltf-assets.ts) 保存内部弱引用登记和共享资产租约。loaders 公开导出，animation 接受实例。[原生实例测试](../packages/three/tests/gltf-clone.test.ts) 覆盖骨骼/morph/错误/所有权，[浏览器实例回归](../tests/browser/gltf-clone.spec.ts) 验证实际 GPU、跨宿主和反复释放。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

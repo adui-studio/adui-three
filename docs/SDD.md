@@ -66,15 +66,25 @@ running 是用户运行意图；文档隐藏或容器零尺寸时暂停 RAF 但�
 
 [loaders.ts](../packages/three/src/loaders.ts) 为独立公开子入口，导出 `loadGLTF(app, url, options?): Promise<GLTFModel>`、LoadGLTFOptions、GLTFModel、ModelProgress。返回原生 scene/gltf、disposed 和 dispose；默认挂载，可 addToScene=false，保留原始材质、尺寸与坐标，不启动 Mixer。
 
-模型另有只读 resources 扩展 ResourceScope：模型 dispose 标记结束后先调用它，再 detach 并释放原始资源快照；扩展失败仍继续清资产，聚合错误。单独释放扩展 scope 不等于移除模型，也不影响已拍摄快照的归属。动画登记于此，loader 不导入动画实现。
+模型另有只读 resources 扩展 ResourceScope：模型 dispose 标记结束后先调用它，再 detach、清局部节点/骨骼并释放共享资产租约；扩展失败仍继续清理，聚合错误。单独释放扩展 scope 不等于移除模型，也不影响已拍摄快照的归属。动画登记于此，loader 不导入动画实现。
 
 流程：校验 URL 与预取消状态 → 创建独立 manager/loader → 登记 pending 清理句柄与取消监听 → 原生 loadAsync → [资源快照](../packages/three/src/gltf-resources.ts) → 若已终止则释放迟到模型 → 登记模型句柄 → 可选加入场景 → 再次检查宿主是否被同步挂载事件销毁 → 清监听和 pending → resolve。普通失败保持原始错误；signal、宿主或 scope 结束立即 reject AbortError。
 
 不调用 manager.abort：r187 FileLoader 按 URL 全局合并请求，运输中止可能连带其他任务。取消是逻辑取消；底层网络/解码可继续，但迟到成功会释放而不挂载，迟到失败有拒绝处理器。完成后 signal 不再影响模型；app.resources 接管模型，手动或宿主释放均幂等。
 
-资源在交给调用方之前拍摄快照，遍历全部返回 scenes，收集自有节点、geometry、material、texture、skeleton 并去重。之后加入的外部子对象/新材质不被接管。纹理释放后才 close 自有图像 backing；加载开始/完成或释放时 Cache 启用则保留图像，外部共享者可设 closeImageBitmaps=false；不更改全局 Cache，调用方不要在任务期间反复切换它。多个模型共享原生资源的克隆需外部协调生命周期。
+资源在交给调用方之前拍摄快照，遍历全部返回 scenes，收集自有节点、geometry、material、texture、skeleton 并去重。之后加入的外部子对象/新材质不被接管。纹理释放后才 close 自有图像 backing；加载开始/完成或释放时 Cache 启用则保留图像，外部共享者可设 closeImageBitmaps=false；不更改全局 Cache，调用方不要在任务期间反复切换它。cloneGLTF 创建的实例由下述租约协调，绕过它的原生克隆仍需外部协调生命周期。
 
 onProgress 仅代表主文件 bytes；total/ratio 在未知时为 null，不把下载 100% 等同全部依赖/解码完成。回调异常仅拒绝该任务，避免抛入合并请求的进度循环。晚到清理错误通过 onCleanupError 报告，未设置时 console.error；清理仍尝试所有资源。原生解析失败而未返回的局部资源不在快照内，不宣称完整回收；当前不注入通用 loader/插件，不创建共享模型缓存。
+
+## 模型实例契约
+
+loaders 另导出 cloneGLTF(app,source,options):GLTFInstance、CloneGLTFOptions、GLTFInstance。source 为本库仍存活的 GLTFModel/GLTFInstance，默认 addToScene=true；false 仍由目标宿主拥有。同步复制当前默认 scene，返回 scene、独立 animations、扩展 resources、disposed/dispose，不复制 GLTF parser、其他 scenes、外部监听或扩展 scope。
+
+使用原生 SkeletonUtils.clone，拒绝树外骨骼，独立 inverse 矩阵和实例 morph 数据；片段/轨道数据复制，UUID 节点绑定改写，命名路径沿用原生规则。attachGLTFAnimations 接收两种句柄，仍只订阅目标宿主并双范围清理，不自动播放/绘制/启动。节点/骨骼数值独立，共享材质属性动画不承诺独立，自定义 clone/插件兼容性待验证。
+
+原加载快照拆成局部节点/骨骼 scope 与共享资产 scope；内部弱引用登记只接受真实句柄，无 URL 缓存。原模型/实例各持幂等租约：先清各自扩展和节点，再释放租约，最后一个使用者释放整份原始 geometry/material/texture/image 快照（包括其他原始 scenes 的资产）。源结束不影响存活实例；原句柄不能再克隆，存活实例可继续克隆。借用的后加资源仍由外部管理；共享资产不可提前手动释放，修改仍影响其他使用者。
+
+克隆前和原生操作后检查所有者，挂载时同步失效则回滚自有节点、骨骼、登记和租约；失败继续清理并聚合，不回滚原生自定义副作用。详细取舍见 [ADR-0018](adr/0018-gltf-instances.md)。
 
 ## 压缩解码契约
 
@@ -104,7 +114,7 @@ fitObject 在宿主/scope 存活和非零视口时即时应用；默认 adjustCl
 
 ## 模型动画契约
 
-[animation.ts](../packages/three/src/animation.ts) 导出 attachGLTFAnimations、GLTFAnimationsHandle、PlayAnimationOptions、AnimationState。接收已加载模型，片段引用拍只读数组快照；一个根对象只允许一个活动句柄，同时登记宿主和模型 scopes，任一结束都取消更新并清理自有 Mixer，不释放借用资产。
+[animation.ts](../packages/three/src/animation.ts) 导出 attachGLTFAnimations、GLTFAnimationsHandle、PlayAnimationOptions、CrossFadeOptions、AnimationState。接收已加载模型或实例，片段引用拍只读数组快照；一个根对象只允许一个活动句柄，同时登记宿主和模型 scopes，任一结束都取消更新并清理自有 Mixer，不释放借用资产。
 
 初始 idle，无自动播放/宿主启动。play 接受合法索引或唯一精确名称，校验正有限 duration、原生 clip.validate、repeat/once 和正有限速度后才替换旧 action；立即采样零时刻。切换或重播停止旧 action，reset 当前片段，设置 weight/timeScale/loop/clamp 并 play。暂停跳过采样但保留速率配置；resume 只恢复 paused；finished 不再推进，play 可重播。stop 停止 action、恢复原生绑定属性并清空选择和时间。销毁后控制方法抛错，stop/dispose 幂等。
 
@@ -249,6 +259,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-027  | 模型动画契约                      | animation.ts、演示时间轴                         | 精确采样/状态/队列单测、真实姿态与端点回归        |
 | FR-028  | 独立图片纹理契约                  | ktx2-texture.ts、TaskKTX2Loader、演示            | 原生资产/取消单测、真实转码与 RGBA/Worker 回归    |
 | FR-029  | 模型动画契约                      | animation.ts、演示渐变切换                       | 真实混合/中断/清理单测、GLB 连续姿态/双实例回归   |
+| FR-030  | 模型实例契约                      | gltf-clone.ts、gltf-assets.ts、资源快照与演示    | 原生骨骼/morph/租约单测、GPU/跨宿主/包消费回归    |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                      |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器               |
 

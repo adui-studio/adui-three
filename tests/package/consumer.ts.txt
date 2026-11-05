@@ -2,8 +2,8 @@ import { loadTexture, loadKTX2 } from "@adui/three/textures";
 import { loadHDR, attachEnvironment } from "@adui/three/environment";
 import { ResourceScope, ThreeApp } from "@adui/three";
 import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
-import { loadGLTF } from "@adui/three/loaders";
-import type { GLTFModel, LoadGLTFOptions } from "@adui/three/loaders";
+import { cloneGLTF, loadGLTF } from "@adui/three/loaders";
+import type { GLTFInstance, GLTFModel, LoadGLTFOptions } from "@adui/three/loaders";
 import { attachPicking } from "@adui/three/interaction";
 import { attachDOMLabels } from "@adui/three/labels";
 import { attachGLTFAnimations } from "@adui/three/animation";
@@ -27,6 +27,11 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   gizmo.dispose();
   const options: LoadGLTFOptions = { signal: app.signal, addToScene: false };
   const loaded: GLTFModel = await loadGLTF(app, "/sample.glb", options);
+  const instance: GLTFInstance = cloneGLTF(app, loaded, { addToScene: false });
+  const clonedAnimations = attachGLTFAnimations(app, instance);
+  if (clonedAnimations.clips.length) clonedAnimations.play(0);
+  instance.resources.track({ dispose: () => console.log("实例结束") });
+  instance.dispose();
   const picking = attachPicking(app, { objects: () => [loaded.scene] });
   picking.on("click", ({ intersection }) => {
     intersection?.object.position.set(0, 0, 0);

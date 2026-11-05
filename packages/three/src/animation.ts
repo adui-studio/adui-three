@@ -1,6 +1,6 @@
 import { AnimationMixer, LoopOnce, LoopRepeat, NormalAnimationBlendMode } from "three";
 import type { AnimationAction, AnimationClip, Object3D } from "three";
-import type { GLTFModel } from "./loaders.ts";
+import type { GLTFInstance, GLTFModel } from "./loaders.ts";
 import type { ThreeApp } from "./three-app.ts";
 
 export type AnimationState = "idle" | "playing" | "paused" | "finished" | "disposed";
@@ -45,7 +45,10 @@ export interface GLTFAnimationsHandle {
 const roots = new WeakSet<Object3D>();
 
 /** One owned mixer for a GLTF model, driven exclusively by the host's update phase. */
-export function attachGLTFAnimations(app: ThreeApp, model: GLTFModel): GLTFAnimationsHandle {
+export function attachGLTFAnimations(
+  app: ThreeApp,
+  model: GLTFModel | GLTFInstance,
+): GLTFAnimationsHandle {
   const assertOwners = (): void => {
     if (app.state === "disposed" || app.resources.disposed)
       throw new Error("ThreeApp has been disposed");
@@ -54,7 +57,9 @@ export function attachGLTFAnimations(app: ThreeApp, model: GLTFModel): GLTFAnima
   assertOwners();
   const root = model.scene;
   if (roots.has(root)) throw new Error("An animation handle already owns this root");
-  const clips = Object.freeze([...model.gltf.animations]);
+  const clips = Object.freeze([
+    ...("animations" in model ? model.animations : model.gltf.animations),
+  ]);
   const mixer = new AnimationMixer(root);
   let state: AnimationState = "idle";
   let action: AnimationAction | null = null;

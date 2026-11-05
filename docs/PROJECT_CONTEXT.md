@@ -2,7 +2,7 @@
 
 ## 目标与当前阶段
 
-更新日期：2026-11-05。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。主包与双实例原生 TS 演示已实现，当前阶段完成渲染管线、后处理、HDR 环境、变换手柄、独立图片纹理和动画定位，并加固尺寸失败重试；独立二维 KTX2 已以 30aa843 推送；动画渐变切换完成本地验收。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
+更新日期：2026-11-05。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。主包与双实例原生 TS 演示已实现，当前阶段完成渲染管线、后处理、HDR 环境、变换手柄、独立图片纹理和动画定位，并加固尺寸失败重试；独立二维 KTX2 已以 30aa843 推送，动画渐变已以 7600f83 推送；当前推进显式模型实例。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
 
 用户授权持续封装、分步提交推送；提交描述和正文使用中文，格式 type(scope): emoji 中文描述。不得改写已有提交或擅自发布 npm。用户明确“不做任何 CI”：不新增/启用工作流，不调整组织或仓库 Actions 设置。历史工作流已由 e6ea2c2 移除，保留当时的本地输入回归修复。
 
@@ -12,7 +12,7 @@
 - ESM/ES2022 与声明；Three.js 和 @types/three 开发基准 0.187.0，peer >=0.187.0 <0.188.0。Three.js/addons 外部化，development 指向随包 src。
 - 核心 ThreeApp、ResourceScope：单 RAF、启停/隐藏/零尺寸、DPR、显式所有权、异步 signal、独占借用 RenderPipeline 与单次 render。原生缓冲/投影和管线尺寸失败分别保留待重试状态；尺寸处理中拒绝递归绘制/resize/重挂接。
 - controls：OrbitControls；TransformControls 负责 helper/初始 GPU 快照，借用模型与轨道控制，拖拽/取消按值恢复配置，无第二循环。
-- loaders：GLTF/GLB 逻辑取消、迟到清理、模型资源快照/扩展 scope，显式 Draco/Meshopt/KTX2。任务自有解码器，运输可能继续，运行资源本地托管。
+- loaders：GLTF/GLB 逻辑取消、迟到清理、模型资源快照/扩展 scope，显式 Draco/Meshopt/KTX2。cloneGLTF 复制默认树与独立动画数据，共享资产租约到最后一个使用者结束。任务自有解码器，运输可能继续，运行资源本地托管。
 - interaction / labels：原生 Raycaster 点击/悬停、动态目标及事件清理；DOM 标签在完成阶段投影，明确元素和模型借用边界。
 - animation：单 Mixer、片段播放/暂停/恢复/停止、原生事件队列和双范围清理，seek 按秒定位后暂停；crossFadeTo 根据当前权重渐变到目标，支持中断、暂停和清理。
 - camera：世界边界即时取景和宿主 delta 驱动过渡，校验视锥/控件限制，支持输入、替换、尺寸、移除等取消。
@@ -24,7 +24,7 @@
 
 ## 验证状态
 
-当前 ready 通过：13 项文档检查器测试、254 项主包单测、格式/Lint/类型及全部构建。test:package 的十入口 tarball 独立安装、无 DOM/禁止网络导入、development 解析和四次严格声明/消费编译通过。本轮真实浏览器 50/50 通过，零重试；详细结果和边界见 [Harness](HARNESS.md)。
+当前 ready 通过：13 项文档检查器测试、268 项主包单测、格式/Lint/类型及全部构建。test:package 的十入口 tarball 独立安装、无 DOM/禁止网络导入、development 解析和四次严格声明/消费编译通过。本轮真实浏览器 53/53 通过，零重试；详细结果和边界见 [Harness](HARNESS.md)。
 
 浏览器环境是 Chromium/SwiftShader，单 worker、零自动重试；完整设备/格式/浏览器矩阵、长期 GPU 泄漏和性能基准尚未完成。保留 TypeScript 7 API 实验性和演示大 chunk 构建提示，不将本地通过称为远端 CI 通过。失败诊断、历史统计和阶段未提交记录统一保留在 Harness，不在接手入口复制过期状态。
 
@@ -44,7 +44,7 @@
 
 ## 接手与后续边界
 
-先读 [AGENTS](../AGENTS.md)、需求、SDD、[架构](ARCHITECTURE.md)、[代码地图](CODEBASE_MAP.md) 和 [Harness](HARNESS.md)。修改范围对应需求编号；API/所有权边界见 ADR-0002 至 ADR-0017，ADR-0001 保留历史 Proposed 提案。Skills 按 [索引](SKILLS.md) 加载，不自动安装或扩大远程授权。
+先读 [AGENTS](../AGENTS.md)、需求、SDD、[架构](ARCHITECTURE.md)、[代码地图](CODEBASE_MAP.md) 和 [Harness](HARNESS.md)。修改范围对应需求编号；API/所有权边界见 ADR-0002 至 ADR-0018，ADR-0001 保留历史 Proposed 提案。Skills 按 [索引](SKILLS.md) 加载，不自动安装或扩大远程授权。
 
 下一步按真实需求选择更高层动画状态/重定向、正交相机或其他能力；这些仍未实现，不预建空包。共享解码器服务、浏览器范围、更多 Three.js minor、WebGPU/WebXR、框架适配和 npm 发布权限仍待专门评估。后续代码检查 ready，影响宿主/渲染/演示执行 test:browser，导出/打包变化执行 test:package，文档执行 docs:test/docs:check。
 

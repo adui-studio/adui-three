@@ -95,6 +95,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 动画渐变阶段继续复用 threejs-animation，核验 r187 setEffectiveWeight、原生动作停用/绑定恢复及 Mixer 活动数组。对可中断交接使用当前权重快照，不重启既有目标相位；所有 action 停用等 native update 返回，复用同一宿主时钟与延期清理，不创建第二循环。
 
+模型实例阶段继续复用 threejs-loaders，核验 r187 SkeletonUtils.clone、Skeleton.clone、KeyframeTrack.clone、TextureSource 与 renderer 释放行为。原生克隆的 geometry/material/texture 保持共享，骨骼 inverse 和实例 morph 数据另复制；明确租约和独立动画，不把 Skill 的直接 clone 示例当作完整生命周期方案。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

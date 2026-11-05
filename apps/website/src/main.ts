@@ -15,8 +15,8 @@ import type { GLTFAnimationsHandle } from "@adui/three/animation";
 import { attachPicking } from "@adui/three/interaction";
 import { attachDOMLabels } from "@adui/three/labels";
 import type { DOMLabelHandle, DOMLabelsHandle } from "@adui/three/labels";
-import { loadGLTF } from "@adui/three/loaders";
-import type { GLTFModel } from "@adui/three/loaders";
+import { cloneGLTF, loadGLTF } from "@adui/three/loaders";
+import type { GLTFInstance, GLTFModel } from "@adui/three/loaders";
 import type { LoadGLTFOptions } from "@adui/three/loaders";
 import dracoJS from "three/addons/libs/draco/gltf/draco_wasm_wrapper.js?url";
 import dracoWasm from "three/addons/libs/draco/gltf/draco_decoder.wasm?url";
@@ -47,6 +47,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   </div>`;
 
 const teardown: Array<() => void> = [];
+const panels = new Map<string, { copy(source: GLTFModel): void; available(): boolean }>();
 
 function mountPanel(id: string, color: number): void {
   const card = document.createElement("article");
@@ -68,6 +69,8 @@ function mountPanel(id: string, color: number): void {
     <p class="camera-feedback" role="status">占位物体纹理：<span data-testid="texture-state">idle</span> · 原创方向图 / 棋盘图</p>
     <div class="model-actions"><button data-action="glb">加载 GLB</button><button data-action="gltf">加载 GLTF</button><button data-action="draco">加载 Draco</button><button data-action="meshopt">加载 Meshopt</button><button data-action="ktx2">加载 KTX2</button><button data-action="ktx2-glb">KTX2 GLB</button><button data-action="decoder-error">缺少解码器</button><button data-action="ktx2-error">缺少转码器</button><button data-action="cancel-model">取消加载</button><button data-action="remove-model">移除模型</button><button data-action="invalid-model">失败示例</button></div>
     <p class="model-feedback" role="status">模型未加载 · 使用项目原创的内嵌纹理样例</p>
+    <div class="model-actions"><button data-action="clone-model">创建实例</button><button data-action="clone-peer">复制到另一场景</button><button data-action="clone-play">播放实例</button><button data-action="clone-pause">暂停实例</button><button data-action="remove-clone">移除实例</button></div>
+    <p class="camera-feedback" role="status">实例：<span data-testid="clone-state">idle</span> · <span data-testid="clone-time">0.000</span> s · 共享几何体与材质</p>
     <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-fade">渐变切换</button><button data-action="animation-once">单次播放</button><button data-action="animation-stop">停止动画</button></div>
     <p class="animation-feedback" role="status">动画：<span data-testid="animation-state">idle</span> · <span data-testid="animation-clip">—</span> · <span data-testid="animation-time">0.000</span> s · 渐变 <span data-testid="animation-blend-progress">0</span>%</p>
     <label class="animation-timeline">定位<input type="range" min="0" max="100" step="1" value="0" data-action="animation-seek" aria-label="动画定位"><span data-testid="animation-progress">0</span>%</label>
@@ -84,6 +87,9 @@ function mountPanel(id: string, color: number): void {
   let zero = false;
   let placeholder: Mesh | undefined;
   let model: GLTFModel | undefined;
+  let instance: GLTFInstance | undefined;
+  let instanceAnimation: GLTFAnimationsHandle | undefined;
+  let instanceLabel: DOMLabelHandle | undefined;
   let request: AbortController | undefined;
   let modelVersion = 0;
   let modelState: "idle" | "loading" | "loaded" | "cancelled" | "error" = "idle";
@@ -265,6 +271,19 @@ function mountPanel(id: string, color: number): void {
       button(action).disabled = !app || state === "disposed";
     button("cancel-model").disabled = modelState !== "loading";
     button("remove-model").disabled = !model;
+    const hasInstance = !!instance && !instance.disposed;
+    card.dataset.cloneState = hasInstance ? "ready" : "idle";
+    card.querySelector('[data-testid="clone-state"]')!.textContent = hasInstance
+      ? (instanceAnimation?.state ?? "ready")
+      : "idle";
+    card.querySelector('[data-testid="clone-time"]')!.textContent = (
+      instanceAnimation?.action?.time ?? 0
+    ).toFixed(3);
+    button("clone-model").disabled = !model || hasInstance;
+    button("clone-peer").disabled = !model || !panels.get(id === "A" ? "B" : "A")?.available();
+    button("remove-clone").disabled = !hasInstance;
+    button("clone-play").disabled = !hasInstance || !instanceAnimation?.clips.length;
+    button("clone-pause").disabled = instanceAnimation?.state !== "playing";
     const animationState = animation?.state ?? "idle";
     card.dataset.animationState = animationState;
     card.querySelector('[data-testid="animation-state"]')!.textContent = animationState;
@@ -312,10 +331,40 @@ function mountPanel(id: string, color: number): void {
     model = undefined;
     modelState = "idle";
     modelMessage = "模型未加载 · 使用项目原创的内嵌纹理样例";
-    if (placeholder) placeholder.visible = true;
+    if (placeholder) placeholder.visible = !instance || instance.disposed;
     previous?.dispose();
     if (labels && !labels.disposed) labels.update();
   }
+
+  function clearInstance(): void {
+    clearPicking();
+    instanceAnimation?.dispose();
+    instanceAnimation = undefined;
+    instanceLabel?.dispose();
+    instanceLabel = undefined;
+    const previous = instance;
+    instance = undefined;
+    previous?.dispose();
+    if (placeholder) placeholder.visible = !model || model.disposed;
+  }
+
+  function copyInstance(source: GLTFModel): void {
+    if (!app || app.state === "disposed") throw new Error("场景不可用");
+    clearInstance();
+    instance = cloneGLTF(app, source);
+    instance.scene.position.x += 2.2;
+    if (instance.animations.length) instanceAnimation = attachGLTFAnimations(app, instance);
+    instanceLabel = addLabel(
+      instance.scene.children[0] ?? instance.scene,
+      `独立实例 · 场景 ${id}`,
+      [0, 2, 0],
+    );
+    if (placeholder) placeholder.visible = false;
+    if (app.state !== "running") app.render();
+    refresh();
+  }
+
+  panels.set(id, { copy: copyInstance, available: () => !!app && app.state !== "disposed" });
 
   function ensureEffects(): PostprocessingHandle {
     if (!app || app.state === "disposed") throw new Error("场景不可用");
@@ -519,6 +568,7 @@ function mountPanel(id: string, color: number): void {
       transform = undefined;
       clearEnvironment();
       clearTexture();
+      clearInstance();
       clearModel();
       errorOutput.hidden = true;
       app = new ThreeApp(viewport, { camera: { position: [4, 3, 5] }, maxPixelRatio: 2 });
@@ -580,7 +630,12 @@ function mountPanel(id: string, color: number): void {
       });
       markerLabel.visible = labelsVisible;
       const picking = attachPicking(app, {
-        objects: () => (model && !model.disposed ? [model.scene] : [mesh]),
+        objects: () => {
+          const roots = [];
+          if (model && !model.disposed) roots.push(model.scene);
+          if (instance && !instance.disposed) roots.push(instance.scene);
+          return roots.length ? roots : [mesh];
+        },
       });
       picking.on("hover", ({ intersection }) => {
         card.querySelector('[data-testid="hovered"]')!.textContent = intersection
@@ -631,6 +686,7 @@ function mountPanel(id: string, color: number): void {
       if (action === "render") app?.render();
       if (action === "dispose") {
         app?.dispose();
+        clearInstance();
         clearModel();
         clearEnvironment();
         clearTexture();
@@ -705,6 +761,14 @@ function mountPanel(id: string, color: number): void {
       if (action === "invalid-model") void requestModel("/models/invalid.gltf");
       if (action === "cancel-model") request?.abort();
       if (action === "remove-model") clearModel();
+      if (action === "clone-model" && model) copyInstance(model);
+      if (action === "clone-peer" && model) panels.get(id === "A" ? "B" : "A")?.copy(model);
+      if (action === "clone-play") instanceAnimation?.play(0);
+      if (action === "clone-pause") instanceAnimation?.pause();
+      if (action === "remove-clone") {
+        clearInstance();
+        if (app?.state !== "running") app?.render();
+      }
       if (action === "animated-model") void requestModel("/models/animated.glb");
       if (action === "animation-play") animation?.play(animationIndex);
       if (action === "animation-pause") animation?.pause();
@@ -784,7 +848,7 @@ function mountPanel(id: string, color: number): void {
       if (action === "cancel-transition") transition?.cancel();
       if (action === "labels") {
         labelsVisible = !labelsVisible;
-        for (const label of [placeholderLabel, markerLabel, modelLabel])
+        for (const label of [placeholderLabel, markerLabel, modelLabel, instanceLabel])
           if (label && !label.disposed) label.visible = labelsVisible;
         if (labels && !labels.disposed) labels.update();
         button("labels").setAttribute("aria-pressed", String(labelsVisible));
@@ -829,6 +893,7 @@ function mountPanel(id: string, color: number): void {
     card.removeEventListener("click", click);
     card.removeEventListener("input", seek);
     app?.dispose();
+    clearInstance();
     clearModel();
     clearEnvironment();
     clearTexture();

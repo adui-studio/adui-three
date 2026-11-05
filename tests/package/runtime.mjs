@@ -12,7 +12,7 @@ globalThis.fetch = () => {
 const expected = {
   "@adui/three": ["ResourceScope", "ThreeApp"],
   "@adui/three/controls": ["attachOrbitControls", "attachTransformControls"],
-  "@adui/three/loaders": ["loadGLTF"],
+  "@adui/three/loaders": ["loadGLTF", "cloneGLTF"],
   "@adui/three/interaction": ["attachPicking"],
   "@adui/three/labels": ["attachDOMLabels"],
   "@adui/three/animation": ["attachGLTFAnimations"],
@@ -55,7 +55,7 @@ if (!development) {
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");
   assert.ok(
-    !/GLTFLoader|OrbitControls|transitionToObject|computeObjectFrame|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture/.test(
+    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|computeObjectFrame|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture/.test(
       core,
     ),
   );

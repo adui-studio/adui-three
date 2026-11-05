@@ -95,7 +95,7 @@ detach(); // 恢复原生绘制，不释放 pipeline；资源由其所有者管�
 
 要求现代浏览器、WebGL 2、ResizeObserver、matchMedia；仅构造实例时访问 DOM，Node 下可安全导入包，SSR 不能构造 renderer。容器建议不设 padding；尺寸基于 clientWidth/clientHeight，CSS transform 不改变绘制分辨率。运行中的 DPR 变化通过媒体查询和 window resize 检测。自有 canvas 的样式和生命周期由宿主管理，不接管外部 canvas。
 
-`development` 条件导出指向随包包含的 src，便于 Vite 开发时 HMR；默认 import 导出指向 dist，类型来自 dist 声明。不提供 CJS、WebXR、WebGPU、共享模型缓存或框架适配。
+`development` 条件导出指向随包包含的 src，便于 Vite 开发时 HMR；默认 import 导出指向 dist，类型来自 dist 声明。不提供 CJS、WebXR、WebGPU、URL 模型缓存或框架适配；显式模型实例按下述租约共享资产。
 
 ## GLTF / GLB 加载
 
@@ -124,13 +124,34 @@ try {
 
 取消会立即拒绝 Promise 并阻止挂载，底层网络/解码可继续；迟到成功会被清理，迟到失败会被消费，不影响其他相同 URL 任务。任务在开始时登记进 app.resources，因此单独销毁该 scope 也会取消。正常完成后撤销取消监听，后续使用 `model.dispose()` 管理存活。
 
-模型句柄提供 scene、完整 gltf、resources、disposed 和幂等 dispose。resources 是模型扩展 ResourceScope；dispose 先标记模型结束，调用扩展清理，再 detach 并释放所有返回 scenes 的自有节点、geometry、material、texture 和 skeleton 快照。扩展失败仍继续释放资产，最终聚合错误。只销毁 model.resources 不会移除模型；可用于清理与模型绑定的动画或自定义句柄。快照不接管之后加入的外部对象或新材质；共享克隆的资源存活期由调用方协调。loadGLTF 本身不创建 Mixer，动画需显式接入下节子入口。
+模型句柄提供 scene、完整 gltf、resources、disposed 和幂等 dispose。resources 是模型扩展 ResourceScope；dispose 先标记模型结束，调用扩展清理，再 detach 并释放局部节点/骨骼与共享资产租约。无实例时立即释放全部原始资产；存在 cloneGLTF 实例时延后到最后一个使用者结束。扩展失败仍继续清理并聚合错误。只销毁 model.resources 不会移除模型；快照不接管之后加入的外部对象或新材质。loadGLTF 本身不创建 Mixer，动画需显式接入子入口。
 
 默认只对加载开始、完成和释放时都未启用 Three.js 全局 Cache 的图像 backing 执行 close；纹理本身仍 dispose。缓存图像归缓存所有者管理。若外部共享 ImageBitmap，设置 closeImageBitmaps=false；不要在进行中的加载间切换全局 Cache 开关。本库不修改 Cache 或 abort 共享的底层请求。
 
 清理失败继续释放其他资源并抛 AggregateError。若 Promise 已因取消/回调异常拒绝，迟到清理失败通过 onCleanupError(error) 报告；未传时写 console.error。原生解析失败中未返回的局部资源无法由本 API 完整回收；持有 disposed gltf 仍可保留 CPU 数据，应用应释放不再需要的引用。
 
 当前支持普通及显式配置 Draco/Meshopt/KTX2 的 glTF 2.0 / GLB；未接入外部插件/loader、自动居中或资产缓存。演示使用原创 PNG 与 KTX2 纹理样例，提供加载、取消、移除和失败反馈。
+
+### 复用模型资产
+
+```ts
+import { loadGLTF, cloneGLTF } from "@adui/three/loaders";
+import { attachGLTFAnimations } from "@adui/three/animation";
+
+const source = await loadGLTF(app, "/models/animated.glb");
+const instance = cloneGLTF(app, source); // 可传另一个 app；addToScene 默认 true。
+instance.scene.position.x += 3;
+const motion = attachGLTFAnimations(app, instance);
+if (motion.clips.length) motion.play(0);
+source.dispose(); // 实例继续拥有共享资产租约和自己的动画。
+// instance.dispose()；也会随它所属的 app 释放。
+```
+
+同步复制调用时的默认 scene/姿态，不下载、不复制 parser 或其他 scenes。返回 GLTFInstance 的 scene、独立 animations、resources、disposed/dispose；可从存活实例继续 cloneGLTF。源句柄结束后不可再使用它克隆。实例不复制源的 Mixer、扩展 scope 或外部事件，不会自动播放、绘制或启动宿主。
+
+节点、骨骼、inverse 矩阵、morph 权重、实例矩阵及轨道数据独立；UUID 轨道重绑到新节点，命名路径遵循原生语义。geometry/material/texture 按引用共享，改动会影响所有使用者，不能提前手动 dispose；共享材质属性动画不保证独立。所有骨骼须在被克隆树内，骨架重定向、插件和自定义 clone/copy 尚未承诺兼容。
+
+局部节点/骨骼在各自句柄结束时释放；共享资产（整份原加载快照，含其他原始 scenes 的资产）到最后一个使用者结束后释放。跨宿主实例不会随源宿主销毁；加载后新增/替换的借用资源继续由外部管理，并须保证全部实例使用期间存活。cloneGLTF 仅接受本库创建的存活句柄；手动 Object3D.clone 的资源生命周期仍需应用自行协调。
 
 ## 压缩模型
 

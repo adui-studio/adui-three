@@ -23,8 +23,12 @@ function closableImage(image: unknown): image is ClosableImage {
 }
 
 /** Snapshot decoded ownership before callers can attach borrowed objects or replace materials. */
-export function collectGLTFResources(gltf: GLTF, closeImages: boolean): ResourceScope {
+export function collectGLTFResources(
+  gltf: GLTF,
+  closeImages: boolean,
+): { assets: ResourceScope; objects: ResourceScope } {
   const resources = new ResourceScope();
+  const objects = new ResourceScope();
   const nodes = new Set<ModelNode>();
   const geometries = new Set<BufferGeometry>();
   const materials = new Set<Material>();
@@ -70,7 +74,7 @@ export function collectGLTFResources(gltf: GLTF, closeImages: boolean): Resource
   for (const texture of textures) resources.track(texture);
   for (const material of materials) resources.track(material);
   for (const geometry of geometries) resources.track(geometry);
-  for (const skeleton of skeletons) resources.track(skeleton);
-  for (const node of nodes) resources.track(node);
-  return resources;
+  for (const skeleton of skeletons) objects.track(skeleton);
+  for (const node of nodes) objects.track(node);
+  return { assets: resources, objects };
 }
