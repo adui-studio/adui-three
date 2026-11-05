@@ -123,6 +123,8 @@ fitObject(app, model.scene, { padding: 1.2 });
 
 这是即时取景，不会启动宿主或创建额外循环。演示的“适配视角”和“大模型”可验证不同尺寸目标，选项、裁剪面和控件限制见 [相机 API](packages/three/README.md#相机取景)。
 
+同一入口的 `transitionToObject(app, model.scene, { controls, duration: 0.8 })` 提供平滑取景，返回进度、状态、始终 resolve 的 finished 结果和 cancel/dispose。复用宿主帧循环，暂停时保留进度；新取景、拖拽/滚轮或销毁可打断。演示提供“平滑取景”“取消过渡”，完整边界见 [过渡 API](packages/three/README.md#相机平滑过渡)。
+
 ### 模型动画
 
 ```ts
@@ -153,7 +155,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 118 项主包单元测试和 24 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
+当前有 135 项主包单元测试和 27 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
 
 ## 项目结构
 

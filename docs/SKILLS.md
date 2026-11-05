@@ -59,6 +59,8 @@
 
 同日按用户要求使用 git-commit 与 gitmoji 分步提交既有成果，格式遵循贡献指南，未改写历史；随后相机阶段复用 threejs-fundamentals 与 threejs-interaction，核验 r187 的精确 Box3 路径、有效 FOV 和原生控件 update/限制。取景采用即时函数，不复制 Skill 的渲染循环或引入额外动画依赖。
 
+同日用户要求中文提交，使用 git-commit 执行两项中文提交并推送；继续过渡阶段复用 threejs-animation 的 delta 与 quaternion 插值思路，核验官方 Quaternion/Vector3/OrbitControls 及 r187 源码。保持单一宿主调度，不复制独立 RAF 或引入动画依赖。
+
 ## 发现与创建原则
 
 提交任务中，用户的中文描述/正文要求优先于第三方 Skill 的英文祈使语气示例；继续使用 git-commit 执行和 gitmoji 选意图，不改动导入的 Skill 原文。

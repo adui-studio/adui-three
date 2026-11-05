@@ -278,6 +278,29 @@ overlay 必须与 canvas 属于同一 document，设置 position 为 relative/ab
 
 默认包装节点 pointer-events:none，让指针进入下方画布；interactive=true 使用 auto，内容可用原生按钮、键盘及 DOM 事件。内容显式设置 pointer-events 可覆盖继承值，应用需协调 CSS；非交互内容不应包含可聚焦控件。库不代管光标、业务事件，也不阻止标签事件向 DOM 祖先冒泡。
 
+## 相机平滑过渡
+
+```ts
+import { transitionToObject } from "@adui/three/camera";
+
+const motion = transitionToObject(app, model.scene, {
+  controls, // 可选，当前相机的原生 OrbitControls
+  duration: 0.8, // 正有限秒数，默认 0.8
+});
+app.start(); // 由应用决定；库不会自动运行宿主。
+const result = await motion.finished;
+if (result.status === "failed") console.error(result.error);
+// motion.cancel(); 或 motion.dispose(); 幂等，不跳至终点。
+```
+
+选项继承 FitObjectOptions，另接受可选 AbortSignal signal，沿用即时取景的相机、边界与控件限制。目标是调用时快照，不跟随动画、变换或删除；模型移除时由应用取消，必要时可登记到 model.resources。duration 以宿主有效 delta 计时，固定 smoothstep；停止、隐藏或零尺寸期间暂停，恢复不补墙钟时间。无独立 RAF、render 或自动启停。
+
+句柄提供只读 state（running/completed/cancelled/failed）、progress（未经缓动的 0..1）及 finished。finished 始终 resolve：completed 含 frame，cancelled 无 frame，failed 含 error；同步非法输入仍抛错，且在打断旧过渡前校验。更新回调异常清理并 resolve failed 后仍向宿主抛出，使宿主停止；清理异常聚合到 failed 结果。已 abort 的 signal 返回 cancelled 句柄。句柄自动登记 app.resources，cancel/dispose 与宿主清理均解除订阅。
+
+无 controls 时插值位置及 quaternion；有 controls 时插值 target、轨道距离和最短方向旋转，原生角度限制继续生效。过渡期间 enabled、enableDamping、autoRotate 临时设 false，公开 update(0) 清惯性；结束仅恢复仍为 false 的属性，外部已改为 true 的值保留。不要同时安排其他相机写入者；在原生同步 change 事件中重入 fitObject/transitionToObject 会拒绝，可安全取消或销毁。
+
+同相机新过渡或有效 fitObject 会取消旧过渡。有 controls 时画布 pointerdown/wheel 捕获阶段取消，不阻止同一事件交给恢复后的控件。外部尺寸、投影、姿态、控件约束或可观察配置变化，在下一次有效更新取消；暂停期间不轮询。取消保留当前姿态；adjustClipping=true 会先扩展裁剪面，只有完成才收紧，取消保留扩展范围。false 保留原裁剪面并检查终点可见范围。路径不避障、不保证中途完整可见；不提供独立暂停、正交/父级相机或自定义缓动。
+
 ## 开发与验证
 
 根目录运行 `pnpm run dev` 打开双实例演示，`pnpm run ready` 执行静态检查、文档和单元测试及构建，`pnpm run test:browser` 验证构建后演示的实际 WebGL 行为。首次浏览器测试前运行 `pnpm exec playwright install chromium`。完整契约和验证范围见仓库 docs/SDD.md 与 docs/HARNESS.md；npm 安装包不包含仓库工程文档。

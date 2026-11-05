@@ -12,6 +12,7 @@
 - [ADR](docs/adr/0001-package-boundaries.md)：主包名称和边界方案。
 - [核心 MVP 决策](docs/adr/0002-core-mvp.md)：版本、生命周期与包导出。
 - [模型生命周期决策](docs/adr/0003-gltf-lifecycle.md)：逻辑取消、迟到清理与资源快照。
+- [相机过渡决策](docs/adr/0008-camera-transition.md)：宿主驱动插值、取消和控件配置恢复。
 - [动画生命周期决策](docs/adr/0004-animation-lifecycle.md)：模型扩展 scope、单 Mixer 与原生事件重入。
 - [压缩解码决策](docs/adr/0005-compressed-models.md)：显式解码配置、任务所有权和本地资产。
 - [KTX2 生命周期决策](docs/adr/0006-ktx2-lifecycle.md)：能力检测、输入隔离、在途转码与纹理清理。

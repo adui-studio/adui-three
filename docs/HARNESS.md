@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`        | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`       | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`        | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`  | 主包的 118 项单元测试                                              |
+| `pnpm exec vp run -r test`  | 主包的 135 项单元测试                                              |
 | `pnpm exec vp run -r build` | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`            | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`     | 构建演示并执行 24 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`     | 构建演示并执行 27 项真实 Chromium 多步骤回归                       |
 | `pnpm run fixtures:models`  | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
 
 首次浏览器回归需执行 `pnpm exec playwright install chromium`。测试使用 Playwright 1.64.1 / Chromium / SwiftShader，DPR=3 验证宿主上限 2；preview 使用 127.0.0.1:4173，端口需空闲，测试结束自动收尾。截图和失败 trace 位于忽略提交的 test-results。
@@ -53,6 +53,14 @@ pnpm install --frozen-lockfile
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 平滑取景阶段：ready 通过 13 项文档测试、135 项主包单测、82 文件格式及 43 源文件 Lint/类型检查；七入口 ESM/声明和演示构建成功。新增 17 项过渡单测覆盖宿主 delta/暂停、相反轨道方向、signal/输入/替换取消、重入、异常与清理继续执行。首轮 29/30 相机相关单测通过，外部尺寸变化用例暴露尺寸快照引用可变测试对象；改成独立数值快照后 30/30 通过。首次 ready 发现一个未使用的测试导入和快照遍历 Lint 提示，修正后通过。
+
+三项新增浏览器回归单独 3/3 通过（约 20.7 秒），覆盖暂停继续、实际渲染/标签、主动取消、即时取景/输入打断、替换、resize、模型移除和销毁重建/双实例。截图已目视检查。七个公开入口可在无 DOM/禁止网络 Node 环境导入；camera 无运行时 addon 导入，核心不包含取景实现。npm pack dry-run 成功，35 文件、约 48 KB 压缩体积，包含内部源码和 camera ESM/声明，无二进制，未发布。
+
+随后全量浏览器回归 27/27 通过（约 1.6 分钟），零重试，保留既有超时配置；原有模型、解码器、动画、拾取、标签、生命周期与移动端回归同时通过。补充内部函数显式返回类型时出现四条未绑定方法提示，标注 this:void 后最终 ready 再次通过。
+
+过渡仅承诺当前居中透视相机和调用时目标快照，无独立 RAF/render/自动启动，不避障或保证中途完整可见。取消保留当前位置和已扩展裁剪面，外部变化在下一次有效更新检测。保留现有 TypeScript 7 API 实验性及演示大 chunk 构建提示；完整硬件矩阵和长期性能仍待验证。
 
 2026-11-05 相机取景阶段：ready 通过 13 项文档测试、118 项主包单测、76 文件格式与 38 源文件 Lint/类型检查，七入口 ESM/声明及演示构建成功。真实数学/OrbitControls 单测覆盖世界变换、双轴 FOV/zoom、方向/尺度/数值边界、裁剪与控件限制、惯性消耗、重入和同步销毁。七个包公开入口在无 DOM/禁止网络的 Node 环境解析导入成功；camera 产物无运行时 addon 导入，核心入口不包含取景实现。npm pack dry-run 为 32 文件，包含 camera 的源码、ESM 和声明，无二进制；未发布。
 

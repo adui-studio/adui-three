@@ -48,7 +48,7 @@ flowchart TD
 
 截图中 `@adui/three-utils`、`@adui/three-effects`、`@adui/three-controls`、`@adui/three-gis`、`@adui/three-editor`、`@adui/three-vue`、`@adui/three-react` 仅记录为未来可能命名，不视为已批准拆包。
 
-camera 为无独立调度/资源的即时计算与应用入口，仅按类型借用 ThreeApp 和 OrbitControls；默认核心不依赖取景。应用选择目标、触发时机及暂停时的绘制策略。
+camera 提供即时规划/应用以及可取消平滑过渡，仅按类型借用 ThreeApp 和 OrbitControls；默认核心不依赖取景。过渡复用宿主更新并登记清理句柄，无独立调度；应用选择目标、触发时机及绘制/启停策略。内部模块共享相机写入锁和过渡弱引用登记，见 [ADR-0008](adr/0008-camera-transition.md)。
 
 ## 关键取舍
 

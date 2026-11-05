@@ -2,7 +2,8 @@ import "./style.css";
 import { ThreeApp } from "@adui/three";
 import { attachOrbitControls } from "@adui/three/controls";
 import type { OrbitControlsHandle } from "@adui/three/controls";
-import { fitObject } from "@adui/three/camera";
+import { fitObject, transitionToObject } from "@adui/three/camera";
+import type { CameraTransitionHandle } from "@adui/three/camera";
 import { attachGLTFAnimations } from "@adui/three/animation";
 import type { GLTFAnimationsHandle } from "@adui/three/animation";
 import { attachPicking } from "@adui/three/interaction";
@@ -48,7 +49,8 @@ function mountPanel(id: string, color: number): void {
     <div class="stage"><div class="viewport" aria-label="场景 ${id}，拖动旋转，滚轮缩放"><div class="label-overlay"></div></div><span class="stage-hint">拖动旋转 · 滚轮缩放</span><p class="error" role="alert" hidden></p></div>
     <div class="metrics"><div><span>UPDATES</span><strong data-testid="frames">0</strong></div><div><span>VIEWPORT</span><strong data-testid="size">—</strong></div><div><span>DPR</span><strong data-testid="dpr">—</strong></div><div><span>DRAW CALLS</span><strong data-testid="draw-calls">0</strong></div></div>
     <div class="actions"><button data-action="start" class="primary">运行</button><button data-action="stop">暂停</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建 ↻</button></div>
-    <div class="resize-actions"><button data-action="width" aria-pressed="false">收窄容器</button><button data-action="zero" aria-pressed="false">零高度</button><button data-action="labels" aria-pressed="true">显示标签</button><button data-action="fit">适配视角</button><button data-action="large-model" aria-pressed="false">大模型</button></div>
+    <div class="resize-actions"><button data-action="width" aria-pressed="false">收窄容器</button><button data-action="zero" aria-pressed="false">零高度</button><button data-action="labels" aria-pressed="true">显示标签</button><button data-action="fit">适配视角</button><button data-action="transition">平滑取景</button><button data-action="cancel-transition">取消过渡</button><button data-action="large-model" aria-pressed="false">大模型</button></div>
+    <p class="camera-feedback" role="status">取景过渡：<span data-testid="transition-state">idle</span> · <span data-testid="transition-progress">0</span>%</p>
     <div class="model-actions"><button data-action="glb">加载 GLB</button><button data-action="gltf">加载 GLTF</button><button data-action="draco">加载 Draco</button><button data-action="meshopt">加载 Meshopt</button><button data-action="ktx2">加载 KTX2</button><button data-action="ktx2-glb">KTX2 GLB</button><button data-action="decoder-error">缺少解码器</button><button data-action="ktx2-error">缺少转码器</button><button data-action="cancel-model">取消加载</button><button data-action="remove-model">移除模型</button><button data-action="invalid-model">失败示例</button></div>
     <p class="model-feedback" role="status">模型未加载 · 使用项目原创的内嵌纹理样例</p>
     <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-once">单次播放</button><button data-action="animation-stop">停止动画</button></div>
@@ -79,6 +81,7 @@ function mountPanel(id: string, color: number): void {
   let orbit: OrbitControlsHandle | undefined;
   let largeModel = false;
   let fittedDistance: number | undefined;
+  let transition: CameraTransitionHandle | undefined;
 
   function addLabel(
     object: Object3D,
@@ -121,6 +124,14 @@ function mountPanel(id: string, color: number): void {
     button("stop").disabled = !app || state !== "running";
     button("dispose").disabled = !app || state === "disposed";
     button("fit").disabled = !app || state === "disposed" || !app.size.width || !app.size.height;
+    button("transition").disabled = button("fit").disabled;
+    button("cancel-transition").disabled = transition?.state !== "running";
+    card.dataset.transitionState = transition?.state ?? "idle";
+    card.querySelector('[data-testid="transition-state"]')!.textContent =
+      card.dataset.transitionState;
+    card.querySelector('[data-testid="transition-progress"]')!.textContent = String(
+      Math.round((transition?.progress ?? 0) * 100),
+    );
     button("large-model").disabled = !model || state === "disposed";
     button("large-model").setAttribute("aria-pressed", String(largeModel));
     if (fittedDistance === undefined) delete card.dataset.fitDistance;
@@ -159,6 +170,7 @@ function mountPanel(id: string, color: number): void {
   }
 
   function clearModel(): void {
+    transition?.cancel();
     largeModel = false;
     fittedDistance = undefined;
     animation?.dispose();
@@ -371,6 +383,7 @@ function mountPanel(id: string, color: number): void {
       if (action === "animation-once") animation?.play(animationIndex, { loop: "once" });
       if (action === "animation-stop") animation?.stop();
       if (action === "large-model" && model) {
+        transition?.cancel();
         model.scene.scale.multiplyScalar(largeModel ? 1 / 20 : 20);
         largeModel = !largeModel;
         fittedDistance = undefined;
@@ -386,6 +399,26 @@ function mountPanel(id: string, color: number): void {
           labels?.update();
         }
       }
+      if (action === "transition" && app) {
+        const target = model && !model.disposed ? model.scene : placeholder;
+        if (target) {
+          const motion = transitionToObject(app, target, {
+            controls: orbit?.controls,
+            duration: 2,
+            direction: [-1, 0.8, 1],
+          });
+          transition = motion;
+          // This demo chooses to resume the host; the library never starts it implicitly.
+          app.start();
+          void motion.finished.then((result) => {
+            if (transition !== motion) return;
+            if (result.status === "completed") fittedDistance = result.frame.distance;
+            if (result.status === "failed") report(result.error);
+            refresh();
+          });
+        }
+      }
+      if (action === "cancel-transition") transition?.cancel();
       if (action === "labels") {
         labelsVisible = !labelsVisible;
         for (const label of [placeholderLabel, markerLabel, modelLabel])

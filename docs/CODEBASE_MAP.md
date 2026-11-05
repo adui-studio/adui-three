@@ -34,6 +34,8 @@
 - [压缩浏览器回归](../tests/browser/compression.spec.ts) 配合加载器单测：配置、Worker 生命周期、同 URL 取消、初始化时销毁和错误恢复。[解码许可](../apps/website/public/licenses/README.md) 记录本地分发来源。
 - [KTX2 单测](../packages/three/tests/ktx2-task.test.ts) / [浏览器回归](../tests/browser/ktx2.spec.ts)：缓冲隔离、部分失败清理、真实转码、上传/删除、同 URL、初始化销毁和 RGBA 回退。
 - [相机单测](../packages/three/tests/camera.test.ts) / [浏览器取景](../tests/browser/camera.spec.ts)：投影、世界变换、控件惯性/限制、同步事件、暂停绘制和大模型。
+- [过渡实现](../packages/three/src/camera-transition.ts) / [规划校验](../packages/three/src/camera-frame.ts) / [相机协调](../packages/three/src/camera-runtime.ts)：同相机互斥、宿主 delta 插值和中断清理，通过 camera 入口导出。
+- [过渡单测](../packages/three/tests/camera-transition.test.ts) / [浏览器过渡](../tests/browser/camera-transition.spec.ts)：暂停、替换、异常、原生输入与模型/宿主清理。
 
 ## 调用链与定位
 

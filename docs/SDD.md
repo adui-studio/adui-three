@@ -108,6 +108,18 @@ fitObject 在宿主/scope 存活和非零视口时即时应用；默认 adjustCl
 
 不提供淡入淡出、seek、反向、状态机或重定向。原生 mixer/action 由调用方查询、配置参数，但不能再手动驱动或维护缓存；原生事件监听和 CPU 引用由业务解除。演示用独立原创 animated.glb 的 Lift/Slide，不修改原静态 fixtures；关闭动画模型的手写旋转以避免重复驱动。
 
+## 相机过渡契约
+
+camera 入口另导出 transitionToObject、CameraTransitionOptions/Handle/State/Result。内部 camera-frame 复用规划校验，camera-runtime 用弱引用登记同相机过渡和同步写入锁，camera-transition 管理插值及清理。即时 fitObject 验证成功后也会取消同相机过渡。
+
+options 扩展 FitObjectOptions，duration 默认 0.8 秒且必须正有限，signal 可选。句柄 state 为 running/completed/cancelled/failed，progress 为未经缓动的 0..1；finished 始终 resolve 对应结果，completed 含 frame，failed 含 error。cancel/dispose 幂等且保留当前位置。非法参数同步抛错，不打断有效旧请求；已 abort 的 signal 返回 cancelled 句柄。
+
+只订阅宿主 onUpdate，以有效 delta 累积进度并应用 smoothstep，不主动启动或 render。无控件插值 position/quaternion；有控件插值 target、距离、最短方向旋转，经原生 update(0) 应用角度限制。临时关闭 enabled/damping/autoRotate，结束仅恢复仍为 false 的配置；用户已改为 true 的值保留。adjustClipping=true 在开始扩展裁剪面，完成收紧；取消保留当前姿态及扩展范围。
+
+句柄登记 app.resources；取消、signal、替换、即时取景和 scope/宿主销毁清理全部监听及订阅。有控件时捕获画布 pointerdown/wheel 取消，让同一手势交给恢复后的控件；外部视口/投影/姿态/控件配置变化于下一次有效更新取消。同步原生事件可取消或销毁，同相机重入取景拒绝。更新异常清理、resolve failed 后重新抛给宿主；清理失败聚合到结果且继续清理。
+
+沿用即时取景的相机/边界限制，不跟踪对象和目标删除，不接管模型。演示在模型移除/缩放时主动取消。暂停、隐藏、零尺寸保留进度，不补墙钟时间；没有独立暂停 API。路径不避障、不保证中途目标完整可见，细节见 [ADR-0008](adr/0008-camera-transition.md)。
+
 ## 对象拾取契约
 
 [interaction.ts](../packages/three/src/interaction.ts) 是独立子入口，导出 attachPicking、PickingOptions、PickingEvent 和 PickingHandle。`attachPicking(app, { objects, recursive?, dragThreshold? })` 使用必填目标 getter；recursive=true、dragThreshold=4 CSS 像素。句柄提供原生 raycaster、disposed、pick(clientX, clientY)、on("click" | "hover", callback) 与 dispose。
@@ -175,6 +187,7 @@ add 接收 object、独占挂载的 detached element、局部 offset=[0,0,0]、a
 | FR-017  | 压缩解码契约                      | loaders.ts、原创建模与压缩生成、演示本地 decoder | 解码器单测、原生 Worker/迟到清理浏览器回归  |
 | FR-018  | KTX2 模型契约                     | loaders.ts、ktx2-task.ts、原创纹理与模型         | KTX2/加载器单测、Worker/上传/回退浏览器回归 |
 | FR-019  | 相机取景契约                      | camera.ts、演示模型尺寸与显式取景                | 真实数学/控件单测、浏览器取景与交互回归     |
+| FR-020  | 相机过渡契约                      | camera-transition.ts、演示平滑取景与取消         | 过渡单测、浏览器中断与生命周期回归          |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器         |
 
