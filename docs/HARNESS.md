@@ -61,6 +61,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 ## 限制与诊断
 
+2026-11-06 原生实例清理夹具调整：此前本地路由直接加载 src/Three.js 的源码模块图；改为锁定依赖 package.json 默认 import 对应的 build/three.module.js，仍使用真实 Three.js 和库构建产物。实测 native-esm-imports.json 仅记录 three.module.js 与 three.core.js 两项原生模块请求，文件保存到用例输出目录并附到报告，不依赖仅驻内存的附件 body。
+
+原有三种清理/异常顺序、删除 buffer 数、detached/disposed 和 gl.getError 断言全部保留。ready 通过 13 项文档测试、311 项主包单测、135 文件格式、80 源文件静态检查及构建；`pnpm run test:browser tests/browser/geometry-disposal.spec.ts` 专项 1/1 通过（命令约 4.6 秒，用例约 0.3 秒），没有提高超时或开启重试。之前 46.1 秒与此处属于不同本地运行，不据此推导加速比或 GPU 性能；本阶段仅重验该夹具，完整 69/69 结果属于前一取景阶段。
+
 2026-11-06 蒙皮取景补查：两项先行失败数学测试复现子树外兄弟骨骼遗漏（中心 0 而非 7）和父级变换重复计入（[23,40,-10] 而非 [13,20,-5]）；真实浏览器先行失败复现模型放大 20 倍却将取景距离放大约 400 倍。修复仅在取景请求内准备所引用骨骼世界矩阵及原生绑定逆矩阵，四项新增单测覆盖上述路径、Detached 模式、共享 inverse-bind 数据/无 boneTexture 分配和准备期间 scope 结束，累计 311 项单测通过。
 
 ready 通过 13 项文档检查器测试、135 文件格式、80 源文件静态检查与全部构建；新增浏览器专项修复后 1/1 通过（约 7.9 秒），验证 Reach 暂停姿态缩放后的距离比例、实际黄色像素数量、平滑取景恢复原尺寸及另一宿主不受影响。首次失败 trace/error 保存在忽略的 playwright-report/diagnostics/skinned-framing。没有新增入口、依赖、RAF、CI 或发布；不接管逐帧剔除边界或自定义 shader 位移。

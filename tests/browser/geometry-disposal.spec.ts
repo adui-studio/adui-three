@@ -1,10 +1,15 @@
 import { expect, test } from "@playwright/test";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve, relative, isAbsolute } from "node:path";
 
 test("native dispose listener ordering bounds WebGL cleanup while extension failures remain isolated", async ({
   page,
-}) => {
+}, testInfo) => {
+  const nativeModules = new Set<string>();
+  page.on("request", (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.startsWith("/test-native/")) nativeModules.add(pathname);
+  });
   for (const [prefix, directory] of [
     ["test-native", "packages/three/node_modules/three"],
     ["test-library", "packages/three/dist"],
@@ -23,7 +28,7 @@ test("native dispose listener ordering bounds WebGL cleanup while extension fail
       contentType: "text/html",
       body: `<!doctype html><html><body>
       <div id="stage" style="width:640px;height:360px"></div><pre id="result"></pre>
-      <script type="importmap">{"imports":{"three":"/test-native/src/Three.js"}}</script>
+      <script type="importmap">{"imports":{"three":"/test-native/build/three.module.js"}}</script>
       <script type="module">
         import { ThreeApp } from "/test-library/index.mjs";
         import { createInstancedMesh } from "/test-library/geometry.mjs";
@@ -64,6 +69,13 @@ test("native dispose listener ordering bounds WebGL cleanup while extension fail
   await page.goto("/native-disposal.html");
   await expect(page.locator("#result")).not.toBeEmpty();
   const results = JSON.parse((await page.locator("#result").textContent())!);
+  const importsPath = testInfo.outputPath("native-esm-imports.json");
+  await mkdir(testInfo.outputDir, { recursive: true });
+  await writeFile(importsPath, JSON.stringify([...nativeModules].sort(), null, 2));
+  await testInfo.attach("native-esm-imports", {
+    path: importsPath,
+    contentType: "application/json",
+  });
   expect(results).toEqual([
     { mode: "extension", released: 2, aggregate: true, disposed: true, detached: true, glError: 0 },
     {
