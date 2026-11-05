@@ -46,6 +46,8 @@
 
 - [textures.ts](../packages/three/src/textures.ts) / [单测](../packages/three/tests/textures.test.ts) / [真实纹理回归](../tests/browser/textures.spec.ts)：颜色/翻转、独立解码、取消与 GPU/位图清理；[PNG 生成器](../scripts/generate-texture-fixture.mjs) / [原创资产](../apps/website/public/textures/README.md)。
 
+- [动画时间轴回归](../tests/browser/animation-seek.spec.ts)：公开 seek 秒接口、暂停宿主的实际标签姿态、恢复/端点和模型生命周期；复用动画单测与既有原创节点资产。
+
 ## 调用链与定位
 
 - [environment.ts](../packages/three/src/environment.ts) / [单测](../packages/three/tests/environment.test.ts) / [浏览器回归](../tests/browser/environment.spec.ts)：HDR 加载、逻辑取消、独占场景绑定和预热 GPU 清理。

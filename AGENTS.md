@@ -25,6 +25,8 @@
 - [图片纹理决策](docs/adr/0014-image-textures.md)：颜色/方向、逻辑取消与独立位图所有权。
 - [贡献指南](CONTRIBUTING.md)：Issue/PR 模板及 emoji 提交规范。
 
+- [动画定位决策](docs/adr/0015-animation-seek.md)：按秒采样、暂停及既有事件队列边界。
+
 ## 工作流程与约束
 
 1. 读取相关文档与代码，定位需求编号，明确本次实现和验证范围。

@@ -161,7 +161,7 @@ if (animations.clips.length) animations.play(0);
 // 模型移除或宿主销毁时自动清理，不接管 model 资产。
 ```
 
-演示的“加载动画样例”提供原创 Lift / Slide 两个片段。加载不会自动播放；动画跟随宿主启停，控制器暂停与宿主暂停可分别操作。
+演示的“加载动画样例”提供原创 Lift / Slide 两个片段。加载不会自动播放；动画跟随宿主启停，控制器暂停与宿主暂停可分别操作。`animations.seek(seconds)` 精确定位后暂停，演示时间轴支持姿态检查。
 
 ## 开发
 
@@ -181,7 +181,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 215 项主包单元测试和 42 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
+当前有 224 项主包单元测试和 44 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
 
 ## 项目结构
 

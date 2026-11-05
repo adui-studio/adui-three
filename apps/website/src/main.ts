@@ -70,6 +70,7 @@ function mountPanel(id: string, color: number): void {
     <p class="model-feedback" role="status">模型未加载 · 使用项目原创的内嵌纹理样例</p>
     <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-once">单次播放</button><button data-action="animation-stop">停止动画</button></div>
     <p class="animation-feedback" role="status">动画：<span data-testid="animation-state">idle</span> · <span data-testid="animation-clip">—</span> · <span data-testid="animation-time">0.000</span> s</p>
+    <label class="animation-timeline">定位<input type="range" min="0" max="100" step="1" value="0" data-action="animation-seek" aria-label="动画定位"><span data-testid="animation-progress">0</span>%</label>
     <p class="picking-feedback" role="status">悬停：<span data-testid="hovered">—</span> · 选中：<span data-testid="selected">—</span><span class="picking-hint">点击物体选中 · 点击空白清除</span></p>`;
   document.querySelector(".workspace")!.appendChild(card);
   const viewport = card.querySelector<HTMLDivElement>(".viewport")!;
@@ -273,6 +274,13 @@ function mountPanel(id: string, color: number): void {
     button("animation-pause").disabled = !canAnimate || animationState !== "playing";
     button("animation-resume").disabled = !canAnimate || animationState !== "paused";
     button("animation-stop").disabled = !canAnimate || !animation?.action;
+    const timeline = card.querySelector<HTMLInputElement>('[data-action="animation-seek"]')!;
+    timeline.disabled = !canAnimate || !animation?.action;
+    const duration = animation?.action?.getClip().duration ?? 0;
+    const progress =
+      duration > 0 ? Math.round(((animation?.action?.time ?? 0) / duration) * 100) : 0;
+    timeline.value = String(progress);
+    card.querySelector('[data-testid="animation-progress"]')!.textContent = String(progress);
   }
 
   function clearModel(): void {
@@ -773,11 +781,29 @@ function mountPanel(id: string, color: number): void {
     }
   };
   card.addEventListener("click", click);
+  const seek = (event: Event): void => {
+    const input = event.target;
+    if (
+      !(input instanceof HTMLInputElement) ||
+      input.dataset.action !== "animation-seek" ||
+      !animation?.action
+    )
+      return;
+    try {
+      animation.seek((input.valueAsNumber / 100) * animation.action.getClip().duration);
+      if (app?.state !== "running") app?.render();
+      refresh();
+    } catch (error) {
+      report(error);
+    }
+  };
+  card.addEventListener("input", seek);
   const interval = window.setInterval(refresh, 150);
   rebuild();
   teardown.push(() => {
     window.clearInterval(interval);
     card.removeEventListener("click", click);
+    card.removeEventListener("input", seek);
     app?.dispose();
     clearModel();
     clearEnvironment();

@@ -110,7 +110,9 @@ fitObject 在宿主/scope 存活和非零视口时即时应用；默认 adjustCl
 
 正常由 onUpdate(delta) 采样，复用宿主的隐藏/零尺寸暂停与 delta 限幅。原生事件内的控制命令暂存到本次 update 结束后依序执行；销毁立即失效并清空命令，但 stopAllAction/uncacheRoot 延后至调用栈返回，避免修改正在遍历的缓存。普通模型销毁先结束 Mixer 再清 GPU；原生事件中销毁模型时，GPU 资源可先清理，CPU 最后一次采样后再释放缓存，不重新挂载。更新/清理错误交给宿主，详细边界见 ADR-0004。
 
-不提供淡入淡出、seek、反向、状态机或重定向。原生 mixer/action 由调用方查询、配置参数，但不能再手动驱动或维护缓存；原生事件监听和 CPU 引用由业务解除。演示用独立原创 animated.glb 的 Lift/Slide，不修改原静态 fixtures；关闭动画模型的手写旋转以避免重复驱动。
+不提供淡入淡出、反向、状态机或重定向。原生 mixer/action 由调用方查询、配置参数，但不能再手动驱动或维护缓存；原生事件监听和 CPU 引用由业务解除。演示用独立原创 animated.glb 的 Lift/Slide，不修改原静态 fixtures；关闭动画模型的手写旋转以避免重复驱动。
+
+seek(seconds) 新增于 FR-027：选中片段后接受 [0,duration] 有限秒数，reset 原生动作的循环/完成状态，写入 action.time 并 sample(0)，定位后 paused。保留 loop/clamp/weight/timeScale，mixer.time 不前进；不主动绘制或启停。完成动作也可定位，精确端点在暂停时保持，恢复依原循环规则处理。原生事件内先校验、后排队，执行前按实际选择再次校验，队列中更早的 play/stop 不会使非法时间写入。复用延期清理，见 [ADR-0015](adr/0015-animation-seek.md)。
 
 ## 相机过渡契约
 
@@ -238,6 +240,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-024  | HDR 环境契约                      | environment.ts、原创 HDR 生成器及演示            | 原生解码单测、像素/取消/GPU 回归、九入口打包      |
 | FR-025  | 对象变换契约                      | controls.ts、transform-controls.ts、演示手柄     | 原生资源/输入单测、实际拖拽和 buffer/program 回归 |
 | FR-026  | 独立图片纹理契约                  | textures.ts、PNG 生成器及演示                    | 颜色/异步/清理单测、像素/位图和 GPU 回归          |
+| FR-027  | 模型动画契约                      | animation.ts、演示时间轴                         | 精确采样/状态/队列单测、真实姿态与端点回归        |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                      |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器               |
 

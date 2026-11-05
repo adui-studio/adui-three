@@ -87,6 +87,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 图片纹理阶段复用 threejs-textures 和 threejs-loaders，核验 r187 Texture/ImageBitmapLoader/WebGLTextures 与 createImageBitmap/close 官方 API。位图方向在解码时处理，不误用 Texture.flipY；保持浏览器不做颜色转换、由 Texture 标记颜色空间。为避免原生 URL 位图缓存混用选项与 close 所有权，独立下载共享字节后逐任务解码。
 
+动画定位阶段复用 threejs-animation，核验 r187 Action.reset/time 与零 delta、Mixer 全局时间/缩放语义。使用既有 sample(0) 而非 Mixer.setTime，保持动作时间与宿主调度分离；原生事件队列重新校验实际选择，浏览器验证真实节点姿态。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

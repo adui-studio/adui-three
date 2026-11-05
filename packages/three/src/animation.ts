@@ -23,6 +23,8 @@ export interface GLTFAnimationsHandle {
   readonly disposed: boolean;
   /** Select by array index or unique exact name. Always restarts the clip; switching is immediate. */
   play(clip: number | string, options?: PlayAnimationOptions): void;
+  /** Sample selected clip time in [0, duration] seconds, then pause. Does not advance mixer time. */
+  seek(seconds: number): void;
   pause(): void;
   resume(): void;
   /** Restore properties bound by the mixer and clear the selection. Safe after dispose. */
@@ -156,6 +158,23 @@ export function attachGLTFAnimations(app: ThreeApp, model: GLTFModel): GLTFAnima
     pause(): void {
       execute(() => {
         if (state === "playing") state = "paused";
+      });
+    },
+    seek(seconds): void {
+      active();
+      const selected = (): AnimationAction => {
+        if (!action) throw new Error("Select an animation before seeking");
+        if (!Number.isFinite(seconds) || seconds < 0 || seconds > action.getClip().duration)
+          throw new RangeError("Seek time must be finite and within the selected clip duration");
+        return action;
+      };
+      selected(); // Validate before queueing; recheck if an earlier queued command changes selection.
+      execute(() => {
+        const target = selected();
+        target.reset().setEffectiveWeight(target.weight);
+        target.time = seconds;
+        state = "paused";
+        sample(0);
       });
     },
     resume(): void {

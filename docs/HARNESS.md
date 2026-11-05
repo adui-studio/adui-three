@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 215 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 224 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 42 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 44 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 动画定位阶段：ready 通过 13 项文档检查器测试、224 项主包单测、109 文件格式和 61 源文件 Lint/类型检查，十入口及演示构建成功。新增 9 项真实 Mixer 回归验证精确秒采样、倍速/继续、完成与不 clamp 动作、端点/非法值、队列重校验和采样内销毁。全量浏览器 44/44 通过（约 3.5 分钟），零重试，截图已目视检查。旧相机尺寸用例一次耗时约 50.5 秒但通过，保留原超时与断言，后续宿主尺寸回归继续观察。两项新浏览器回归单独 2/2 通过（约 6.5 秒），时间轴在暂停宿主中改变真实标签姿态且帧数不增加，恢复/端点/模型移除重建通过；没有新增计时器或资产。十入口 tarball 安装与四次严格编译通过。
 
 2026-11-05 独立图片纹理阶段：ready 通过 13 项文档检查器测试、215 项主包单测、107 文件格式与 60 源文件 Lint/类型检查，十入口及演示构建成功；测试位图的 unbound-method 提示改为显式 mock/原型方法调用，最终静态检查无警告。14 项新增单测控制运输和位图 Promise，验证选项快照、颜色/方向、独立所有权、取消/迟到/解码错误、进度及清理继续执行。十入口 tarball 安装、无 DOM 导入和四次严格消费编译通过。
 

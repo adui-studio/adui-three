@@ -84,6 +84,145 @@ test("attachment is idle, snapshots clip references and does not start the host"
   expect(env.callbacks.size).toBe(1);
 });
 
+test("seek samples an exact selected clip pose and pauses without starting the host or advancing mixer time", async () => {
+  const env = await fixture();
+  env.animation.play(0);
+  const mixerTime = env.animation.mixer.time;
+  env.animation.seek(0.75);
+  expect(env.scene.position.y).toBeCloseTo(1.5);
+  expect(env.animation.action!.time).toBe(0.75);
+  expect(env.animation.state).toBe("paused");
+  expect(env.state.state).toBe("ready");
+  expect(env.animation.mixer.time).toBe(mixerTime);
+});
+
+test("seek preserves playback configuration and resume advances from the new pose", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.play(0, { timeScale: 2, loop: "once", clampWhenFinished: false });
+  env.tick(0.1);
+  const mixerTime = env.animation.mixer.time;
+  env.animation.seek(0.25);
+  expect(env.animation.action!.timeScale).toBe(2);
+  expect(env.animation.action!.clampWhenFinished).toBe(false);
+  expect(env.animation.mixer.time).toBe(mixerTime);
+  env.tick(0.2);
+  expect(env.scene.position.y).toBeCloseTo(0.5);
+  env.animation.resume();
+  env.tick(0.1);
+  expect(env.scene.position.y).toBeCloseTo(0.9);
+});
+
+test("seek can revive a completed one-shot for inspection with or without a clamped final pose", async () => {
+  for (const clampWhenFinished of [true, false]) {
+    const env = await fixture();
+    env.state.state = "running";
+    env.animation.play(0, { loop: "once", clampWhenFinished });
+    env.tick(1.1);
+    expect(env.animation.state).toBe("finished");
+    env.animation.seek(0.5);
+    expect(env.animation.state).toBe("paused");
+    expect(env.scene.position.y).toBeCloseTo(1);
+    env.animation.resume();
+    env.tick(0.1);
+    expect(env.scene.position.y).toBeCloseTo(1.2);
+  }
+});
+
+test("invalid seek and missing selection leave the current pose and playback untouched", async () => {
+  const env = await fixture();
+  expect(() => env.animation.seek(0)).toThrow("Select");
+  env.animation.play(0);
+  env.animation.seek(0.4);
+  for (const time of [-1, NaN, Infinity, 1.0001])
+    expect(() => env.animation.seek(time)).toThrow(RangeError);
+  expect(env.scene.position.y).toBeCloseTo(0.8);
+  expect(env.animation.action!.time).toBe(0.4);
+  expect(env.animation.state).toBe("paused");
+  env.animation.stop();
+  expect(() => env.animation.seek(0)).toThrow("Select");
+  env.animation.dispose();
+  expect(() => env.animation.seek(0)).toThrow("disposed");
+});
+
+test("seek includes exact endpoints and resumes using the existing repeat or one-shot semantics", async () => {
+  for (const loop of ["repeat", "once"] as const) {
+    const env = await fixture();
+    env.state.state = "running";
+    env.animation.play(0, { loop });
+    env.animation.seek(1);
+    expect(env.scene.position.y).toBeCloseTo(2);
+    expect(env.animation.state).toBe("paused");
+    env.animation.resume();
+    env.tick(0.1);
+    expect(env.scene.position.y).toBeCloseTo(loop === "repeat" ? 0.2 : 2);
+    expect(env.animation.state).toBe(loop === "repeat" ? "playing" : "finished");
+    env.animation.seek(0);
+    expect(env.scene.position.y).toBeCloseTo(0);
+    env.animation.stop();
+    expect(env.animation.action).toBeNull();
+  }
+});
+
+test("seeking another selected clip keeps a second model independent", async () => {
+  const a = await fixture();
+  const b = await fixture();
+  a.animation.play("Slide");
+  b.animation.play("Lift");
+  a.animation.seek(0.5);
+  expect(a.scene.position.x).toBeCloseTo(2);
+  expect(a.scene.position.y).toBe(0);
+  expect(b.scene.position.y).toBe(0);
+  expect(b.animation.state).toBe("playing");
+});
+
+test("native loop-event play/seek commands execute in order after mixer sampling", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.play("Lift");
+  env.animation.mixer.addEventListener("loop", () => {
+    env.animation.play("Slide");
+    env.animation.seek(0.5);
+  });
+  env.tick(1.1);
+  expect(env.animation.action!.getClip().name).toBe("Slide");
+  expect(env.animation.state).toBe("paused");
+  expect(env.scene.position.x).toBeCloseTo(2);
+  expect(env.scene.position.y).toBe(0);
+});
+
+test("model disposal during seek sampling keeps the disposed state and releases mixer ownership", async () => {
+  const env = await fixture();
+  env.animation.play(0);
+  vi.spyOn(env.animation.mixer, "update").mockImplementationOnce(() => {
+    env.model.dispose();
+    return env.animation.mixer;
+  });
+  env.animation.seek(0.5);
+  expect(env.animation.disposed).toBe(true);
+  expect(env.animation.state).toBe("disposed");
+  expect(env.animation.action).toBeNull();
+  expect(env.callbacks.size).toBe(0);
+  expect(env.animation.mixer.stats.actions.inUse).toBe(0);
+});
+
+test("queued seek revalidates a shorter replacement clip before mutating it", async () => {
+  const env = await fixture([
+    new AnimationClip("Lift", 1, [new NumberKeyframeTrack(".position[y]", [0, 1], [0, 2])]),
+    new AnimationClip("Short", 0.25, [new NumberKeyframeTrack(".position[x]", [0, 0.25], [0, 4])]),
+  ]);
+  env.state.state = "running";
+  env.animation.play("Lift");
+  env.animation.mixer.addEventListener("loop", () => {
+    env.animation.play("Short");
+    env.animation.seek(0.5);
+  });
+  expect(() => env.tick(1.1)).toThrow("within");
+  expect(env.animation.action!.getClip().name).toBe("Short");
+  expect(env.animation.action!.time).toBe(0);
+  expect(env.scene.position.x).toBe(0);
+});
+
 test("native mixer samples actual properties using only host frame deltas", async () => {
   const env = await fixture();
   env.animation.play("Lift");
