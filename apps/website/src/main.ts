@@ -71,7 +71,7 @@ function mountPanel(id: string, color: number): void {
     <p class="model-feedback" role="status">模型未加载 · 使用项目原创的内嵌纹理样例</p>
     <div class="model-actions"><button data-action="clone-model">创建实例</button><button data-action="clone-peer">复制到另一场景</button><button data-action="clone-play">播放实例</button><button data-action="clone-pause">暂停实例</button><button data-action="remove-clone">移除实例</button></div>
     <p class="camera-feedback" role="status">实例：<span data-testid="clone-state">idle</span> · <span data-testid="clone-time">0.000</span> s · 共享几何体与材质</p>
-    <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-fade">渐变切换</button><button data-action="animation-once">单次播放</button><button data-action="animation-stop">停止动画</button></div>
+    <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="skin-model">加载骨骼样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-fade">渐变切换</button><button data-action="animation-once">单次播放</button><button data-action="animation-stop">停止动画</button></div>
     <p class="animation-feedback" role="status">动画：<span data-testid="animation-state">idle</span> · <span data-testid="animation-clip">—</span> · <span data-testid="animation-time">0.000</span> s · 渐变 <span data-testid="animation-blend-progress">0</span>%</p>
     <label class="animation-timeline">定位<input type="range" min="0" max="100" step="1" value="0" data-action="animation-seek" aria-label="动画定位"><span data-testid="animation-progress">0</span>%</label>
     <p class="picking-feedback" role="status">悬停：<span data-testid="hovered">—</span> · 选中：<span data-testid="selected">—</span><span class="picking-hint">点击物体选中 · 点击空白清除</span></p>`;
@@ -301,6 +301,7 @@ function mountPanel(id: string, color: number): void {
     const canAnimate =
       !!animation && !animation.disposed && animation.clips.length > 0 && !hasTransform;
     button("animated-model").disabled = !app || state === "disposed";
+    button("skin-model").disabled = !app || state === "disposed";
     for (const action of ["animation-play", "animation-next", "animation-once", "animation-fade"])
       button(action).disabled = !canAnimate;
     button("animation-pause").disabled = !canAnimate || animationState !== "playing";
@@ -786,6 +787,7 @@ function mountPanel(id: string, color: number): void {
         if (app?.state !== "running") app?.render();
       }
       if (action === "animated-model") void requestModel("/models/animated.glb");
+      if (action === "skin-model") void requestModel("/models/skin-morph.glb");
       if (action === "animation-play") animation?.play(animationIndex);
       if (action === "animation-pause") animation?.pause();
       if (action === "animation-resume") animation?.resume();

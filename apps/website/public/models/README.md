@@ -6,6 +6,10 @@ sample.gltf 与 sample.glb 是本项目原创的四面体，带一个内嵌白�
 
 animated.glb 复用原创四面体与纹理，包含 Lift（上下平移）和 Slide（左右平移）两个时长 2 秒的 LINEAR 节点动画，同样采用 MIT 许可并由生成器重建。用于验证 Mixer、模型变换、DOM 标签跟随和播放生命周期，不代表已实测骨骼/morph 动画资产。
 
+skin-morph.glb 增加两个 joint、显式 inverse bind 矩阵、JOINTS_0/WEIGHTS_0 和一个 POSITION morph target。Bend 在 2 秒内弯曲顶部骨骼，Morph 在同一时间内改变顶部位置；顶部骨骼故意不命名，令原生 GLTFLoader 产生 UUID 轨道。所有几何/权重/动画数据与 PNG 都由项目生成，采用 MIT 许可，无外部骨架或模型输入。
+
+该样例用于实际 GPU 骨骼/morph 变形、克隆 UUID 重绑/姿态隔离以及 bone texture/共享 morph 纹理释放验收；两段片段可用演示时间轴检查。不作为完整资产兼容性、蒙皮性能或形变后材质物理正确性的基准；未运行独立 glTF schema validator。规范依据为 [glTF 2.0 Skins](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#skins) 和 [Morph Targets](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#morph-targets)。
+
 draco.glb 使用 KHR_draco_mesh_compression，meshopt.glb 使用 EXT_meshopt_compression，均只压缩本项目原创四面体的 position/normal，保留同一 PNG 和材质。生成器使用开发依赖 draco3dgltf 1.5.7 与 meshoptimizer 0.25.0；演示的运行时 decoder 从 Three.js 0.187.0 提供，来源和许可证见 [许可记录](../licenses/README.md)。
 
 这些四面体只用于解码与生命周期验证，压缩元数据可能令总文件更大，不作为压缩率或性能基准。压缩样例不替换原静态或动画 fixtures。

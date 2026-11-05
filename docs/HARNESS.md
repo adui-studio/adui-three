@@ -21,7 +21,7 @@ pnpm install --frozen-lockfile
 | `pnpm exec vp run -r test`      | 主包的 275 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 56 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 58 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 骨骼/morph GPU 验收补充：ready 通过 13 项文档检查器测试、275 项主包单测（未改主包，命中缓存）、123 文件格式与 71 源文件 Lint/类型检查，主包及演示构建成功。模型实例专项 5/5 通过（约 10.5 秒），新增两项使用原创 skin-morph.glb 的实际 GPU 回归；全量 58/58 通过（约 89.8 秒），零重试，截图已目视检查。Bend/Morph 姿态变化、未命名骨骼 UUID 重绑、源/克隆隔离、源 renderer 结束后的稳定像素，以及三轮各自 bone texture / 共享 morph 纹理、图片、buffer 回基线均验证。
+
+新 GLB 为约 3 KB 的双 joint/单 morph 原创样例，无第三方模型。首次暖缓存生成保留既有九个资产的 SHA256；再次将 fetch 改为抛错后生成并格式化，全部十个模型/纹理哈希一致，新文件 SHA256 为 02d23e3d68b4aabee5191a3929ff1be3eeaf32d04519ba6cf20787df623e6de1。未运行独立 glTF schema validator，不外推完整模型/硬件矩阵；本轮未改包 API/导出/依赖，沿用上一阶段真实 tarball 验证，不重复 package 检查。无新依赖、CI 或 npm 发布。
 
 2026-11-05 上下文丢失阶段：ready 通过 13 项文档检查器测试、275 项主包单测、123 文件格式与 71 源文件 Lint/类型检查，十入口及演示构建成功。新增 7 项事件/所有权测试覆盖各状态、更新/绘制内失效、清理错误继续、双宿主与迟到事件。十入口 tarball 独立安装、无 DOM 导入及四次严格消费编译通过。
 

@@ -85,10 +85,16 @@ async function pixels(panel: Locator) {
       bytes,
     );
     let yellow = 0;
-    for (let i = 0; i < bytes.length; i += 4)
+    let hash = 2166136261;
+    for (let i = 0; i < bytes.length; i += 4) {
       if (bytes[i]! > 150 && bytes[i + 1]! > 120 && bytes[i]! > bytes[i + 2]! * 1.25) yellow++;
+      hash = Math.imul(hash ^ bytes[i]!, 16777619);
+      hash = Math.imul(hash ^ bytes[i + 1]!, 16777619);
+      hash = Math.imul(hash ^ bytes[i + 2]!, 16777619);
+    }
     return {
       yellow,
+      hash,
       error: gl.getError(),
       buffers: window.__clones.buffers(canvas),
       textures: window.__clones.textures(canvas),
@@ -188,6 +194,82 @@ test("repeated clone/source disposal returns native buffers and textures to the 
     expect(after.buffers).toBe(baseline.buffers);
     expect(after.textures).toBe(baseline.textures);
     expect(after.error).toBe(0);
+    expect(await page.evaluate(() => window.__clones.closed)).toBe(cycle + 1);
+  }
+});
+
+test("real skinned and morph poses remain independent across a UUID-bound cross-host clone", async ({
+  page,
+}) => {
+  await probe(page);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (/PropertyBinding|INVALID_|Shader Error/.test(message.text())) errors.push(message.text());
+  });
+  await page.goto("/");
+  await pause(page);
+  const a = page.getByTestId("scene-A");
+  const b = page.getByTestId("scene-B");
+  await a.getByRole("button", { name: "加载骨骼样例", exact: true }).click();
+  await expect(a).toHaveAttribute("data-model-state", "loaded");
+  await a.getByRole("button", { name: "播放动画", exact: true }).click();
+  const rest = await pixels(a);
+  await a.getByRole("slider", { name: "动画定位" }).fill("50");
+  const bent = await pixels(a);
+  expect(bent.hash).not.toBe(rest.hash);
+  expect(bent.error).toBe(0);
+  await a.getByRole("button", { name: "复制到另一场景", exact: true }).click();
+  const snapshot = await pixels(b);
+  expect(snapshot.yellow).toBeGreaterThan(500);
+  await a.getByRole("slider", { name: "动画定位" }).fill("0");
+  expect((await pixels(a)).hash).toBe(rest.hash);
+  expect((await pixels(b)).hash).toBe(snapshot.hash);
+  // Morph uses the same geometry but separate per-node influences.
+  await a.getByRole("button", { name: "切换片段", exact: true }).click();
+  await a.getByRole("slider", { name: "动画定位" }).fill("50");
+  await expect(a.getByTestId("animation-clip")).toHaveText("Morph");
+  expect((await pixels(a)).hash).not.toBe(rest.hash);
+  expect((await pixels(b)).hash).toBe(snapshot.hash);
+  // Playing the unnamed-bone clip must rebind UUIDs to the copied bones.
+  await b.getByRole("button", { name: "播放实例", exact: true }).click();
+  const restarted = await pixels(b);
+  expect(restarted.hash).not.toBe(snapshot.hash);
+  expect(restarted.error).toBe(0);
+  await a.getByRole("button", { name: "销毁", exact: true }).click();
+  expect((await pixels(b)).hash).toBe(restarted.hash);
+  expect(await page.evaluate(() => window.__clones.closed)).toBe(0);
+  await page.screenshot({ path: "test-results/skinned-clone.png", fullPage: true, scale: "css" });
+  await b.getByRole("button", { name: "移除实例", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.__clones.closed)).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test("skeletal bone textures and morph targets release after repeated original and instance lifetimes", async ({
+  page,
+}) => {
+  await probe(page);
+  await page.goto("/");
+  await pause(page);
+  const panel = page.getByTestId("scene-A");
+  const baseline = await pixels(panel);
+  for (let cycle = 0; cycle < 3; cycle++) {
+    await panel.getByRole("button", { name: "加载骨骼样例", exact: true }).click();
+    await expect(panel).toHaveAttribute("data-model-state", "loaded");
+    await panel.getByRole("button", { name: "创建实例", exact: true }).click();
+    const both = await pixels(panel);
+    // Source+copy own two bone textures while sharing the image and geometry morph texture.
+    expect(both.textures).toBeGreaterThanOrEqual(baseline.textures + 4);
+    await panel.getByRole("button", { name: "移除模型", exact: true }).click();
+    const copy = await pixels(panel);
+    expect(copy.textures).toBe(both.textures - 1);
+    expect(copy.yellow).toBeGreaterThan(500);
+    expect(await page.evaluate(() => window.__clones.closed)).toBe(cycle);
+    await panel.getByRole("button", { name: "移除实例", exact: true }).click();
+    const released = await pixels(panel);
+    expect(released.textures).toBe(baseline.textures);
+    expect(released.buffers).toBe(baseline.buffers);
+    expect(released.error).toBe(0);
     expect(await page.evaluate(() => window.__clones.closed)).toBe(cycle + 1);
   }
 });

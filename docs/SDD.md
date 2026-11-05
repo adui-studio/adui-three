@@ -270,6 +270,8 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                      |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器               |
 
+骨骼/morph GPU 验证补充：原创 skin-morph.glb 含两个 joint、inverse bind、一个 POSITION morph 和两个片段；未命名骨骼触发原生 UUID 轨道。实例回归实际 readPixels 比较姿态隔离、源 renderer 销毁后的稳定输出，三轮验证各自 bone texture 与共享 morph/图片纹理回基线；仍不外推完整骨骼/资产/硬件矩阵。
+
 ## 维护
 
 接口、数据结构、核心算法、生命周期和错误契约变化时同步类型、包 README、需求及测试。新增正式需求加入追踪；未来模块另标规划，不提前伪装为当前实现。

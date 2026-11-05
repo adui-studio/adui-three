@@ -99,6 +99,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 上下文丢失阶段复用 threejs-fundamentals，核验 r187 renderer 的原生事件顺序、释放及 MDN context 事件。真实回归发现保留旧 GPU 图恢复的 1282 后采用结束宿主/显式重建；不修改原生私有缓存、不透明替换公开 renderer，以真实 GPU 错误和跨宿主所有权决定边界。
 
+骨骼 GPU 验收继续复用 threejs-animation/loaders，按 Khronos glTF 2.0 与 r187 SkinnedMesh/GLTFLoader 核验权重、inverse bind 和未命名节点轨道；新增原创小样例验证原生 skin/morph GPU 输出，不引入动画库或复制第三方模型。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

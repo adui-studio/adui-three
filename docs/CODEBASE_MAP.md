@@ -71,6 +71,8 @@ test:package → 主包 build → 系统临时目录中 pack/install → Node �
 
 ## 模型实例
 
+generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨骼样例”消费；gltf-clone.spec.ts 同时验证真实骨骼/morph 像素、UUID 轨道与各自骨骼纹理的释放。
+
 模型实例由 [gltf-clone.ts](../packages/three/src/gltf-clone.ts) 复制树/片段、重绑 UUID 并管理局部清理；[gltf-assets.ts](../packages/three/src/gltf-assets.ts) 保存内部弱引用登记和共享资产租约。loaders 公开导出，animation 接受实例。[原生实例测试](../packages/three/tests/gltf-clone.test.ts) 覆盖骨骼/morph/错误/所有权，[浏览器实例回归](../tests/browser/gltf-clone.spec.ts) 验证实际 GPU、跨宿主和反复释放。
 
 ## 上下文丢失

@@ -167,6 +167,102 @@ const animated = {
   ],
 };
 writeGLB("animated.glb", animated, animatedBytes);
+// Two-joint skin plus one morph target, authored from the same original tetrahedron.
+// Joint 2 deliberately has no name so its animation exercises UUID track bindings.
+const joints = Buffer.alloc((positions.length / 3) * 4 * 2);
+const jointWeights = [];
+const morphPositions = [];
+for (let vertex = 0; vertex < positions.length / 3; vertex++) {
+  joints.writeUInt16LE(1, vertex * 8 + 2);
+  const topWeight = positions[vertex * 3 + 1] / 1.8;
+  jointWeights.push(1 - topWeight, topWeight, 0, 0);
+  morphPositions.push(topWeight, 0, 0);
+}
+const skinViews = [...gltf.bufferViews];
+const skinAccessors = [...gltf.accessors];
+const skinChunks = [base];
+let skinOffset = base.length;
+function skinAccessor(bytes, componentType, count, type, bounds = {}, target) {
+  const bufferView = skinViews.length;
+  skinViews.push({
+    buffer: 0,
+    byteOffset: skinOffset,
+    byteLength: bytes.length,
+    ...(target ? { target } : {}),
+  });
+  skinChunks.push(padded(bytes, 0));
+  skinOffset += (bytes.length + 3) & ~3;
+  const index = skinAccessors.length;
+  skinAccessors.push({ bufferView, componentType, count, type, ...bounds });
+  return index;
+}
+const skinJoints = skinAccessor(joints, 5123, 12, "VEC4", {}, 34962);
+const skinWeights = skinAccessor(floats(jointWeights), 5126, 12, "VEC4", {}, 34962);
+const morphPosition = skinAccessor(
+  floats(morphPositions),
+  5126,
+  12,
+  "VEC3",
+  { min: [0, 0, 0], max: [1, 0, 0] },
+  34962,
+);
+const inverseBinds = skinAccessor(
+  floats([
+    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1, 0, 1,
+  ]),
+  5126,
+  2,
+  "MAT4",
+);
+const skinTimes = skinAccessor(times, 5126, 3, "SCALAR", { min: [0], max: [2] });
+const skinRotations = skinAccessor(
+  floats([0, 0, 0, 1, 0, 0, Math.sin(0.5), Math.cos(0.5), 0, 0, 0, 1]),
+  5126,
+  3,
+  "VEC4",
+);
+const morphWeights = skinAccessor(floats([0, 1, 0]), 5126, 3, "SCALAR");
+writeGLB(
+  "skin-morph.glb",
+  {
+    ...gltf,
+    scenes: [{ name: "ADuiSkinMorph", nodes: [0, 1] }],
+    nodes: [
+      { name: "SkinMorphTetrahedron", mesh: 0, skin: 0 },
+      { name: "RootJoint", children: [2] },
+      { translation: [0, 1, 0] },
+    ],
+    skins: [{ inverseBindMatrices: inverseBinds, skeleton: 1, joints: [1, 2] }],
+    meshes: [
+      {
+        weights: [0],
+        primitives: [
+          {
+            attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: skinJoints, WEIGHTS_0: skinWeights },
+            material: 0,
+            targets: [{ POSITION: morphPosition }],
+          },
+        ],
+      },
+    ],
+    buffers: [{ byteLength: skinOffset }],
+    bufferViews: skinViews,
+    accessors: skinAccessors,
+    animations: [
+      {
+        name: "Bend",
+        samplers: [{ input: skinTimes, output: skinRotations, interpolation: "LINEAR" }],
+        channels: [{ sampler: 0, target: { node: 2, path: "rotation" } }],
+      },
+      {
+        name: "Morph",
+        samplers: [{ input: skinTimes, output: morphWeights, interpolation: "LINEAR" }],
+        channels: [{ sampler: 0, target: { node: 0, path: "weights" } }],
+      },
+    ],
+  },
+  Buffer.concat(skinChunks),
+);
 // Compress only project-authored attributes; no third-party input assets.
 const encoderModule = await draco.createEncoderModule({});
 const encoder = new encoderModule.Encoder();
@@ -346,5 +442,5 @@ writeFileSync(
 );
 writeFileSync(resolve(output, "invalid.gltf"), '{"asset":{"version":"1.0"}}\n');
 console.log(
-  "Generated original static/animated/Draco/Meshopt/KTX2 GLTF/GLB fixtures and one intentionally invalid glTF.",
+  "Generated original static/animated/skin-morph/Draco/Meshopt/KTX2 fixtures and one intentionally invalid glTF.",
 );

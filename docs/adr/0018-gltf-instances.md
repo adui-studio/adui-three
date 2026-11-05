@@ -23,7 +23,7 @@ GLTFInstance 提供 scene、独立 animations、resources、disposed、dispose�
 
 ## 验证与边界
 
-单测使用真实节点、Skeleton、Mixer、morph 和 InstancedMesh，覆盖独立数据/UUID 重绑、源先结束/实例先结束、实例再克隆、跨宿主、外部资源、非法状态/骨骼、同步销毁及清理失败。浏览器使用既有原创 GLB 验证实际像素、源 renderer 销毁后的另一宿主动画/纹理、同宿主共享 GPU 分配及三轮回到基线。骨骼/morph 已做原生数值验证，尚未外推完整 GPU/资产/浏览器矩阵。结果见 Harness。
+单测使用真实节点、Skeleton、Mixer、morph 和 InstancedMesh，覆盖独立数据/UUID 重绑、源先结束/实例先结束、实例再克隆、跨宿主、外部资源、非法状态/骨骼、同步销毁及清理失败。浏览器使用原创 GLB 验证实际像素、源 renderer 销毁后的另一宿主动画/纹理、同宿主共享 GPU 分配及三轮回到基线。后续原创双 joint/morph 样例补充真实 GPU 变形、UUID 重绑、姿态隔离和骨骼/morph 纹理释放；尚未外推完整 GPU/资产/浏览器矩阵。结果见 Harness。
 
 ## 来源
 
