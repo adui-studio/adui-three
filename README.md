@@ -13,6 +13,10 @@
 - **资源归属**：显式登记自有资源，幂等销毁，保护借用资源。
 - **可选控制器**：OrbitControls 共用宿主循环，随实例释放。
 - **模型加载**：支持 GLTF/GLB、逻辑取消、迟到结果清理和模型资源释放，保留原始材质与坐标。
+- **压缩解码**：显式配置 Draco、Meshopt 与 KTX2；检测转码能力，隔离模型纹理所有权并清理在途任务。
+- **对象拾取**：显式目标、最近命中、点击与悬停变化；拖拽过滤，随实例清理监听。
+- **DOM 标签**：跟随对象定位，可选交互，自动隐藏视野外目标，随实例移除 DOM 与监听。
+- **模型动画**：独立 Mixer，复用宿主循环，播放/暂停/切换/单次播放，随模型或宿主清理。
 
 ## 快速开始
 
@@ -23,7 +27,7 @@ pnpm install --frozen-lockfile
 pnpm run dev
 ```
 
-打开终端显示的地址，即可运行双实例演示：独立暂停/重启、改变容器尺寸、销毁重建，以及模型加载、取消、移除和失败恢复。演示模型由本项目原创，不依赖在线资产。
+打开终端显示的地址，即可运行双实例演示：独立暂停/重启、改变容器尺寸、销毁重建，以及模型加载、拾取和标签交互。演示模型由本项目原创，不依赖在线资产。
 
 ## 基本用法
 
@@ -82,6 +86,44 @@ const model = await loadGLTF(app, "/models/sample.glb", {
 
 取消会立即拒绝 Promise，并清理迟到的返回结果；不保证底层网络或解码立即停止。完整选项、资源所有权及错误契约见 [主包 API 文档](packages/three/README.md)。
 
+### 点击与悬停
+
+```ts
+import { attachPicking } from "@adui/three/interaction";
+
+const picking = attachPicking(app, { objects: () => [cube] });
+const off = picking.on("click", ({ intersection }) => {
+  console.log(intersection?.object ?? null); // 空白区域为 null。
+});
+picking.on("hover", ({ intersection }) => {
+  console.log("悬停对象变化", intersection?.object ?? null);
+});
+// off() 取消该订阅；picking.dispose() 或 app.dispose() 移除全部监听。
+```
+
+### DOM 标签
+
+DOM 标签通过 `@adui/three/labels` 的 `attachDOMLabels(app, overlay)` 接入。应用提供与画布重合的定位覆盖层，再以 `labels.add({ object: cube, element })` 添加标签；内容、样式和框架卸载由应用负责。完整布局示例见 [标签 API](packages/three/README.md#dom-标签)。
+
+### 压缩模型
+
+压缩模型的解码配置与 Vite URL 示例见 [主包 API](packages/three/README.md#压缩模型)。演示提供“加载 Draco”“加载 Meshopt”和缺失解码器的失败恢复样例。
+
+KTX2 纹理模型通过 `ktx2: { transcoderPath: { js, wasm } }` 接入，按当前 renderer 能力转码；目录方式同样支持。演示提供外部纹理 GLTF、内嵌 GLB 和缺少转码器示例，详见 [KTX2 API](packages/three/README.md#ktx2-纹理模型)。
+
+### 模型动画
+
+```ts
+import { attachGLTFAnimations } from "@adui/three/animation";
+
+const animations = attachGLTFAnimations(app, model);
+if (animations.clips.length) animations.play(0);
+// animations.pause() / resume() / stop()；也可按唯一片段名播放。
+// 模型移除或宿主销毁时自动清理，不接管 model 资产。
+```
+
+演示的“加载动画样例”提供原创 Lift / Slide 两个片段。加载不会自动播放；动画跟随宿主启停，控制器暂停与宿主暂停可分别操作。
+
 ## 开发
 
 | 命令                       | 用途                                   |
@@ -99,7 +141,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 36 项主包单元测试和 3 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、压缩模型解码配置或框架适配。
+当前有 105 项主包单元测试和 21 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
 
 ## 项目结构
 

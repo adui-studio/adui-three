@@ -12,19 +12,34 @@
 
 模型子入口的异步取消与资源快照决策见 [ADR-0003](adr/0003-gltf-lifecycle.md)。
 
+模型扩展 scope、动画双范围生命周期与原生事件重入见 [ADR-0004](adr/0004-animation-lifecycle.md)。
+
+Draco 任务所有权、借用 Meshopt 与本地解码资源决策见 [ADR-0005](adr/0005-compressed-models.md)。
+
+KTX2 的能力检测、缓冲复制、在途转码与纹理移交见 [ADR-0006](adr/0006-ktx2-lifecycle.md)。
+
 ```mermaid
 flowchart TD
   App[应用 / website 演示] --> Core[主包 @adui/three]
   App --> Models[可选 loaders 子入口]
   Models --> Core
   Models --> Three
+  App --> Picking[可选 interaction 子入口]
+  Picking --> Core
+  Picking --> Three
+  App --> Labels[可选 labels 子入口]
+  Labels --> Core
+  Labels --> Three
+  App --> Animation[可选 animation 子入口]
+  Animation --> Core
+  Animation --> Three
   Adapter[未来 Vue / React 适配] --> Core
   Feature[未来可选功能模块] --> Core
   Core --> Three[Three.js 与按需 addons]
   App --> Assets[应用持有的模型与资产服务]
 ```
 
-单主包用内部模块组合宿主、调度、尺寸与资源归属；宿主暴露原生 Three.js 对象，演示依赖公开入口。OrbitControls 从 controls、GLTF/GLB 从 loaders 子入口接入；标签和后处理留后续。Vue/Pinia、业务解密和场景路径不进入核心。
+单主包用内部模块组合宿主、调度、尺寸与资源归属；宿主暴露原生 Three.js 对象，演示依赖公开入口。OrbitControls 从 controls、GLTF/GLB 从 loaders、拾取从 interaction、DOM 标签从 labels、模型动画从 animation 子入口接入；核心默认入口不依赖这些可选模块。标签在渲染完成阶段同步投影；动画在统一更新阶段驱动 Mixer，绑定宿主与模型扩展 scope，均无第二循环。animation 对 GLTFModel 仅有类型引用，loader 不导入动画或自动播放。后处理留后续。Vue/Pinia、业务解密和场景路径不进入核心。
 
 截图中 `@adui/three-utils`、`@adui/three-effects`、`@adui/three-controls`、`@adui/three-gis`、`@adui/three-editor`、`@adui/three-vue`、`@adui/three-react` 仅记录为未来可能命名，不视为已批准拆包。
 
@@ -37,6 +52,10 @@ flowchart TD
 - 先给出最小可用核心；多 renderer、插件系统、依赖注入容器、编辑器协议不提前固化。
 
 ## 数据流与运行边界
+
+压缩解码在 loaders 选项中按需接入；Draco 为任务自有对象，直到底层 Promise 结束才释放，Meshopt 模块由应用借用。KTX2 内部适配层按 renderer 检测能力，复制输入隔离原生全局纹理缓存，原生模型完成及已开始解析全部结束后释放转码器；已移交纹理由模型快照释放，失败未移交纹理单独回收。库不持有全局解码池或业务资产服务。
+
+编码器仅用于开发：Draco/Meshopt 为根开发依赖，Basis WASM 编码工具固定官方提交及字节哈希、缓存于忽略目录，首次重建需网络，暖缓存可离线。演示用 Vite 从 Three.js 依赖输出本地文件，许可证随 public 分发；主包产物仍不内联 Three.js/addons 或二进制。
 
 应用传入容器和配置 → 宿主建立场景/相机/渲染器 → 绑定尺寸和可见性监听 → 应用 start → 主循环更新并渲染 → 应用卸载时释放。GPU 和 DOM 资源与实例绑定；借用资源由外部管理。模型通过独立 loadGLTF 任务创建并由返回句柄拥有；逻辑取消与迟到清理绑定宿主/调用方 signal，不中止可能共享的运输。
 

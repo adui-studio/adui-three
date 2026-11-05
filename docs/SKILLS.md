@@ -45,6 +45,18 @@
 | [threejs-asset-pipeline](../.agents/skills/threejs-asset-pipeline/SKILL.md)       | 资产检查、压缩和 glTF 优化，操作资产前确认范围      |
 | [threejs-react-three-fiber](../.agents/skills/threejs-react-three-fiber/SKILL.md) | 仅在 React 适配任务中使用，当前原生 TS 演示无需加载 |
 
+2026-11-05 拾取阶段使用 threejs-interaction 辅助输入与 raycast 设计，并核验 r187 官方实现及 MDN 坐标/指针契约；只实现拾取子入口，没有引入 TransformControls、拖物体或框选等额外能力。
+
+同日标签阶段复用 threejs-fundamentals 的变换/投影和生命周期线索，另行核验 r187 Vector3 与 CSS2DRenderer 及 MDN DOM 行为；实现独立 DOM 层，不引入框架适配或复制 Skill 示例。
+
+同日动画阶段使用 threejs-animation，核验 r187 Mixer/Action 的同步事件和缓存释放，以及 Khronos glTF 动画数据规范。只实现显式单片段播放与模型清理，没有迁入骨骼克隆、重定向、TSL 或混合示例。
+
+同日压缩阶段使用 threejs-loaders 和 threejs-asset-pipeline，核验 r187 的 URL 对配置、Draco dispose 及 Khronos 扩展；使用锁定的两个开发编码器生成原创样例，没有直接执行泛化 optimize 命令或引入纹理/框架管线。考虑所有权后选择独立任务 Draco，复用实例的性能取舍记录在 ADR-0005。
+
+同日回归诊断使用 threejs-performance 的先测量原则，核验锁定 Playwright 的 trace 与 reporter 行为，收集 API/expect 用时。runner 耗时不能视为 GPU 计时，不据此修改主包生命周期或承诺性能指标。
+
+同日 KTX2 阶段复用 threejs-loaders 与 threejs-asset-pipeline，核验 r187 KTX2/GLTFLoader 的回调、全局任务缓存、吞纹理错误和未初始化 dispose 计数，以及 Khronos KHR_texture_basisu。采用任务自有适配层与解析输入复制；共享实例建议的性能取舍另记 ADR-0006。未安装泛化资产优化工具，原创棋盘由固定提交/字节哈希的官方 Basis WASM 编码器生成，代码缓存不进入仓库或运行时分发。
+
 ## 发现与创建原则
 
 先按任务读取本索引，复用现有规则；会话提供的主机 Skill 按平台发现与加载，不能写成仓库已安装资产。若后续模型迁移、GPU 验证等流程反复出现，可再提取项目自有 Skill，不与第三方副本混淆。

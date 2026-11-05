@@ -2,7 +2,7 @@
 
 ## 项目事实与导航
 
-目标：重新封装 Three.js，主 npm 包名为 `@adui/three`。主包核心 MVP 已实现，website 为双实例演示，尚未发布 npm。以代码说明实现，以需求说明目标，不把建议写成已完成。
+目标：重新封装 Three.js，主 npm 包名为 `@adui/three`。主包核心 MVP、普通/Draco/Meshopt/KTX2 模型加载与动画、拾取及 DOM 标签已实现，website 为双实例演示，尚未发布 npm。以代码说明实现，以需求说明目标，不把建议写成已完成。
 
 - [需求与验收](docs/REQUIREMENTS.md)：已确认范围、建议 MVP、待决策事项。
 - [架构](docs/ARCHITECTURE.md) / [详细设计](docs/SDD.md)：当前结构与建议方案。
@@ -12,6 +12,9 @@
 - [ADR](docs/adr/0001-package-boundaries.md)：主包名称和边界方案。
 - [核心 MVP 决策](docs/adr/0002-core-mvp.md)：版本、生命周期与包导出。
 - [模型生命周期决策](docs/adr/0003-gltf-lifecycle.md)：逻辑取消、迟到清理与资源快照。
+- [动画生命周期决策](docs/adr/0004-animation-lifecycle.md)：模型扩展 scope、单 Mixer 与原生事件重入。
+- [压缩解码决策](docs/adr/0005-compressed-models.md)：显式解码配置、任务所有权和本地资产。
+- [KTX2 生命周期决策](docs/adr/0006-ktx2-lifecycle.md)：能力检测、输入隔离、在途转码与纹理清理。
 - [贡献指南](CONTRIBUTING.md)：Issue/PR 模板及 emoji 提交规范。
 
 ## 工作流程与约束

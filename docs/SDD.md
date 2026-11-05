@@ -2,9 +2,9 @@
 
 ## 当前实现
 
-核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`ResourceScope` 和类型；可选 `attachOrbitControls` 位于 controls 子入口。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
+核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation 分别提供控制器、模型加载、拾取、DOM 标签和动画。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
 
-核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)。完整选项、默认值和示例以 [主包 README](../packages/three/README.md) 与导出类型为准；当前提供 GLTF/GLB 加载，尚无 composer、标签、寻路、框架适配或 WebGPU 实现。
+核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画扩展见 [ADR-0004](adr/0004-animation-lifecycle.md)。完整选项、默认值和示例以 [主包 README](../packages/three/README.md) 与导出类型为准；尚无 composer、寻路、框架适配或 WebGPU 实现。
 
 ## 核心 API
 
@@ -14,6 +14,7 @@
 | `scene/camera/renderer`                                 | 原生对象的只读引用；不支持替换对象或额外并行渲染循环                          |
 | `start()/stop()`                                        | 幂等启停；销毁后 start 抛错、stop 无操作                                      |
 | `onUpdate((frame: FrameInfo) => void)`                  | 返回取消函数；按注册顺序同步执行；同一函数可多次独立订阅                      |
+| `onAfterRender((frame: FrameInfo) => void)`             | 全部更新与成功渲染后执行，适合 DOM 投影；不依赖与更新回调的注册先后           |
 | `resize()` / `size`                                     | 从容器 clientWidth/clientHeight 与 DPR 获取尺寸；size 返回快照                |
 | `resources.track<T extends Disposable>(resource: T): T` | 显式接管，scope 内按引用去重，不遍历 scene                                    |
 | `resources.untrack(resource): boolean`                  | 归还所有权，不 dispose                                                        |
@@ -33,7 +34,7 @@
 
 创建过程：校验容器/配置/ResizeObserver → 创建 scene/camera/renderer → 挂 canvas → 绑定 observer、窗口 resize、文档 visibility 和 DPR 媒体查询 → 初始 resize。后续步骤失败则调用 dispose 回滚；回滚异常与原错误聚合。
 
-帧过程：检查 epoch → 计算 delta 和 elapsed → 拍摄订阅快照 → 逐个同步 update → 状态/代次仍有效时 render → 若仍属当前运行代次安排下一帧。新订阅下一帧开始，取消订阅在当前帧生效。更新或 render 异常先 stop，再重新抛给浏览器。
+帧过程：检查 epoch → 计算 delta 和 elapsed → 拍摄更新订阅快照 → 逐个同步 update → 状态/代次仍有效时 render → 拍摄渲染完成订阅快照并逐个调用 → 若仍属当前运行代次安排下一帧。各阶段内新增订阅下一帧开始，取消订阅在当前帧生效；在 update 中新增的 onAfterRender 可于本帧执行。任一回调、render 中 stop/dispose/重启均使旧帧剩余阶段失效；任一阶段同步异常先 stop，再重新抛给浏览器。直接调用原生 renderer.render 不触发宿主订阅。
 
 ```mermaid
 stateDiagram-v2
@@ -51,9 +52,9 @@ running 是用户运行意图；文档隐藏或容器零尺寸时暂停 RAF 但�
 
 ## 释放与边界
 
-销毁顺序：标记 disposed → 停止帧与 abort signal → 清订阅 → 撤 observer/平台监听 → 逆序释放显式资源 → scene.clear（只 detach）→ renderer.dispose → forceContextLoss → 移除自有 canvas。各步骤异常不影响后续步骤，最终 AggregateError；重复 dispose 不重试失败项。
+销毁顺序：标记 disposed → 停止帧与 abort signal → 清更新和渲染完成订阅 → 撤 observer/平台监听 → 逆序释放显式资源 → scene.clear（只 detach）→ renderer.dispose → forceContextLoss → 移除自有 canvas。各步骤异常不影响后续步骤，最终 AggregateError；重复 dispose 不重试失败项。
 
-资源 scope 内按对象引用去重；借入或跨实例共享资源留给外部所有者，不由某个实例独占登记。登记 Mesh 不自动接管其 geometry/material/texture。textures 需单独登记；材质释放不隐含纹理释放。scope 销毁后 track 抛错，untrack 只解除登记。异步业务应检查 signal 并自行清理迟到结果；本轮无模型加载或网络中断契约。
+资源 scope 内按对象引用去重；借入或跨实例共享资源留给外部所有者，不由某个实例独占登记。登记 Mesh 不自动接管其 geometry/material/texture。textures 需单独登记；材质释放不隐含纹理释放。scope 销毁后 track 抛错，untrack 只解除登记。异步业务应检查 signal 并自行清理迟到结果；模型加载另见下节契约。
 
 容器尺寸基于 clientWidth/clientHeight，建议无 padding，CSS transform 不改变绘制分辨率。构造仅限现代浏览器，要求 WebGL 2 / ResizeObserver / matchMedia；模块导入不访问 DOM。没有数据库、事务、后端鉴权或隐式遥测；资产权限由应用负责。
 
@@ -61,13 +62,67 @@ running 是用户运行意图；文档隐藏或容器零尺寸时暂停 RAF 但�
 
 [loaders.ts](../packages/three/src/loaders.ts) 为独立公开子入口，导出 `loadGLTF(app, url, options?): Promise<GLTFModel>`、LoadGLTFOptions、GLTFModel、ModelProgress。返回原生 scene/gltf、disposed 和 dispose；默认挂载，可 addToScene=false，保留原始材质、尺寸与坐标，不启动 Mixer。
 
+模型另有只读 resources 扩展 ResourceScope：模型 dispose 标记结束后先调用它，再 detach 并释放原始资源快照；扩展失败仍继续清资产，聚合错误。单独释放扩展 scope 不等于移除模型，也不影响已拍摄快照的归属。动画登记于此，loader 不导入动画实现。
+
 流程：校验 URL 与预取消状态 → 创建独立 manager/loader → 登记 pending 清理句柄与取消监听 → 原生 loadAsync → [资源快照](../packages/three/src/gltf-resources.ts) → 若已终止则释放迟到模型 → 登记模型句柄 → 可选加入场景 → 再次检查宿主是否被同步挂载事件销毁 → 清监听和 pending → resolve。普通失败保持原始错误；signal、宿主或 scope 结束立即 reject AbortError。
 
 不调用 manager.abort：r187 FileLoader 按 URL 全局合并请求，运输中止可能连带其他任务。取消是逻辑取消；底层网络/解码可继续，但迟到成功会释放而不挂载，迟到失败有拒绝处理器。完成后 signal 不再影响模型；app.resources 接管模型，手动或宿主释放均幂等。
 
 资源在交给调用方之前拍摄快照，遍历全部返回 scenes，收集自有节点、geometry、material、texture、skeleton 并去重。之后加入的外部子对象/新材质不被接管。纹理释放后才 close 自有图像 backing；加载开始/完成或释放时 Cache 启用则保留图像，外部共享者可设 closeImageBitmaps=false；不更改全局 Cache，调用方不要在任务期间反复切换它。多个模型共享原生资源的克隆需外部协调生命周期。
 
-onProgress 仅代表主文件 bytes；total/ratio 在未知时为 null，不把下载 100% 等同全部依赖/解码完成。回调异常仅拒绝该任务，避免抛入合并请求的进度循环。晚到清理错误通过 onCleanupError 报告，未设置时 console.error；清理仍尝试所有资源。原生解析失败而未返回的局部资源不在快照内，不宣称完整回收；当前不注入压缩解码器/插件，不创建共享模型缓存。
+onProgress 仅代表主文件 bytes；total/ratio 在未知时为 null，不把下载 100% 等同全部依赖/解码完成。回调异常仅拒绝该任务，避免抛入合并请求的进度循环。晚到清理错误通过 onCleanupError 报告，未设置时 console.error；清理仍尝试所有资源。原生解析失败而未返回的局部资源不在快照内，不宣称完整回收；当前不注入通用 loader/插件，不创建共享模型缓存。
+
+## 压缩解码契约
+
+loadGLTF 增加 draco:DracoOptions 和 meshoptDecoder。Draco 显式提供以 / 结尾的非空目录或 r187 的 `{js,wasm}` URL 对，workerLimit 默认 1 且须为正整数；URL 字段在异步开始前拍快照。空/无效配置在请求前拒绝；Meshopt 类型沿用原生 setMeshoptDecoder，保持借用且不改其 Workers。
+
+每任务独立 DRACOLoader，配置后交给该任务 GLTFLoader，不预加载；普通调用不创建它。逻辑取消和宿主销毁只结束外部 Promise，原生加载仍可完成；原生成功或失败的 continuation 最后释放任务解码器，取消不提前终止 Worker，迟到模型仍清理。设置中失败/取消且尚未开始请求则立即回滚。解码器 dispose 失败通过 onCleanupError 报告，不撤销模型或覆盖原错误；Reporter 失败沿用兜底日志。
+
+独立实例有重复初始化成本，后续真实并发场景再设计共享服务，见 [ADR-0005](adr/0005-compressed-models.md)。主包不分发二进制、不默认 CDN、不使用废弃的纯 JS 类型配置；演示通过 Vite URL 导入本地 Draco 文件、按需导入 Meshopt。开发编码器固定 draco3dgltf 1.5.7 / meshoptimizer 0.25.0，只生成原创几何，许可见 [记录](../apps/website/public/licenses/README.md)。一般资产优化留后续。
+
+## KTX2 模型契约
+
+loadGLTF 的 ktx2:KTX2Options 接受显式 transcoderPath（以 / 结尾的非空目录，或 `{js,wasm}` URL 对）及 workerLimit（默认 1，整数 1–32）。配置拍快照并在分配前校验；任务内部 [TaskKTX2Loader](../packages/three/src/ktx2-task.ts) 经 detectSupport(app.renderer) 初始化能力，借用 renderer，不提前加载 WASM。URL 对在私有 LoadingManager 中只映射原生两个转码文件，模型纹理 URL 保持原样。
+
+parse 前复制 ArrayBuffer，隔离 FileLoader 合并请求/缓存与原生全局 task cache，保证独立模型不共享 Texture；不修改 Cache。适配层计数已开始的解析，原生模型完成时关闭新解析，现有解析全部结束才释放 Worker/Blob URL。逻辑取消只结束外部 Promise；迟到成功仍由模型快照清理。原生模型失败且仍有解析时继续等待回调，对未移交的 KTX2 纹理逐项释放；释放错误经 onCleanupError 报告，不阻断其他解码器清理。
+
+modelHandle 的资源快照建立后才移交已创建纹理，随模型/宿主释放。记录首个 KTX2 文件/解析错误，避免 GLTFLoader 吞掉纹理错误而交付缺贴图结果；若原生返回了部分模型，先建立并清理快照再拒绝原错误。其他 PNG/JPEG 的错误行为沿用原生实现。r187 未 init 的 KTX2 实例不调用原生 dispose，以保护原生活动计数；已 init 的实例在所有解析结束后恰好释放一次。版本相关细节与代价见 [ADR-0006](adr/0006-ktx2-lifecycle.md)。
+
+实测范围为模型中的 ETC1S/BasisLZ、压缩上传和禁用压缩扩展时的 RGBA 回退；无独立纹理入口、不强制某一 GPU 压缩格式。原创 checker.ktx2 具有 16×16 像素和 5 级 mip，ktx2.gltf 使用外部纹理便于验证 URL 合并，ktx2.glb 内嵌同一内容。固定哈希的官方 Basis 开发编码工具缓存于忽略目录，首次生成需网络，运行时资源仍来自锁定 Three.js。原生请求/Worker 永不完成和未返回的其他局部资源仍有边界，不承诺自动超时或长期无泄漏。
+
+## 模型动画契约
+
+[animation.ts](../packages/three/src/animation.ts) 导出 attachGLTFAnimations、GLTFAnimationsHandle、PlayAnimationOptions、AnimationState。接收已加载模型，片段引用拍只读数组快照；一个根对象只允许一个活动句柄，同时登记宿主和模型 scopes，任一结束都取消更新并清理自有 Mixer，不释放借用资产。
+
+初始 idle，无自动播放/宿主启动。play 接受合法索引或唯一精确名称，校验正有限 duration、原生 clip.validate、repeat/once 和正有限速度后才替换旧 action；立即采样零时刻。切换或重播停止旧 action，reset 当前片段，设置 weight/timeScale/loop/clamp 并 play。暂停跳过采样但保留速率配置；resume 只恢复 paused；finished 不再推进，play 可重播。stop 停止 action、恢复原生绑定属性并清空选择和时间。销毁后控制方法抛错，stop/dispose 幂等。
+
+正常由 onUpdate(delta) 采样，复用宿主的隐藏/零尺寸暂停与 delta 限幅。原生事件内的控制命令暂存到本次 update 结束后依序执行；销毁立即失效并清空命令，但 stopAllAction/uncacheRoot 延后至调用栈返回，避免修改正在遍历的缓存。普通模型销毁先结束 Mixer 再清 GPU；原生事件中销毁模型时，GPU 资源可先清理，CPU 最后一次采样后再释放缓存，不重新挂载。更新/清理错误交给宿主，详细边界见 ADR-0004。
+
+不提供淡入淡出、seek、反向、状态机或重定向。原生 mixer/action 由调用方查询、配置参数，但不能再手动驱动或维护缓存；原生事件监听和 CPU 引用由业务解除。演示用独立原创 animated.glb 的 Lift/Slide，不修改原静态 fixtures；关闭动画模型的手写旋转以避免重复驱动。
+
+## 对象拾取契约
+
+[interaction.ts](../packages/three/src/interaction.ts) 是独立子入口，导出 attachPicking、PickingOptions、PickingEvent 和 PickingHandle。`attachPicking(app, { objects, recursive?, dragThreshold? })` 使用必填目标 getter；recursive=true、dragThreshold=4 CSS 像素。句柄提供原生 raycaster、disposed、pick(clientX, clientY)、on("click" | "hover", callback) 与 dispose。
+
+pick 每次读取目标快照，更新相机/目标世界矩阵，以画布矩形将 viewport CSS 坐标映射至 NDC；不使用 drawing buffer 尺寸或全局容器。零尺寸/越界/非有限坐标返回 null；最近交点保留原生实际子对象，过滤 visible=false 的节点/祖先。支持偏移、滚动、轴向缩放，不支持 CSS 旋转/倾斜；其余沿用原生 CPU raycast，不保证 GPU 像素级一致或把非目标作为遮挡物。
+
+click：主指针左键/单指 pointerdown 记录位置与命中对象 → move/up 任意位移超过阈值取消 → pointerup 同一 pointerId、同一对象（包括都为 null）才派发。离开/取消/失焦/第二指针取消候选。模块不捕获指针、不 preventDefault，不修改 OrbitControls。hover：无按钮鼠标/笔移动时只在对象引用变化派发，leave/cancel 清空；触摸无 hover，静止指针或对象变更等下一次事件刷新。失焦只重置内部状态，销毁不派发事件。
+
+每次 on 是独立订阅，返回幂等 off；派发拍快照，新增延迟至下次，取消/销毁立即生效，回调异常不吞。句柄登记 app.resources，手动或宿主/scope 释放时解除全部画布/窗口监听、清订阅，保护借用目标，不创建帧循环。ready/stopped 可拾取，销毁后 pick/on 抛错。演示自行持有选中状态与光标；模型加载/移除及销毁重建时清空界面状态。
+
+实现前核验 [r187 Raycaster 源码](https://github.com/mrdoob/three.js/blob/r187/src/core/Raycaster.js)、[Object3D 世界矩阵](https://github.com/mrdoob/three.js/blob/r187/src/core/Object3D.js)、[画布矩形坐标](https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect) 与 [Pointer Events](https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events)，没有直接套用 r186 Skill 示例。
+
+## DOM 标签契约
+
+[labels.ts](../packages/three/src/labels.ts) 是可选独立入口，导出 attachDOMLabels、DOMLabelOptions、DOMLabelHandle、DOMLabelsHandle。应用提供与 canvas 同 document、无 border/padding/滚动条的定位 overlay；库不修改其样式，只管理自有根层与标签包装节点。标签不加入模型场景树，避免被模型快照接管或依赖框架挂载。
+
+add 接收 object、独占挂载的 detached element、局部 offset=[0,0,0]、anchor=[0.5,1]、interactive=false。句柄提供原生目标/元素引用、可变 Vector3 offset、visible、disposed、dispose；层提供 add/update/clear/dispose。元素移除后可复用，内容监听、框架组件卸载与 overlay 由应用管理。
+
+每次成功 render 后通过 onAfterRender 同步刷新；ResizeObserver 观察 canvas/overlay，在暂停和零尺寸时仍更新，无第二 RAF。投影：更新世界矩阵 → 局部 offset 转世界/相机坐标 → 排除相机背后 → 投影并检查有限值及 NDC 裁剪范围 → 按 canvas/overlay 的 CSS 矩形和 client 尺寸换算定位。目标不属于 app.scene、隐藏祖先或 layers 不匹配也隐藏。支持正向轴向缩放，不支持 CSS 旋转/倾斜/镜像；不做深度遮挡、透视缩放、距离排序、避让或 CSS3D。
+
+默认包装 pointer-events:none，interactive=true 可接收原生 DOM/键盘事件；内容 CSS 可以覆盖继承，应用负责协调。层登记 app.resources，释放时取消订阅、断开 observer、尝试全部标签与根节点清理，最终聚合异常，保护借用目标。重复释放不重试失败项。挂载期间同步销毁宿主会回滚，不返回死句柄；销毁后 add/update 抛错，clear/dispose 幂等。
+
+实现前核验 [r187 Vector3 投影](https://github.com/mrdoob/three.js/blob/r187/src/math/Vector3.js)、[原生 CSS2DRenderer 的场景树/DOM 管理](https://github.com/mrdoob/three.js/blob/r187/examples/jsm/renderers/CSS2DRenderer.js)、[ResizeObserver](https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver) 与 [pointer-events](https://developer.mozilla.org/en-US/docs/Web/CSS/pointer-events)。当前选用独立投影与 DOM 包装来保持显式所有权，没有复制 addon 或旧项目实现。
 
 ## 工程清理
 
@@ -79,27 +134,40 @@ onProgress 仅代表主文件 bytes；total/ratio 在未知时为 null，不把�
 
 [浏览器回归](../tests/browser/scene.spec.ts) 通过生产构建后的演示验证真实 WebGL、双实例独立暂停、零尺寸恢复、DPR、收窄容器、反复销毁重建、交互及移动端无水平溢出。截图供人工目视验证，不能据此声称完整浏览器兼容、性能基准或长期 GPU 无泄漏。真实结果见 [Harness](HARNESS.md)。
 
+[耗时 reporter](../tests/browser/timing-reporter.ts) 从 runner 事件记录每次尝试与最慢 API/expect 操作，供超时诊断；它不采集 GPU 用时或改变测试行为。默认 trace 保留操作、DOM、网络与源码，关闭连续截图采集，显式截图仍保留；配置、复现命令和对照结果见 Harness。
+
 [模型单测](../packages/three/tests/loaders.test.ts) 使用真实 scene/geometry/material/texture/skeleton 和受控 loadAsync，验证取消、迟到失败、清理、快照归属、进度回调错误及同步挂载销毁。新增 [浏览器模型回归](../tests/browser/models.spec.ts) 用项目原创的内嵌纹理 GLTF/GLB 验证真实解码、相同 URL 单次请求的取消隔离和原生 ImageBitmap.close。测试资产通过 [生成器](../scripts/generate-model-fixtures.mjs) 重建，来源见 [资产说明](../apps/website/public/models/README.md)。
+
+[拾取单测](../packages/three/tests/interaction.test.ts) 使用真实 Raycaster/geometry/camera 和可控事件目标，覆盖坐标、矩阵、动态目标、可见性/layers、手势与派发竞争、清理和多实例。[拾取浏览器回归](../tests/browser/interaction.spec.ts) 验证 CSS 缩放、真实 OrbitControls 拖拽、双实例、模型替换与重建。
 
 ## 需求追踪
 
-| 需求    | 设计位置                 | 实现                              | 测试/验收                                  |
-| ------- | ------------------------ | --------------------------------- | ------------------------------------------ |
-| FR-001  | 当前实现                 | AGENTS、docs、scripts             | docs:test / docs:check                     |
-| FR-002  | 核心 API、模块与关键流程 | packages/three                    | 主包单测、浏览器演示                       |
-| FR-003  | 核心 API                 | 主包 package.json、website 依赖   | ESM/声明构建、公开入口                     |
-| FR-004  | 当前实现                 | CONTRIBUTING、Skills、.github     | 文档检查、格式检查                         |
-| FR-005  | 模块与关键流程           | ThreeApp 构造                     | 宿主单测、浏览器                           |
-| FR-006  | 模块与关键流程           | FrameLoop、onUpdate               | 帧/宿主单测、独立暂停                      |
-| FR-007  | 模块与关键流程           | resize、平台监听                  | 宿主单测、浏览器尺寸操作                   |
-| FR-008  | 释放与边界               | ResourceScope、dispose、signal    | 资源/宿主单测、反复重建                    |
-| FR-009  | 核心 API、验证设计       | controls、website                 | 控制器单测、浏览器                         |
-| FR-010  | GLTF / GLB 异步契约      | loaders.ts、公开子入口            | 模型单测、生产浏览器 GLTF/GLB              |
-| FR-011  | GLTF / GLB 异步契约      | loaders.ts、gltf-resources.ts     | 竞争/快照单测、同 URL 和图像清理浏览器回归 |
-| FR-012  | 验证设计                 | 原创模型、生成器、演示            | fixtures:models、浏览器模型回归            |
-| FR-013  | 工程清理                 | 根 README、工作区、模板文件与引用 | 文档校验、主包测试、构建及浏览器回归       |
-| NFR-001 | 需求追踪                 | 文档校验、Harness                 | 静态检查与人工审阅                         |
-| NFR-002 | 当前实现、释放与边界     | 主包 exports/peer/打包            | 构建、Node 导入、包文件检查、浏览器        |
+动画验证见 [真实 Mixer 单测](../packages/three/tests/animation.test.ts)、[加载器扩展 scope 测试](../packages/three/tests/loaders.test.ts) 与 [浏览器动画回归](../tests/browser/animation.spec.ts)。[原创资产生成器](../scripts/generate-model-fixtures.mjs) 按 glTF FLOAT 对齐生成两段节点平移动画，来源见模型 README；没有私有或第三方模型。
+
+标签验证见 [单测](../packages/three/tests/labels.test.ts) 与 [浏览器回归](../tests/browser/labels.spec.ts)，包括真实投影数学、可见性、资源清理和实际 DOM 布局/交互。渲染完成阶段的顺序、订阅竞争、异常与销毁在宿主单测中覆盖。
+
+| 需求    | 设计位置                          | 实现                                             | 测试/验收                                   |
+| ------- | --------------------------------- | ------------------------------------------------ | ------------------------------------------- |
+| FR-001  | 当前实现                          | AGENTS、docs、scripts                            | docs:test / docs:check                      |
+| FR-002  | 核心 API、模块与关键流程          | packages/three                                   | 主包单测、浏览器演示                        |
+| FR-003  | 核心 API                          | 主包 package.json、website 依赖                  | ESM/声明构建、公开入口                      |
+| FR-004  | 当前实现                          | CONTRIBUTING、Skills、.github                    | 文档检查、格式检查                          |
+| FR-005  | 模块与关键流程                    | ThreeApp 构造                                    | 宿主单测、浏览器                            |
+| FR-006  | 模块与关键流程                    | FrameLoop、onUpdate                              | 帧/宿主单测、独立暂停                       |
+| FR-007  | 模块与关键流程                    | resize、平台监听                                 | 宿主单测、浏览器尺寸操作                    |
+| FR-008  | 释放与边界                        | ResourceScope、dispose、signal                   | 资源/宿主单测、反复重建                     |
+| FR-009  | 核心 API、验证设计                | controls、website                                | 控制器单测、浏览器                          |
+| FR-010  | GLTF / GLB 异步契约               | loaders.ts、公开子入口                           | 模型单测、生产浏览器 GLTF/GLB               |
+| FR-011  | GLTF / GLB 异步契约               | loaders.ts、gltf-resources.ts                    | 竞争/快照单测、同 URL 和图像清理浏览器回归  |
+| FR-012  | 验证设计                          | 原创模型、生成器、演示                           | fixtures:models、浏览器模型回归             |
+| FR-013  | 工程清理                          | 根 README、工作区、模板文件与引用                | 文档校验、主包测试、构建及浏览器回归        |
+| FR-014  | 对象拾取契约                      | interaction.ts、演示拾取反馈                     | 拾取单测、生产浏览器交互回归                |
+| FR-015  | DOM 标签契约、模块与关键流程      | labels.ts、onAfterRender、演示                   | 标签/宿主单测、生产浏览器标签回归           |
+| FR-016  | 模型动画契约、GLTF / GLB 异步契约 | animation.ts、模型 resources、原创动画 GLB       | 动画/加载器单测、生产浏览器动画回归         |
+| FR-017  | 压缩解码契约                      | loaders.ts、原创建模与压缩生成、演示本地 decoder | 解码器单测、原生 Worker/迟到清理浏览器回归  |
+| FR-018  | KTX2 模型契约                     | loaders.ts、ktx2-task.ts、原创纹理与模型         | KTX2/加载器单测、Worker/上传/回退浏览器回归 |
+| NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                |
+| NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器         |
 
 ## 维护
 
