@@ -55,6 +55,7 @@ camera 提供即时规划/应用以及可取消平滑过渡，仅按类型借用
 - 保留现有 Monorepo 与工具链；公共能力先在主包中按职责组织，出现独立复用需求再拆包。
 - 单一 RAF 更新模块并统一 render；用 epoch 隔离旧调度，WebXR 不在支持范围。实现契约见 [SDD](SDD.md)。
 - Three.js peer 范围 >=0.187.0 <0.188.0，开发版本固定 0.187.0；类型包作为 dependency 随库安装。ESM/ES2022 与声明由 Vite+ pack 生成，Three.js/addons 保持外部依赖。development 导出指向随包包含的 src。
+- 消费者直接导入 Three.js 时自行声明 three 与 @types/three，库的类型依赖只保证自身声明可解析。独立打包验证在工作区外安装 tarball，不依赖 website 的类型提升或开发导出，见 Harness。
 - 资源所有权显式区分库创建与外部借用；不能把 scene 中所有对象无条件释放。
 - 先给出最小可用核心；多 renderer、插件系统、依赖注入容器、编辑器协议不提前固化。
 

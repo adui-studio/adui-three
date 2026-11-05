@@ -22,9 +22,14 @@ pnpm install --frozen-lockfile
 | `pnpm exec vp run -r build` | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`            | 文档测试/校验、静态检查、主包单测和全部构建                        |
 | `pnpm run test:browser`     | 构建演示并执行 27 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:package`     | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:models`  | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
 
 首次浏览器回归需执行 `pnpm exec playwright install chromium`。测试使用 Playwright 1.64.1 / Chromium / SwiftShader，DPR=3 验证宿主上限 2；preview 使用 127.0.0.1:4173，端口需空闲，测试结束自动收尾。截图和失败 trace 位于忽略提交的 test-results。
+
+test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装真实 tarball、固定开发基准 three 和当前锁定的 TypeScript；不修改工作区依赖或锁文件。先以库声明消费方式编译，再为直接 import three 的应用添加匹配 @types/three，执行 NodeNext、Bundler、Bundler+development 三种类型解析，均使用 strict 与 skipLibCheck=false。两个 .ts.txt 仅是输入样例，复制到临时项目后才编译；Node 检查另覆盖七个默认入口、禁止 fetch、数学/资源操作、私有路径拒绝和 development 源码文件存在性。development 仅检查解析，不尝试在 Node 执行 node_modules 内的 TS。
+
+该命令独立于 ready，安装可能访问 registry、复用本地 store；不表示离线可用、发布权限已确认或包已发布。成功时核验临时绝对路径后仅删除本次项目；失败打印并保留诊断目录。依据见 [pnpm pack](https://pnpm.io/cli/pack)、[pnpm install](https://pnpm.io/cli/install)、[Node 条件导出](https://nodejs.org/api/packages.html#conditional-exports) 与 [skipLibCheck](https://www.typescriptlang.org/tsconfig/skipLibCheck.html)。
 
 首次重建 KTX2 fixtures 会从官方 Basis 仓库固定提交下载 JS/WASM 开发编码工具，校验 SHA256 后放入忽略的 .cache/model-fixtures；缓存就绪后可离线生成。编码工具不属于 npm 或演示分发内容，版本与哈希在 scripts/basis-encoder.mjs 中固定，来源与许可见 ADR-0006 及演示许可记录。演示运行转码器由本地 Three.js 依赖提供。
 
@@ -53,6 +58,10 @@ pnpm install --frozen-lockfile
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 独立包消费阶段：平滑取景以 08628a2 推送后，新增 test:package，真实 pack/install 与七入口 Node 检查、development 源码解析，以及四次严格声明/应用编译全部通过（暖缓存约 5 秒）。ready 同时通过 13 项文档测试、135 项主包单测、84 文件格式与 45 源文件 Lint/类型检查，主包及演示构建成功（部分构建命中缓存）。主包 API、依赖、peer 与版本未变，未发布 npm。库声明在应用未直接安装 @types/three 时可解析；应用直接导入 three 则需自身类型依赖，已同步 README。
+
+开发过程首轮导入失败是检查器把 window 设为抛错 getter，连 Three.js 的安全 typeof window 检测也拒绝；改为真实无 DOM 的 Node 环境并禁止 fetch。下一轮严格编译发现应用直接导入 three 时 TS7016，随后保留无应用级类型依赖的库声明验证，并补充真实应用的 @types/three 安装与三种解析验证。工作区静态检查曾因独立样例位于根目录而无法解析包；改成 .ts.txt 输入后，仍由独立安装项目对这些样例执行严格编译，未关闭库声明检查。失败临时目录按设计保留。本轮不影响宿主/渲染/演示，未重复浏览器回归，前轮 27/27 记录保持有效；此次仅验证 Windows/当前 Node、pnpm 和 TypeScript，不外推其他平台或消费者工具链。
 
 2026-11-05 平滑取景阶段：ready 通过 13 项文档测试、135 项主包单测、82 文件格式及 43 源文件 Lint/类型检查；七入口 ESM/声明和演示构建成功。新增 17 项过渡单测覆盖宿主 delta/暂停、相反轨道方向、signal/输入/替换取消、重入、异常与清理继续执行。首轮 29/30 相机相关单测通过，外部尺寸变化用例暴露尺寸快照引用可变测试对象；改成独立数值快照后 30/30 通过。首次 ready 发现一个未使用的测试导入和快照遍历 Lint 提示，修正后通过。
 

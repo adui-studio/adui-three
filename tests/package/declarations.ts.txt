@@ -1,0 +1,8 @@
+// Compile without a direct @types/three dependency in the application.
+export * from "@adui/three";
+export * from "@adui/three/controls";
+export * from "@adui/three/loaders";
+export * from "@adui/three/interaction";
+export * from "@adui/three/labels";
+export * from "@adui/three/animation";
+export * from "@adui/three/camera";

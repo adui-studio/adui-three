@@ -6,6 +6,7 @@
 
 - 文档改动：`pnpm run docs:test`、`pnpm run docs:check`。
 - 代码或配置改动：`pnpm run ready`。
+- 包导出、依赖或打包改动：另执行 `pnpm run test:package`，验证实际 tarball 的独立安装和类型消费；安装可能需要网络，命令不发布 npm。
 - 浏览器渲染、交互和 GPU 资源行为需按场景另行验证；记录未运行项目及原因。
 
 ## Issue 与 PR

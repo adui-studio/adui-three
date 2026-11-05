@@ -2,7 +2,7 @@
 
 ## 目标与当前阶段
 
-更新日期：2026-11-05。前序成果七个提交及相机取景已交付；中文提交 c04b342（取景）和 b6ab6c6（中文协作规范）已推送至 origin/main，远端核对到 b6ab6c6。平滑取景已完成验证，用户继续授权后纳入本轮交付，随后补齐独立包消费验证。运行解码资源本地托管，尚未发布 npm。
+更新日期：2026-11-05。前序成果七个提交及相机取景已交付；中文提交 c04b342（取景）和 b6ab6c6（中文协作规范）已推送至 origin/main，远端核对到 b6ab6c6。平滑取景以中文提交 08628a2 交付并推送，远端已核对。本轮补齐 NFR-002 的独立包消费验证，验证命令和使用说明纳入第二项中文提交交付。运行解码资源本地托管，尚未发布 npm。
 
 提交语言偏好：用户明确要求 commit 使用中文。新提交描述和正文采用中文，保留 Conventional Commits 的 type/scope 与一个 gitmoji；协作入口和贡献指南已同步，不改写已有英文提交。
 
@@ -45,6 +45,8 @@ KTX2 阶段新增 11 项单测与 4 项浏览器用例，累计 105 项主包单
 ## 已确认与建议
 
 已确认并实施：单一主包起步，宿主加内部组合模块；controls、loaders、interaction、labels、animation、camera 为按需子入口。原始提案见 [ADR-0001](adr/0001-package-boundaries.md)，核心见 [ADR-0002](adr/0002-core-mvp.md)，模型见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画见 [ADR-0004](adr/0004-animation-lifecycle.md)，KTX2 见 [ADR-0006](adr/0006-ktx2-lifecycle.md)，取景见 [ADR-0007](adr/0007-camera-framing.md)。截图中的扩展包名仍为未来参考。
+
+包消费阶段新增 test:package：实际 tarball 安装至系统临时项目，验证七个运行时入口、development 源码解析、私有深路径边界及严格类型消费。库声明可使用随包类型依赖；应用直接导入 three 需自行声明 @types/three，README 已补充。未修改库 API、生产依赖或版本，尚未发布 npm；真实验证见 Harness。
 
 ## 下一阶段与风险
 

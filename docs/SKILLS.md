@@ -61,6 +61,8 @@
 
 同日用户要求中文提交，使用 git-commit 执行两项中文提交并推送；继续过渡阶段复用 threejs-animation 的 delta 与 quaternion 插值思路，核验官方 Quaternion/Vector3/OrbitControls 及 r187 源码。保持单一宿主调度，不复制独立 RAF 或引入动画依赖。
 
+同日继续交付平滑取景时复用 git-commit/gitmoji，采用中文描述及过渡意图的 💫；后续包消费检查沿用 NFR-002，核验 pnpm pack/install、Node 条件导出与 TypeScript skipLibCheck 官方文档，不安装额外技能或依赖。包结构相关改动增加 test:package 独立门禁，详见 Harness。
+
 ## 发现与创建原则
 
 提交任务中，用户的中文描述/正文要求优先于第三方 Skill 的英文祈使语气示例；继续使用 git-commit 执行和 gitmoji 选意图，不改动导入的 Skill 原文。

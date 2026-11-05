@@ -162,6 +162,8 @@ add 接收 object、独占挂载的 detached element、局部 offset=[0,0,0]、a
 
 ## 需求追踪
 
+NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后的 tarball 执行：临时项目位于工作区外，经 pnpm pack 转换 catalog、独立安装后，检查七个运行时入口、禁止网络的 Node 导入、development 源码解析和私有深路径拒绝。先不添加应用级 @types/three 验证库声明，再按应用直接组合 Three.js 的方式安装该类型包，以 skipLibCheck=false 验证 NodeNext、Bundler 和 development 条件下的声明解析。后者仍优先使用 types 导出，不表示 Node 可执行 node_modules 内的原始 TS，也不代替浏览器验收。命令独立于 ready，安装可能需要网络；临时项目成功清理、失败保留供诊断。
+
 动画验证见 [真实 Mixer 单测](../packages/three/tests/animation.test.ts)、[加载器扩展 scope 测试](../packages/three/tests/loaders.test.ts) 与 [浏览器动画回归](../tests/browser/animation.spec.ts)。[原创资产生成器](../scripts/generate-model-fixtures.mjs) 按 glTF FLOAT 对齐生成两段节点平移动画，来源见模型 README；没有私有或第三方模型。
 
 标签验证见 [单测](../packages/three/tests/labels.test.ts) 与 [浏览器回归](../tests/browser/labels.spec.ts)，包括真实投影数学、可见性、资源清理和实际 DOM 布局/交互。渲染完成阶段的顺序、订阅竞争、异常与销毁在宿主单测中覆盖。

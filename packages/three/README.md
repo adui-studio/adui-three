@@ -6,6 +6,8 @@
 
 在当前工作区通过 `workspace:*` 引用；容器需有明确尺寸。下面使用公开入口，应用自行组合原生 Three.js 对象。
 
+应用直接安装 `three@0.187.0`；TypeScript 应用若直接导入 Three.js 对象，另将 `@types/three@0.187.0` 列为自己的开发依赖。库携带的类型依赖供库声明解析使用，pnpm 的隔离布局不会保证应用可以直接访问它。独立 tarball 安装及 NodeNext/Bundler 类型解析由仓库 `pnpm run test:package` 验证。
+
 ```ts
 import { ThreeApp } from "@adui/three";
 import { attachOrbitControls } from "@adui/three/controls";

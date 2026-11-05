@@ -32,6 +32,8 @@ pnpm run dev
 
 ## 基本用法
 
+应用需直接依赖 `three@0.187.0`；TypeScript 应用直接导入 Three.js 对象时，还需将 `@types/three@0.187.0` 列为自身开发依赖。主包携带的类型依赖供库声明使用，pnpm 隔离布局不会自动把它提升为应用的直接类型依赖。当前使用工作区或本地打包文件，尚未从 npm 发布。
+
 给容器设置明确尺寸：
 
 ```html
@@ -140,13 +142,14 @@ if (animations.clips.length) animations.play(0);
 
 ## 开发
 
-| 命令                       | 用途                                   |
-| -------------------------- | -------------------------------------- |
-| `pnpm run dev`             | 启动演示，开发时主包源码支持 HMR       |
-| `pnpm run ready`           | 文档、格式、Lint、类型、单元测试和构建 |
-| `pnpm run test:browser`    | 构建生产演示并运行真实 Chromium 回归   |
-| `pnpm run fixtures:models` | 重建原创 GLTF/GLB 测试模型             |
-| `pnpm run docs:check`      | 检查文档结构、链接和需求追踪           |
+| 命令                       | 用途                                       |
+| -------------------------- | ------------------------------------------ |
+| `pnpm run dev`             | 启动演示，开发时主包源码支持 HMR           |
+| `pnpm run ready`           | 文档、格式、Lint、类型、单元测试和构建     |
+| `pnpm run test:package`    | 实际打包并在独立项目中安装，验证入口和类型 |
+| `pnpm run test:browser`    | 构建生产演示并运行真实 Chromium 回归       |
+| `pnpm run fixtures:models` | 重建原创 GLTF/GLB 测试模型                 |
+| `pnpm run docs:check`      | 检查文档结构、链接和需求追踪               |
 
 首次运行浏览器回归前安装对应浏览器：
 

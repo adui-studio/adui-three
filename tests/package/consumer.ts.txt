@@ -1,0 +1,52 @@
+import { ResourceScope, ThreeApp } from "@adui/three";
+import { attachOrbitControls } from "@adui/three/controls";
+import { loadGLTF } from "@adui/three/loaders";
+import type { GLTFModel, LoadGLTFOptions } from "@adui/three/loaders";
+import { attachPicking } from "@adui/three/interaction";
+import { attachDOMLabels } from "@adui/three/labels";
+import { attachGLTFAnimations } from "@adui/three/animation";
+import { computeObjectFrame, fitObject, transitionToObject } from "@adui/three/camera";
+import type { CameraTransitionResult } from "@adui/three/camera";
+import { BoxGeometry, Mesh, MeshBasicMaterial } from "three";
+
+// Compile only: all library values come from the installed archive, without workspace paths.
+export async function consume(container: HTMLElement, overlay: HTMLElement, model: GLTFModel) {
+  const app = new ThreeApp(container, { maxPixelRatio: 2 });
+  const scope = new ResourceScope();
+  const object = new Mesh(scope.track(new BoxGeometry()), scope.track(new MeshBasicMaterial()));
+  app.scene.add(object);
+  const { controls } = attachOrbitControls(app);
+  controls.target.set(0, 1, 0);
+  const options: LoadGLTFOptions = { signal: app.signal, addToScene: false };
+  const loaded: GLTFModel = await loadGLTF(app, "/sample.glb", options);
+  const picking = attachPicking(app, { objects: () => [loaded.scene] });
+  picking.on("click", ({ intersection }) => {
+    intersection?.object.position.set(0, 0, 0);
+  });
+  const labels = attachDOMLabels(app, overlay);
+  labels.add({ object: loaded.scene, element: document.createElement("span") });
+  const animations = attachGLTFAnimations(app, model);
+  animations.play(0, { loop: "once" });
+  computeObjectFrame(app.camera, object, { direction: [1, 1, 1] });
+  fitObject(app, object, { controls });
+  const motion = transitionToObject(app, object, { controls, duration: 1, signal: app.signal });
+  const result: CameraTransitionResult = await motion.finished;
+  if (result.status === "completed") result.frame.position.toArray();
+  if (result.status === "failed") console.error(result.error);
+  app.onUpdate(({ delta, elapsed }) => {
+    object.rotation.y += delta;
+    object.position.y = Math.sin(elapsed);
+  });
+  app.onAfterRender(() => labels.update());
+  app.start();
+  app.stop();
+  app.dispose();
+  scope.dispose();
+}
+
+export function invalidInputChecks(app: ThreeApp, object: Mesh) {
+  // @ts-expect-error duration must remain numeric in the published declaration
+  transitionToObject(app, object, { duration: "1" });
+  // @ts-expect-error picking requires a dynamic objects getter
+  attachPicking(app, {});
+}
