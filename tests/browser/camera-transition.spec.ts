@@ -53,10 +53,19 @@ test("pointer input, explicit cancellation and instant fitting release smooth fr
   await start.click();
   await panel.getByRole("button", { name: "适配视角", exact: true }).click();
   await expect(panel).toHaveAttribute("data-transition-state", "cancelled");
-  await start.click();
+  // Keep the request pending while automation scrolls and locates the canvas. These UI actions
+  // run in one task so software-rendering latency cannot complete the motion before pointerdown.
+  await panel.evaluate((element) => {
+    element.querySelector<HTMLButtonElement>('[data-action="transition"]')!.click();
+    element.querySelector<HTMLButtonElement>('[data-action="stop"]')!.click();
+  });
+  await expect(panel).toHaveAttribute("data-state", "stopped");
+  await expect(panel).toHaveAttribute("data-transition-state", "running");
   const canvas = panel.locator("canvas");
   await canvas.scrollIntoViewIfNeeded();
   const bounds = (await canvas.boundingBox())!;
+  const label = panel.getByTestId("object-label").first();
+  const before = (await label.boundingBox())!;
   const frames = Number(await panel.getByTestId("frames").textContent());
   await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
   await page.mouse.down();
@@ -65,6 +74,14 @@ test("pointer input, explicit cancellation and instant fitting release smooth fr
   });
   await page.mouse.up();
   await expect(panel).toHaveAttribute("data-transition-state", "cancelled");
+  await panel.getByRole("button", { name: "运行", exact: true }).click();
+  // The same native drag must reach the restored controls and change the projected view.
+  await expect
+    .poll(async () => {
+      const after = (await label.boundingBox())!;
+      return Math.hypot(after.x - before.x, after.y - before.y);
+    })
+    .toBeGreaterThan(2);
   await expect
     .poll(async () => Number(await panel.getByTestId("frames").textContent()))
     .toBeGreaterThan(frames);

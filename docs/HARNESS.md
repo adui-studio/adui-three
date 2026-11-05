@@ -39,6 +39,14 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 失败 trace 保留操作、DOM 快照、网络与源码，关闭持续截图采集，以减少软件 WebGL 回归中的诊断开销；用例显式截图保留。DOM 快照不记录 WebGL 像素，默认 trace 没有画面时间线；需要完整画面时可用 `pnpm run test:browser --trace=on` 临时覆盖。Playwright 的 retain-on-failure 实际会录制每次运行，只在成功后丢弃，screenshots 默认开启，见 [trace 选项](https://playwright.dev/docs/api/class-testoptions#test-options-trace)。这项配置不改变 DPR、渲染循环、断言、超时或重试。
 
+## GitHub Actions
+
+[CI 工作流](../.github/workflows/ci.yml) 在 main 的 push、全部 pull_request 和手动 workflow_dispatch 时运行。Checks 矩阵为 Ubuntu/Windows × Node 22.18.0/24：固定 pnpm 12.16.1、冻结锁文件安装，执行 ready 与 test:package。Browser 独立使用 Ubuntu/Node 24，安装 Chromium 及系统依赖后执行原 test:browser；保留单 worker、零重试、DPR 与既有用例超时，工作流 20 分钟预算仅限制整个 job。
+
+Actions 固定到核验过的完整提交 SHA；checkout 不保留凭据，权限限 contents:read。缓存仅为 pnpm store；不跨 job 缓存 node_modules 或构建结果。相同 workflow/ref 的新运行取消旧运行，矩阵 fail-fast=false 保留各平台结果。浏览器执行后上传 test-results，包含耗时报告、截图和失败 trace，保留 14 天；用例失败仍上传，未执行浏览器步骤则跳过。
+
+这仅是自动验证配置，不设置仓库分支保护或 required checks，也不发布 npm 或部署演示。远端首次运行成功前不能把配置矩阵记为兼容性已验证。依据见 [setup-node](https://github.com/actions/setup-node)、[pnpm/action-setup](https://github.com/pnpm/action-setup)、[Playwright CI](https://playwright.dev/docs/ci-intro) 与 [upload-artifact](https://github.com/actions/upload-artifact)。
+
 ## 文档校验边界
 
 [检查器](../scripts/check-docs.mjs) 仅使用 Node 内置模块。扫描根 README/AGENTS/CONTRIBUTING、docs、.github 和 .agents/skills 的 Markdown，跳过代码围栏。README 检查存在、非空和链接，不强制初始化时期的标题。
@@ -58,6 +66,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 CI 阶段：新增自动工作流，actionlint 1.7.11 静态验证通过，工具从官方 Release 临时下载并校验对应 SHA256，未新增仓库依赖。ready 本地通过 13 项文档测试、135 项单测、85 文件格式与 45 源文件 Lint/类型检查（部分任务命中缓存），test:package 独立安装与四次严格编译通过。本地 Node 为 24.18.0/Windows；配置的其他平台需等待远端实际结果。
+
+本轮浏览器首轮 26/27 通过（约 2.5 分钟），相机过渡输入用例预期 cancelled 实际 completed。reporter 显示 scrollIntoView 约 759ms、boundingBox 486ms，加上其他自动化操作使 2 秒过渡先于 pointerdown 结束。用例通过同一浏览器任务触发公开 UI 的过渡与暂停，在定位画布期间保持待取消状态，再执行真实鼠标拖拽，断言 cancelled 并恢复宿主，额外检查同一手势已交给恢复的控件（标签投影改变）。未改生产逻辑、过渡时长、断言超时或重试；三项相机过渡单独回归 3/3 通过（约 28 秒）。原失败 trace/reporter 保留于忽略的 playwright-report/diagnostics/ci-input-race。随后全量回归 27/27 通过（约 1.5 分钟），保留零重试。
 
 2026-11-05 独立包消费阶段：平滑取景以 08628a2 推送后，新增 test:package，真实 pack/install 与七入口 Node 检查、development 源码解析，以及四次严格声明/应用编译全部通过（暖缓存约 5 秒）。ready 同时通过 13 项文档测试、135 项主包单测、84 文件格式与 45 源文件 Lint/类型检查，主包及演示构建成功（部分构建命中缓存）。主包 API、依赖、peer 与版本未变，未发布 npm。库声明在应用未直接安装 @types/three 时可解析；应用直接导入 three 则需自身类型依赖，已同步 README。
 

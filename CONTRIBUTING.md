@@ -9,6 +9,8 @@
 - 包导出、依赖或打包改动：另执行 `pnpm run test:package`，验证实际 tarball 的独立安装和类型消费；安装可能需要网络，命令不发布 npm。
 - 浏览器渲染、交互和 GPU 资源行为需按场景另行验证；记录未运行项目及原因。
 
+[CI](.github/workflows/ci.yml) 自动在 Ubuntu/Windows 的 Node 22.18.0/24 执行 ready 和包消费检查，另在 Ubuntu 运行 Chromium/SwiftShader 浏览器回归。main 推送、PR 和手动触发均可运行，浏览器诊断保留 14 天。配置、平台范围与实际运行记录见 Harness；分支保护及 required checks 未自动设置。
+
 ## Issue 与 PR
 
 先搜索已有 Issue，按问题选择 [Bug 报告](.github/ISSUE_TEMPLATE/bug_report.yml)、[功能请求](.github/ISSUE_TEMPLATE/feature_request.yml) 或 [工程任务](.github/ISSUE_TEMPLATE/chore_request.yml)。提案注明待确认；已确认需求关联编号和规格文件。

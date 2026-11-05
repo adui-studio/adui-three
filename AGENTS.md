@@ -18,6 +18,7 @@
 - [KTX2 生命周期决策](docs/adr/0006-ktx2-lifecycle.md)：能力检测、输入隔离、在途转码与纹理清理。
 - [相机取景决策](docs/adr/0007-camera-framing.md)：世界边界、透视视锥、控件约束与即时应用。
 - [贡献指南](CONTRIBUTING.md)：Issue/PR 模板及 emoji 提交规范。
+- [CI 工作流](.github/workflows/ci.yml)：现有检查的自动执行与浏览器诊断产物。
 
 ## 工作流程与约束
 
