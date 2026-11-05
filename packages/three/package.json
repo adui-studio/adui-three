@@ -32,6 +32,11 @@
       "development": "./src/interaction.ts",
       "import": "./dist/interaction.mjs"
     },
+    "./labels": {
+      "types": "./dist/labels.d.mts",
+      "development": "./src/labels.ts",
+      "import": "./dist/labels.mjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

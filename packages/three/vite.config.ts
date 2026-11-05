@@ -7,6 +7,7 @@ export default defineConfig({
       controls: "src/controls.ts",
       loaders: "src/loaders.ts",
       interaction: "src/interaction.ts",
+      labels: "src/labels.ts",
     },
     format: "esm",
     target: "es2022",

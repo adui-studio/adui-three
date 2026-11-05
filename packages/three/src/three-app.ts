@@ -44,6 +44,7 @@ export class ThreeApp {
   #loop: FrameLoop;
   #platform = new ResourceScope();
   #updates = new Set<(frame: FrameInfo) => void>();
+  #afterRender = new Set<(frame: FrameInfo) => void>();
   #abort = new AbortController();
   #state: ThreeAppState = "ready";
   #revision = 0;
@@ -152,6 +153,16 @@ export class ThreeApp {
     };
   }
 
+  /** Runs after all updates and a successful render, within the same owned frame. */
+  onAfterRender(callback: (frame: FrameInfo) => void): () => void {
+    this.#assertActive();
+    const subscription = (frame: FrameInfo): void => callback(frame);
+    this.#afterRender.add(subscription);
+    return () => {
+      this.#afterRender.delete(subscription);
+    };
+  }
+
   resize(): void {
     this.#assertActive();
     const width = this.#container.clientWidth;
@@ -186,6 +197,7 @@ export class ThreeApp {
     attempt(() => this.#loop.stop());
     attempt(() => this.#abort.abort());
     this.#updates.clear();
+    this.#afterRender.clear();
     attempt(() => this.#platform.dispose());
     attempt(() => this.resources.dispose());
     attempt(() => this.scene.clear());
@@ -211,19 +223,28 @@ export class ThreeApp {
       const subscriptions = Array.from(this.#updates);
       for (const callback of subscriptions) {
         if (this.#updates.has(callback)) callback(frame);
-        if (
-          this.#state !== "running" ||
-          revision !== this.#revision ||
-          !this.#drawable ||
-          this.#document.hidden
-        )
-          return;
+        if (!this.#currentFrame(revision)) return;
       }
       this.renderer.render(this.scene, this.camera);
+      if (!this.#currentFrame(revision)) return;
+      const afterRender = Array.from(this.#afterRender);
+      for (const callback of afterRender) {
+        if (this.#afterRender.has(callback)) callback(frame);
+        if (!this.#currentFrame(revision)) return;
+      }
     } catch (error) {
       this.stop();
       throw error;
     }
+  }
+
+  #currentFrame(revision: number): boolean {
+    return (
+      this.#state === "running" &&
+      revision === this.#revision &&
+      this.#drawable &&
+      !this.#document.hidden
+    );
   }
 
   #handleResize = (): void => {

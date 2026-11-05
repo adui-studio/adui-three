@@ -112,6 +112,95 @@ test("constructor is idle; resize caps DPR and skips unchanged drawing buffers",
   expect(vi.spyOn(app.renderer, "render")).toHaveBeenCalledTimes(2);
 });
 
+test("after-render observers see all updates and run after the renderer", () => {
+  const env = fixture();
+  const app = env.create();
+  const calls: string[] = [];
+  app.onAfterRender(() => calls.push("after"));
+  app.onUpdate(() => calls.push("update"));
+  vi.spyOn(app.renderer, "render").mockImplementation(() => {
+    calls.push("render");
+  });
+  app.start();
+  env.step(0);
+  expect(calls).toEqual(["update", "render", "after"]);
+});
+
+test("after-render subscriptions support duplicate callbacks, removal and deferred additions", () => {
+  const env = fixture();
+  const app = env.create();
+  const callback = vi.fn();
+  let off = (): void => {};
+  app.onAfterRender(() => {
+    off();
+    app.onAfterRender(callback);
+  });
+  off = app.onAfterRender(callback);
+  const off2 = app.onAfterRender(callback);
+  app.start();
+  env.step(0);
+  expect(callback).toHaveBeenCalledTimes(1);
+  off2();
+  off2();
+  env.step(16);
+  expect(callback).toHaveBeenCalledTimes(2);
+});
+
+test("after-render restart invalidates remaining callbacks and preserves one frame", () => {
+  const env = fixture();
+  const app = env.create();
+  const later = vi.fn();
+  app.onAfterRender(() => {
+    app.stop();
+    app.start();
+  });
+  app.onAfterRender(later);
+  app.start();
+  env.step(0);
+  expect(later).not.toHaveBeenCalled();
+  expect(env.frames.size).toBe(1);
+});
+
+test("render and after-render errors stop scheduling and do not call later observers", () => {
+  for (const phase of ["render", "after"] as const) {
+    const env = fixture();
+    const app = env.create();
+    const error = new Error(phase);
+    const later = vi.fn();
+    if (phase === "render")
+      vi.spyOn(app.renderer, "render").mockImplementation(() => {
+        throw error;
+      });
+    else
+      app.onAfterRender(() => {
+        throw error;
+      });
+    app.onAfterRender(later);
+    app.start();
+    expect(() => env.step(0)).toThrow(error);
+    expect(app.state).toBe("stopped");
+    expect(env.frames.size).toBe(0);
+    expect(later).not.toHaveBeenCalled();
+  }
+});
+
+test("dispose during render or its observers cancels the remaining phase", () => {
+  for (const phase of ["render", "after"] as const) {
+    const env = fixture();
+    const app = env.create();
+    const later = vi.fn();
+    if (phase === "render")
+      vi.spyOn(app.renderer, "render").mockImplementation(() => app.dispose());
+    else app.onAfterRender(() => app.dispose());
+    app.onAfterRender(later);
+    app.start();
+    env.step(0);
+    expect(later).not.toHaveBeenCalled();
+    expect(env.frames.size).toBe(0);
+    expect(() => app.onAfterRender(later)).toThrow("disposed");
+  }
+});
+
 test("two instances start and stop independently", () => {
   const a = fixture();
   const b = fixture();
