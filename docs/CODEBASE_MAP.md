@@ -73,6 +73,10 @@ test:package → 主包 build → 系统临时目录中 pack/install → Node �
 
 模型实例由 [gltf-clone.ts](../packages/three/src/gltf-clone.ts) 复制树/片段、重绑 UUID 并管理局部清理；[gltf-assets.ts](../packages/three/src/gltf-assets.ts) 保存内部弱引用登记和共享资产租约。loaders 公开导出，animation 接受实例。[原生实例测试](../packages/three/tests/gltf-clone.test.ts) 覆盖骨骼/morph/错误/所有权，[浏览器实例回归](../tests/browser/gltf-clone.spec.ts) 验证实际 GPU、跨宿主和反复释放。
 
+## 上下文丢失
+
+上下文丢失在 three-app.ts 复用完整 dispose，通过 contextLost 诊断；[真实上下文回归](../tests/browser/context.spec.ts) 使用 WEBGL_lose_context 验证旧 canvas 失效、跨宿主实例、HDR/图片/泛光重建及迟到模型。核心事件/清理用例在 three-app.test.ts。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

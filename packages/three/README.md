@@ -97,6 +97,24 @@ detach(); // 恢复原生绘制，不释放 pipeline；资源由其所有者管�
 
 `development` 条件导出指向随包包含的 src，便于 Vite 开发时 HMR；默认 import 导出指向 dist，类型来自 dist 声明。不提供 CJS、WebXR、WebGPU、URL 模型缓存或框架适配；显式模型实例按下述租约共享资产。
 
+## WebGL 上下文丢失
+
+`app.contextLost` 初始 false；自有 canvas 收到原生 webglcontextlost 后设为 true 并完整 dispose，标记保留用于诊断。暂停、隐藏或 ready 状态同样结束；旧 canvas 的恢复事件不能复活宿主。普通主动 dispose 不把此属性设为 true。
+
+```ts
+app.signal.addEventListener(
+  "abort",
+  () => {
+    if (app.contextLost) {
+      // 更新业务提示；由应用选择创建新 ThreeApp、重新加载及恢复业务状态。
+    }
+  },
+  { once: true },
+);
+```
+
+当前策略是显式重建，避免 r187 已观察到的旧 GPU 对象在原生恢复后清理报错；不会透明替换已公开的 renderer 引用。自有资源、异步取消和清理错误沿用 dispose 契约，借用管线须自行登记所有权。其他宿主的模型实例继续持有共享资产租约，仍可渲染/播放；不保证硬件故障后能重建成功。
+
 ## GLTF / GLB 加载
 
 ```ts

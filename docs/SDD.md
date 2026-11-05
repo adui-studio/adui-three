@@ -62,6 +62,12 @@ running 是用户运行意图；文档隐藏或容器零尺寸时暂停 RAF 但�
 
 容器尺寸基于 clientWidth/clientHeight，建议无 padding，CSS transform 不改变绘制分辨率。构造仅限现代浏览器，要求 WebGL 2 / ResizeObserver / matchMedia；模块导入不访问 DOM。没有数据库、事务、后端鉴权或隐式遥测；资产权限由应用负责。
 
+## 上下文丢失契约
+
+ThreeApp.contextLost 为只读黏性诊断，初始 false；自有 canvas 收到 webglcontextlost 后先设 true，再完整 dispose，普通主动销毁不改变该标记。已丢失时不重复 forceContextLoss；既有 abort、RAF/订阅失效、scope 清理和错误聚合全部执行。旧 canvas 的迟到恢复不能复活宿主，应用通过 signal.abort/contextLost 判断并显式创建新 ThreeApp；不替换公开 renderer、不自动重载或重试。
+
+当前 r187 软件 WebGL 原型的自动恢复在旧 GPU 清理时出现 1282，故不承诺保留运行意图自动继续。自有资源在丢失期间清理旧缓存和监听；借用的管线仍需调用者登记其自有清理。另一宿主的模型实例通过共享租约继续存活；pending 模型仍遵循逻辑取消与迟到清理。完整依据与验证边界见 [ADR-0019](adr/0019-context-loss.md)。
+
 ## GLTF / GLB 异步契约
 
 [loaders.ts](../packages/three/src/loaders.ts) 为独立公开子入口，导出 `loadGLTF(app, url, options?): Promise<GLTFModel>`、LoadGLTFOptions、GLTFModel、ModelProgress。返回原生 scene/gltf、disposed 和 dispose；默认挂载，可 addToScene=false，保留原始材质、尺寸与坐标，不启动 Mixer。
@@ -260,6 +266,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-028  | 独立图片纹理契约                  | ktx2-texture.ts、TaskKTX2Loader、演示            | 原生资产/取消单测、真实转码与 RGBA/Worker 回归    |
 | FR-029  | 模型动画契约                      | animation.ts、演示渐变切换                       | 真实混合/中断/清理单测、GLB 连续姿态/双实例回归   |
 | FR-030  | 模型实例契约                      | gltf-clone.ts、gltf-assets.ts、资源快照与演示    | 原生骨骼/morph/租约单测、GPU/跨宿主/包消费回归    |
+| FR-031  | 上下文丢失契约                    | three-app.ts、演示诊断与重建                     | 事件/异常/清理单测、真实上下文丢失及跨宿主回归    |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                      |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器               |
 

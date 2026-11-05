@@ -150,7 +150,8 @@ function mountPanel(id: string, color: number): void {
   function refresh(): void {
     const state = app?.state ?? "unavailable";
     card.dataset.state = state;
-    card.querySelector(".state")!.textContent = state;
+    card.dataset.contextLost = String(app?.contextLost ?? false);
+    card.querySelector(".state")!.textContent = state + (app?.contextLost ? " · GPU lost" : "");
     card.querySelector('[data-testid="frames"]')!.textContent = String(frames);
     const size = app?.size;
     card.querySelector('[data-testid="size"]')!.textContent = size
@@ -572,6 +573,21 @@ function mountPanel(id: string, color: number): void {
       clearModel();
       errorOutput.hidden = true;
       app = new ThreeApp(viewport, { camera: { position: [4, 3, 5] }, maxPixelRatio: 2 });
+      const owner = app;
+      owner.signal.addEventListener(
+        "abort",
+        () => {
+          queueMicrotask(() => {
+            if (owner !== app || !owner.contextLost) return;
+            clearInstance();
+            clearModel();
+            clearEnvironment();
+            clearTexture();
+            refresh();
+          });
+        },
+        { once: true },
+      );
       frames = 0;
       draws = 0;
       app.scene.background = new Color(0x11191b);

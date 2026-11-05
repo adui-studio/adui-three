@@ -64,6 +64,7 @@ export class ThreeApp {
   #resizing = false;
   #inFrame = false;
   #elapsed = 0;
+  #contextLost = false;
 
   constructor(container: HTMLElement, options: ThreeAppOptions = {}) {
     const view = container?.ownerDocument?.defaultView;
@@ -98,6 +99,10 @@ export class ThreeApp {
       maxDelta,
     );
     try {
+      canvas.addEventListener("webglcontextlost", this.#handleContextLost);
+      this.#platform.track({
+        dispose: () => canvas.removeEventListener("webglcontextlost", this.#handleContextLost),
+      });
       container.appendChild(canvas);
       const observer = new view.ResizeObserver(() => this.resize());
       this.#platform.track({ dispose: () => observer.disconnect() });
@@ -131,6 +136,10 @@ export class ThreeApp {
 
   get state(): ThreeAppState {
     return this.#state;
+  }
+  /** Sticky loss diagnosis. A lost context disposes this host; create a new host to recover. */
+  get contextLost(): boolean {
+    return this.#contextLost;
   }
   get size(): ViewportSize {
     return { ...this.#size };
@@ -285,7 +294,7 @@ export class ThreeApp {
     attempt(() => this.resources.dispose());
     attempt(() => this.scene.clear());
     attempt(() => this.renderer.dispose());
-    attempt(() => this.renderer.forceContextLoss());
+    if (!this.#contextLost) attempt(() => this.renderer.forceContextLoss());
     attempt(() => this.renderer.domElement.remove());
     if (errors.length) throw new AggregateError(errors, "ThreeApp cleanup failed");
   }
@@ -347,6 +356,12 @@ export class ThreeApp {
 
   #handleResize = (): void => {
     this.resize();
+  };
+  #handleContextLost = (): void => {
+    if (this.#state === "disposed") return;
+    this.#contextLost = true;
+    // Clean native listeners/caches while the context is lost, before a later native restore.
+    this.dispose();
   };
   #handleVisibility = (): void => {
     this.#syncLoop();

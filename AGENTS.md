@@ -29,6 +29,7 @@
 - [独立 KTX2 决策](docs/adr/0016-standalone-ktx2.md)：二维压缩纹理、任务隔离与转码清理。
 - [动画渐变决策](docs/adr/0017-animation-crossfade.md)：当前权重交接、中断与原生动作清理。
 - [模型实例决策](docs/adr/0018-gltf-instances.md)：节点/动画独立、共享资产租约与跨宿主清理。
+- [上下文丢失决策](docs/adr/0019-context-loss.md)：结束失效宿主、保留诊断并显式重建。
 
 ## 工作流程与约束
 

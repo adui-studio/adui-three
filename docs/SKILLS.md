@@ -97,6 +97,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 模型实例阶段继续复用 threejs-loaders，核验 r187 SkeletonUtils.clone、Skeleton.clone、KeyframeTrack.clone、TextureSource 与 renderer 释放行为。原生克隆的 geometry/material/texture 保持共享，骨骼 inverse 和实例 morph 数据另复制；明确租约和独立动画，不把 Skill 的直接 clone 示例当作完整生命周期方案。
 
+上下文丢失阶段复用 threejs-fundamentals，核验 r187 renderer 的原生事件顺序、释放及 MDN context 事件。真实回归发现保留旧 GPU 图恢复的 1282 后采用结束宿主/显式重建；不修改原生私有缓存、不透明替换公开 renderer，以真实 GPU 错误和跨宿主所有权决定边界。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

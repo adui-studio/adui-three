@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 268 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 275 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 53 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 56 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 上下文丢失阶段：ready 通过 13 项文档检查器测试、275 项主包单测、123 文件格式与 71 源文件 Lint/类型检查，十入口及演示构建成功。新增 7 项事件/所有权测试覆盖各状态、更新/绘制内失效、清理错误继续、双宿主与迟到事件。十入口 tarball 独立安装、无 DOM 导入及四次严格消费编译通过。
+
+自动恢复原型的浏览器回归最初误用反馈字段及点击零尺寸时禁用按钮，修正后 2/3 通过，HDR/图片/泛光恢复 resize 的实际 getError=1282；trace 显示删除旧代 GPU 对象的 INVALID_OPERATION。按 ADR-0019 改为丢失时结束宿主并显式重建，无私有缓存改写。最终三项新回归 3/3 通过（约 9.2 秒），全量 56/56 通过（约 88.1 秒），零重试；跨宿主实例持续播放、旧 canvas 实际恢复后不复活、两轮 HDR/图片/泛光重建与 pending 模型迟到位图清理均验证，截图已目视检查。自动恢复失败诊断保留在忽略的 playwright-report/diagnostics/context-restore；演示通过 abort 后的微任务更新状态，避免原生监听在 dispose 中被移除而漏掉 UI 清理。无新依赖、资产、CI 或发布，不外推完整硬件故障矩阵。
 
 2026-11-05 模型实例阶段：ready 通过 13 项文档检查器测试、268 项主包单测、121 文件格式及 70 源文件 Lint/类型检查，十入口与演示构建成功。新增 14 项真实对象/Mixer 测试验证独立骨骼/morph/实例矩阵/轨道、UUID 重绑、跨宿主与租约清理、借用边界和同步失效回滚。首轮静态检查发现 nullable morph data 和旧声明入口，分别显式保留 null、先构建新声明后验证；原生 Source 弃用提示改用 r187 TextureSource，最终无静态警告。
 

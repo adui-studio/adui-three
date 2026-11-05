@@ -28,6 +28,136 @@ vi.mock("three", async (importOriginal) => {
 });
 
 const apps: ThreeApp[] = [];
+
+test("context loss disposes the host, aborts pending work and releases assets without requesting another loss", () => {
+  const env = fixture();
+  const app = env.create();
+  const cleanup = vi.fn();
+  const after = vi.fn();
+  app.resources.track({ dispose: cleanup });
+  app.onAfterRender(after);
+  app.start();
+  env.step(0);
+  env.canvas.dispatchEvent(new Event("webglcontextlost"));
+  expect(app.contextLost).toBe(true);
+  expect(app.state).toBe("disposed");
+  expect(app.signal.aborted).toBe(true);
+  expect(app.resources.disposed).toBe(true);
+  expect(cleanup).toHaveBeenCalledOnce();
+  expect(env.frames.size).toBe(0);
+  expect(env.canvas.remove).toHaveBeenCalledOnce();
+  expect(vi.spyOn(app.renderer, "dispose")).toHaveBeenCalledOnce();
+  expect(vi.spyOn(app.renderer, "forceContextLoss")).not.toHaveBeenCalled();
+  expect(() => app.render()).toThrow("disposed");
+  env.step(10000);
+  expect(after).toHaveBeenCalledOnce();
+});
+
+test("ready, stopped and running hosts all require explicit reconstruction after loss", () => {
+  for (const state of ["ready", "stopped", "running"] as const) {
+    const env = fixture();
+    const app = env.create();
+    if (state === "stopped") app.stop();
+    if (state === "running") app.start();
+    env.canvas.dispatchEvent(new Event("webglcontextlost"));
+    env.canvas.dispatchEvent(new Event("webglcontextrestored"));
+    expect(app.state).toBe("disposed");
+    expect(app.contextLost).toBe(true);
+    expect(env.frames.size).toBe(0);
+    expect(() => app.start()).toThrow("disposed");
+  }
+});
+
+test("loss during update cancels remaining subscriptions, rendering and completed callbacks", () => {
+  const env = fixture();
+  const app = env.create();
+  const later = vi.fn();
+  const after = vi.fn();
+  app.onUpdate(() => env.canvas.dispatchEvent(new Event("webglcontextlost")));
+  app.onUpdate(later);
+  app.onAfterRender(after);
+  app.start();
+  env.step(0);
+  expect(later).not.toHaveBeenCalled();
+  expect(after).not.toHaveBeenCalled();
+  expect(vi.spyOn(app.renderer, "render")).not.toHaveBeenCalled();
+  expect(env.frames.size).toBe(0);
+});
+
+test("loss during borrowed pipeline render skips completion and clears only registered ownership", () => {
+  const env = fixture();
+  const app = env.create();
+  const pipeline = {
+    resize: vi.fn(),
+    render: vi.fn(() => env.canvas.dispatchEvent(new Event("webglcontextlost"))),
+    dispose: vi.fn(),
+  };
+  const owned = vi.fn();
+  const after = vi.fn();
+  app.resources.track({ dispose: owned });
+  app.setRenderPipeline(pipeline);
+  app.onAfterRender(after);
+  app.render();
+  expect(app.state).toBe("disposed");
+  expect(owned).toHaveBeenCalledOnce();
+  expect(pipeline.dispose).not.toHaveBeenCalled();
+  expect(after).not.toHaveBeenCalled();
+});
+
+test("one lost host leaves another host and its owned frame loop untouched", () => {
+  const first = fixture();
+  const second = fixture();
+  const a = first.create();
+  const b = second.create();
+  a.start();
+  b.start();
+  first.canvas.dispatchEvent(new Event("webglcontextlost"));
+  expect(b.state).toBe("running");
+  expect(b.contextLost).toBe(false);
+  expect(second.frames.size).toBe(1);
+  second.step(10000);
+  expect(vi.spyOn(b.renderer, "render")).toHaveBeenCalledOnce();
+});
+
+test("loss cleanup errors still remove native/platform resources and preserve the diagnosis", () => {
+  const env = fixture();
+  const listeners = vi.spyOn(env.canvas, "addEventListener");
+  const app = env.create();
+  const cleanup = vi.fn();
+  app.resources.track({ dispose: cleanup });
+  app.resources.track({
+    dispose: () => {
+      throw new Error("asset cleanup");
+    },
+  });
+  const listener = listeners.mock.calls.find(([name]) => name === "webglcontextlost")![1];
+  // Invoke the registered callback directly so Node EventTarget doesn't report asynchronously.
+  if (typeof listener !== "function") throw new Error("Expected a loss callback");
+  expect(() => listener.call(env.canvas, new Event("webglcontextlost"))).toThrow(AggregateError);
+  expect(app.contextLost).toBe(true);
+  expect(app.state).toBe("disposed");
+  expect(cleanup).toHaveBeenCalledOnce();
+  expect(env.observer.disconnect).toHaveBeenCalledOnce();
+  expect(vi.spyOn(app.renderer, "dispose")).toHaveBeenCalledOnce();
+  expect(env.canvas.remove).toHaveBeenCalledOnce();
+});
+
+test("normal disposal removes the loss listener and late events cannot affect a replacement host", () => {
+  const env = fixture();
+  const app = env.create();
+  app.dispose();
+  env.canvas.dispatchEvent(new Event("webglcontextlost"));
+  env.canvas.dispatchEvent(new Event("webglcontextrestored"));
+  expect(app.contextLost).toBe(false);
+  expect(vi.spyOn(app.renderer, "forceContextLoss")).toHaveBeenCalledOnce();
+  const replacement = fixture();
+  const next = replacement.create();
+  next.start();
+  env.canvas.dispatchEvent(new Event("webglcontextrestored"));
+  expect(next.state).toBe("running");
+  expect(replacement.frames.size).toBe(1);
+});
+
 afterEach(() => {
   for (const app of apps.splice(0)) {
     try {
@@ -58,7 +188,7 @@ function fixture(width = 640, height = 360) {
     },
     matchMedia: vi.fn(() => media),
   });
-  const canvas = { style: { cssText: "" }, remove: vi.fn() };
+  const canvas = Object.assign(new EventTarget(), { style: { cssText: "" }, remove: vi.fn() });
   const document = Object.assign(new EventTarget(), {
     defaultView: view,
     hidden: false,
