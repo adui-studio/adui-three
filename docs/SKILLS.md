@@ -83,6 +83,8 @@
 
 HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextureLoader.createDataTexture、Scene 与固定依赖的 WebGLEnvironments。加载前的运输取消建议不直接采纳：同 URL 共享运输只逻辑取消。原生 renderer 自动预过滤，不重复创建 PMREM；GPU 释放以预热基线验证，最终资源归宿主 renderer。
 
+对象变换阶段复用 threejs-interaction，核验 r187 TransformControls 的独立 helper、公开 pointerUp/disconnect 与原生属性事件；不复制 Skill 中第二循环或无条件覆盖 orbit.enabled 的做法。以初始 helper 资源快照去重清理，保留外部资源和可观察的配置修改，真实鼠标与 GPU buffer/program 回归在本地执行。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

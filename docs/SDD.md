@@ -140,6 +140,14 @@ OutlineOptions：selectedObjects=[]（借用对象数组快照）、edgeStrength
 
 描边启用且有选择时保存 scene.background/overrideMaterial 和场景/选择对象的 visible 快照，仅绘制失败恢复。resize/render 不允许操作中重入，操作内销毁等原生调用返回再清理。失败尺寸保留 dirty 状态，同尺寸通知及下次绘制前可以重试，模块仅在原生设置成功后记录尺寸快照。其余尺寸、DPR、借用 renderer 状态、独占租约与资源契约保持，细节见 [ADR-0011](adr/0011-effect-composition.md)。
 
+## 对象变换契约
+
+controls 入口的 attachTransformControls(app, TransformControlsOptions) 允许 object、orbitControls、mode=translate、space=world、size=1。模式为 translate/rotate/scale，空间 world/local，尺寸正有限；目标借用本场景后代，拒绝 scene/外部目标/自有 helper。原生 OrbitControls 须匹配宿主相机/画布。单宿主独占，返回原生 controls、helper、disposed、attach/detach 和幂等 dispose。
+
+原生 helper 挂入 app.scene，初始 geometry/material 快照去重拥有；后加节点及模型借用。手柄登记 app.resources，手动/scope/宿主释放解除全部自有事件、捕获和 helper，公开 disconnect 并释放快照，失败聚合继续处理。连接失败和挂载事件内同步销毁回滚；touchAction 按值恢复外部状态。目标改变通过句柄，原生仅配置参数/监听，不单独管理其生命周期。
+
+拖拽暂存同相机/画布的 OrbitControls enabled、enableDamping、autoRotate，置 false 并 update(0) 耗尽残余惯性，结束仅恢复仍为 false 的属性。正常 pointerup、即使原生输入已禁用、指针取消/失捕获/失焦及 detach/dispose 都结束租约。取消保留位置，无撤销；消费者避免与相机过渡/模型动画同时写同对象。库无渲染/更新订阅，暂停绘制由消费者根据原生 change 决定。详见 [ADR-0013](adr/0013-transform-controls.md)。
+
 ## HDR 环境契约
 
 environment 可选入口提供 loadHDR、HDREnvironment、LoadHDROptions、EnvironmentProgress，以及 attachEnvironment、EnvironmentOptions、EnvironmentBinding。loadHDR 返回 Promise，非空 URL、signal 与宿主资源存活校验；options 支持 signal、onProgress 和 onCleanupError。原生 FileLoader 只下载 ArrayBuffer，活动任务通过 HDRLoader.createDataTexture 解析并设置反射映射。保留默认 HalfFloat/LinearSRGB，不改变 scene；同 URL 原生运输共享，解析结果独立，不中止运输。取消立即拒绝 AbortError，迟到数据跳过解码，解析中取消则清理结果。进度回调错误拒绝本任务，异步清理错误报告；详见 [ADR-0012](adr/0012-hdr-environment.md)。
@@ -196,34 +204,35 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 
 标签验证见 [单测](../packages/three/tests/labels.test.ts) 与 [浏览器回归](../tests/browser/labels.spec.ts)，包括真实投影数学、可见性、资源清理和实际 DOM 布局/交互。渲染完成阶段的顺序、订阅竞争、异常与销毁在宿主单测中覆盖。
 
-| 需求    | 设计位置                          | 实现                                             | 测试/验收                                       |
-| ------- | --------------------------------- | ------------------------------------------------ | ----------------------------------------------- |
-| FR-001  | 当前实现                          | AGENTS、docs、scripts                            | docs:test / docs:check                          |
-| FR-002  | 核心 API、模块与关键流程          | packages/three                                   | 主包单测、浏览器演示                            |
-| FR-003  | 核心 API                          | 主包 package.json、website 依赖                  | ESM/声明构建、公开入口                          |
-| FR-004  | 当前实现                          | CONTRIBUTING、Skills、.github                    | 文档检查、格式检查                              |
-| FR-005  | 模块与关键流程                    | ThreeApp 构造                                    | 宿主单测、浏览器                                |
-| FR-006  | 模块与关键流程                    | FrameLoop、onUpdate                              | 帧/宿主单测、独立暂停                           |
-| FR-007  | 模块与关键流程                    | resize、平台监听                                 | 宿主单测、浏览器尺寸操作                        |
-| FR-008  | 释放与边界                        | ResourceScope、dispose、signal                   | 资源/宿主单测、反复重建                         |
-| FR-009  | 核心 API、验证设计                | controls、website                                | 控制器单测、浏览器                              |
-| FR-010  | GLTF / GLB 异步契约               | loaders.ts、公开子入口                           | 模型单测、生产浏览器 GLTF/GLB                   |
-| FR-011  | GLTF / GLB 异步契约               | loaders.ts、gltf-resources.ts                    | 竞争/快照单测、同 URL 和图像清理浏览器回归      |
-| FR-012  | 验证设计                          | 原创模型、生成器、演示                           | fixtures:models、浏览器模型回归                 |
-| FR-013  | 工程清理                          | 根 README、工作区、模板文件与引用                | 文档校验、主包测试、构建及浏览器回归            |
-| FR-014  | 对象拾取契约                      | interaction.ts、演示拾取反馈                     | 拾取单测、生产浏览器交互回归                    |
-| FR-015  | DOM 标签契约、模块与关键流程      | labels.ts、onAfterRender、演示                   | 标签/宿主单测、生产浏览器标签回归               |
-| FR-016  | 模型动画契约、GLTF / GLB 异步契约 | animation.ts、模型 resources、原创动画 GLB       | 动画/加载器单测、生产浏览器动画回归             |
-| FR-017  | 压缩解码契约                      | loaders.ts、原创建模与压缩生成、演示本地 decoder | 解码器单测、原生 Worker/迟到清理浏览器回归      |
-| FR-018  | KTX2 模型契约                     | loaders.ts、ktx2-task.ts、原创纹理与模型         | KTX2/加载器单测、Worker/上传/回退浏览器回归     |
-| FR-019  | 相机取景契约                      | camera.ts、演示模型尺寸与显式取景                | 真实数学/控件单测、浏览器取景与交互回归         |
-| FR-020  | 相机过渡契约                      | camera-transition.ts、演示平滑取景与取消         | 过渡单测、浏览器中断与生命周期回归              |
-| FR-021  | 核心 API                          | three-app.ts、演示单次绘制                       | 宿主管线/单次绘制单测、render 浏览器回归        |
-| FR-022  | 泛光契约                          | postprocessing.ts、演示泛光/强度/释放            | 原生资源单测、像素和 GPU 释放浏览器回归         |
-| FR-023  | 组合效果与选择描边契约            | postprocessing.ts、演示选择/模型联动             | 参数/场景恢复/清理单测、像素/拾取与组合释放回归 |
-| FR-024  | HDR 环境契约                      | environment.ts、原创 HDR 生成器及演示            | 原生解码单测、像素/取消/GPU 回归、九入口打包    |
-| NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                    |
-| NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器             |
+| 需求    | 设计位置                          | 实现                                             | 测试/验收                                         |
+| ------- | --------------------------------- | ------------------------------------------------ | ------------------------------------------------- |
+| FR-001  | 当前实现                          | AGENTS、docs、scripts                            | docs:test / docs:check                            |
+| FR-002  | 核心 API、模块与关键流程          | packages/three                                   | 主包单测、浏览器演示                              |
+| FR-003  | 核心 API                          | 主包 package.json、website 依赖                  | ESM/声明构建、公开入口                            |
+| FR-004  | 当前实现                          | CONTRIBUTING、Skills、.github                    | 文档检查、格式检查                                |
+| FR-005  | 模块与关键流程                    | ThreeApp 构造                                    | 宿主单测、浏览器                                  |
+| FR-006  | 模块与关键流程                    | FrameLoop、onUpdate                              | 帧/宿主单测、独立暂停                             |
+| FR-007  | 模块与关键流程                    | resize、平台监听                                 | 宿主单测、浏览器尺寸操作                          |
+| FR-008  | 释放与边界                        | ResourceScope、dispose、signal                   | 资源/宿主单测、反复重建                           |
+| FR-009  | 核心 API、验证设计                | controls、website                                | 控制器单测、浏览器                                |
+| FR-010  | GLTF / GLB 异步契约               | loaders.ts、公开子入口                           | 模型单测、生产浏览器 GLTF/GLB                     |
+| FR-011  | GLTF / GLB 异步契约               | loaders.ts、gltf-resources.ts                    | 竞争/快照单测、同 URL 和图像清理浏览器回归        |
+| FR-012  | 验证设计                          | 原创模型、生成器、演示                           | fixtures:models、浏览器模型回归                   |
+| FR-013  | 工程清理                          | 根 README、工作区、模板文件与引用                | 文档校验、主包测试、构建及浏览器回归              |
+| FR-014  | 对象拾取契约                      | interaction.ts、演示拾取反馈                     | 拾取单测、生产浏览器交互回归                      |
+| FR-015  | DOM 标签契约、模块与关键流程      | labels.ts、onAfterRender、演示                   | 标签/宿主单测、生产浏览器标签回归                 |
+| FR-016  | 模型动画契约、GLTF / GLB 异步契约 | animation.ts、模型 resources、原创动画 GLB       | 动画/加载器单测、生产浏览器动画回归               |
+| FR-017  | 压缩解码契约                      | loaders.ts、原创建模与压缩生成、演示本地 decoder | 解码器单测、原生 Worker/迟到清理浏览器回归        |
+| FR-018  | KTX2 模型契约                     | loaders.ts、ktx2-task.ts、原创纹理与模型         | KTX2/加载器单测、Worker/上传/回退浏览器回归       |
+| FR-019  | 相机取景契约                      | camera.ts、演示模型尺寸与显式取景                | 真实数学/控件单测、浏览器取景与交互回归           |
+| FR-020  | 相机过渡契约                      | camera-transition.ts、演示平滑取景与取消         | 过渡单测、浏览器中断与生命周期回归                |
+| FR-021  | 核心 API                          | three-app.ts、演示单次绘制                       | 宿主管线/单次绘制单测、render 浏览器回归          |
+| FR-022  | 泛光契约                          | postprocessing.ts、演示泛光/强度/释放            | 原生资源单测、像素和 GPU 释放浏览器回归           |
+| FR-023  | 组合效果与选择描边契约            | postprocessing.ts、演示选择/模型联动             | 参数/场景恢复/清理单测、像素/拾取与组合释放回归   |
+| FR-024  | HDR 环境契约                      | environment.ts、原创 HDR 生成器及演示            | 原生解码单测、像素/取消/GPU 回归、九入口打包      |
+| FR-025  | 对象变换契约                      | controls.ts、transform-controls.ts、演示手柄     | 原生资源/输入单测、实际拖拽和 buffer/program 回归 |
+| NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                      |
+| NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器               |
 
 ## 维护
 

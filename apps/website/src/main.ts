@@ -1,7 +1,7 @@
 import "./style.css";
 import { ThreeApp } from "@adui/three";
-import { attachOrbitControls } from "@adui/three/controls";
-import type { OrbitControlsHandle } from "@adui/three/controls";
+import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
+import type { OrbitControlsHandle, TransformControlsHandle } from "@adui/three/controls";
 import { fitObject, transitionToObject } from "@adui/three/camera";
 import type { CameraTransitionHandle } from "@adui/three/camera";
 import { attachPostprocessing } from "@adui/three/postprocessing";
@@ -57,6 +57,8 @@ function mountPanel(id: string, color: number): void {
     <div class="actions"><button data-action="start" class="primary">运行</button><button data-action="stop">暂停</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建 ↻</button></div>
     <div class="resize-actions"><button data-action="width" aria-pressed="false">收窄容器</button><button data-action="zero" aria-pressed="false">零高度</button><button data-action="labels" aria-pressed="true">显示标签</button><button data-action="fit">适配视角</button><button data-action="transition">平滑取景</button><button data-action="cancel-transition">取消过渡</button><button data-action="large-model" aria-pressed="false">大模型</button></div>
     <p class="camera-feedback" role="status">取景过渡：<span data-testid="transition-state">idle</span> · <span data-testid="transition-progress">0</span>%</p>
+    <div class="effect-actions"><button data-action="transform" aria-pressed="false">变换手柄</button><button data-action="transform-mode">切换变换</button><button data-action="remove-transform">释放手柄</button></div>
+    <p class="camera-feedback" role="status">变换：<span data-testid="transform-mode">idle</span> · <span data-testid="transform-position">—</span></p>
     <div class="effect-actions"><button data-action="bloom" aria-pressed="false">泛光</button><button data-action="bloom-strength" aria-pressed="false">增强泛光</button><button data-action="outline" aria-pressed="false">选择描边</button><button data-action="remove-bloom">释放后处理</button><span data-testid="bloom-state">idle</span></div>
     <div class="effect-actions"><button data-action="environment">加载 HDR</button><button data-action="environment-background" aria-pressed="true">环境背景</button><button data-action="cancel-environment">取消环境</button><button data-action="remove-environment">移除环境</button><button data-action="environment-error">环境失败</button></div>
     <p class="environment-feedback" role="status">环境：<span data-testid="environment-state">idle</span> · 原创 HDR 渐变</p>
@@ -102,6 +104,7 @@ function mountPanel(id: string, color: number): void {
   let environmentVersion = 0;
   let environmentState = "idle";
   let environmentBackground = true;
+  let transform: TransformControlsHandle | undefined;
 
   function addLabel(
     object: Object3D,
@@ -119,6 +122,7 @@ function mountPanel(id: string, color: number): void {
   }
 
   function clearPicking(): void {
+    transform?.detach();
     selectedObject = undefined;
     if (effects?.outline && !effects.disposed) effects.outline.selectedObjects = [];
     card.querySelector('[data-testid="hovered"]')!.textContent = "—";
@@ -148,6 +152,29 @@ function mountPanel(id: string, color: number): void {
     button("fit").disabled = !app || state === "disposed" || !app.size.width || !app.size.height;
     button("render").disabled = button("fit").disabled;
     card.dataset.renderCount = String(draws);
+    const activeTransform = transform && !transform.disposed ? transform : undefined;
+    const hasTransform = !!activeTransform;
+    const transformObject = transform?.controls.object;
+    card.dataset.transformMode = activeTransform?.controls.mode ?? "idle";
+    card.dataset.transformDragging = String(!!transform?.controls.dragging && hasTransform);
+    card.dataset.transformPosition =
+      transformObject?.position
+        .toArray()
+        .map((value) => value.toFixed(3))
+        .join(",") ?? "";
+    card.dataset.orbitEnabled = String(orbit?.controls.enabled ?? false);
+    card.dataset.cameraPosition =
+      app?.camera.position
+        .toArray()
+        .map((value) => value.toFixed(5))
+        .join(",") ?? "";
+    card.querySelector('[data-testid="transform-mode"]')!.textContent = card.dataset.transformMode;
+    card.querySelector('[data-testid="transform-position"]')!.textContent =
+      card.dataset.transformPosition || "—";
+    button("transform").disabled = !app || state === "disposed";
+    button("transform").setAttribute("aria-pressed", String(hasTransform));
+    button("transform-mode").disabled = !hasTransform || !!transform?.controls.dragging;
+    button("remove-transform").disabled = !hasTransform;
     card.dataset.environmentState = environmentState;
     card.querySelector('[data-testid="environment-state"]')!.textContent = environmentState;
     for (const action of ["environment", "environment-error"])
@@ -156,7 +183,7 @@ function mountPanel(id: string, color: number): void {
     button("remove-environment").disabled = !environment || environment.disposed;
     button("environment-background").disabled = !environment || environment.disposed;
     button("environment-background").setAttribute("aria-pressed", String(environmentBackground));
-    button("transition").disabled = button("fit").disabled;
+    button("transition").disabled = button("fit").disabled || hasTransform;
     button("cancel-transition").disabled = transition?.state !== "running";
     const bloomState = !effects
       ? "idle"
@@ -219,7 +246,8 @@ function mountPanel(id: string, color: number): void {
     card.querySelector('[data-testid="animation-time"]')!.textContent = (
       animation?.action?.time ?? 0
     ).toFixed(3);
-    const canAnimate = !!animation && !animation.disposed && animation.clips.length > 0;
+    const canAnimate =
+      !!animation && !animation.disposed && animation.clips.length > 0 && !hasTransform;
     button("animated-model").disabled = !app || state === "disposed";
     for (const action of ["animation-play", "animation-next", "animation-once"])
       button(action).disabled = !canAnimate;
@@ -351,6 +379,7 @@ function mountPanel(id: string, color: number): void {
       }
       model = loaded;
       clearPicking();
+      if (transform && !transform.disposed) transform.attach(loaded.scene);
       modelState = "loaded";
       modelMessage = `${url.endsWith(".glb") ? "GLB" : "GLTF"} 已加载 · 保留原始材质与尺寸`;
       if (placeholder) placeholder.visible = false;
@@ -387,6 +416,7 @@ function mountPanel(id: string, color: number): void {
       effects = undefined;
       glow = undefined;
       strongBloom = false;
+      transform = undefined;
       clearEnvironment();
       clearModel();
       errorOutput.hidden = true;
@@ -469,9 +499,11 @@ function mountPanel(id: string, color: number): void {
         refresh();
       });
       app.onUpdate(({ delta }) => {
-        mesh.rotation.y += delta * 0.35;
-        mesh.rotation.x += delta * 0.12;
-        if (model && !model.disposed && !animation) model.scene.rotation.y += delta * 0.35;
+        if (!transform || transform.disposed) {
+          mesh.rotation.y += delta * 0.35;
+          mesh.rotation.x += delta * 0.12;
+          if (model && !model.disposed && !animation) model.scene.rotation.y += delta * 0.35;
+        }
         frames++;
       });
       app.onAfterRender(() => {
@@ -502,6 +534,36 @@ function mountPanel(id: string, color: number): void {
         clearEnvironment();
       }
       if (action === "rebuild") rebuild();
+      if (action === "transform" && app) {
+        if (transform && !transform.disposed) transform.dispose();
+        else {
+          transition?.cancel();
+          animation?.pause();
+          transform = attachTransformControls(app, {
+            object: model && !model.disposed ? model.scene : placeholder,
+            orbitControls: orbit?.controls,
+          });
+          const owner = app;
+          const handle = transform;
+          handle.controls.addEventListener("change", () => {
+            if (handle.disposed || owner !== app || owner.state === "disposed") return;
+            if (owner.state !== "running") owner.render();
+            refresh();
+          });
+        }
+        if (app.state !== "running") app.render();
+      }
+      if (action === "transform-mode" && transform && !transform.disposed) {
+        const mode = transform.controls.mode;
+        transform.controls.setMode(
+          mode === "translate" ? "rotate" : mode === "rotate" ? "scale" : "translate",
+        );
+      }
+      if (action === "remove-transform") {
+        transform?.dispose();
+        transform = undefined;
+        if (app?.state !== "running") app?.render();
+      }
       if (action === "environment") void requestEnvironment("/environments/studio.hdr");
       if (action === "environment-error") void requestEnvironment("/environments/invalid.hdr");
       if (action === "cancel-environment") environmentRequest?.abort();

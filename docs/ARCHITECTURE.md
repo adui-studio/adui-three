@@ -56,6 +56,8 @@ camera 提供即时规划/应用以及可取消平滑过渡，仅按类型借用
 
 组合效果与场景异常恢复见 [ADR-0011](adr/0011-effect-composition.md)，attachBloom 继续兼容，未指定效果不分配；选择状态与模型存活仍由消费者管理。
 
+controls 的变换手柄复用原生 TransformControls，仅拥有 helper/监听及初始 GPU 快照，目标与 OrbitControls 借用；不构成编辑器或场景序列化服务。资源与输入协调见 [ADR-0013](adr/0013-transform-controls.md)。
+
 ## 关键取舍
 
 environment 是独立可选入口，下载/解码后的 HDR 资产由宿主拥有，场景绑定借用资产并同时登记两方清理。加载不改变场景；应用决定请求版本及绑定/绘制时机。复用 renderer 自动环境转换，不反向导入 website 或重复生成 PMREM，见 [ADR-0012](adr/0012-hdr-environment.md)。

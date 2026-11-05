@@ -1,6 +1,6 @@
 import { loadHDR, attachEnvironment } from "@adui/three/environment";
 import { ResourceScope, ThreeApp } from "@adui/three";
-import { attachOrbitControls } from "@adui/three/controls";
+import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
 import { loadGLTF } from "@adui/three/loaders";
 import type { GLTFModel, LoadGLTFOptions } from "@adui/three/loaders";
 import { attachPicking } from "@adui/three/interaction";
@@ -19,6 +19,11 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   app.scene.add(object);
   const { controls } = attachOrbitControls(app);
   controls.target.set(0, 1, 0);
+  const gizmo = attachTransformControls(app, { object, orbitControls: controls, mode: "translate", space: "world", size: 1 });
+  gizmo.controls.setMode("rotate");
+  gizmo.detach();
+  gizmo.attach(object);
+  gizmo.dispose();
   const options: LoadGLTFOptions = { signal: app.signal, addToScene: false };
   const loaded: GLTFModel = await loadGLTF(app, "/sample.glb", options);
   const picking = attachPicking(app, { objects: () => [loaded.scene] });

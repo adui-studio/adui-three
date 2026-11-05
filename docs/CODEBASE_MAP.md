@@ -42,6 +42,8 @@
 - [过渡实现](../packages/three/src/camera-transition.ts) / [规划校验](../packages/three/src/camera-frame.ts) / [相机协调](../packages/three/src/camera-runtime.ts)：同相机互斥、宿主 delta 插值和中断清理，通过 camera 入口导出。
 - [过渡单测](../packages/three/tests/camera-transition.test.ts) / [浏览器过渡](../tests/browser/camera-transition.spec.ts)：暂停、替换、异常、原生输入与模型/宿主清理。
 
+- [变换手柄](../packages/three/src/transform-controls.ts) / [原生单测](../packages/three/tests/transform-controls.test.ts) / [浏览器交互](../tests/browser/transform.spec.ts)：controls 入口导出，原生拖拽、轨道控制协调和 helper 资源快照清理。
+
 ## 调用链与定位
 
 - [environment.ts](../packages/three/src/environment.ts) / [单测](../packages/three/tests/environment.test.ts) / [浏览器回归](../tests/browser/environment.spec.ts)：HDR 加载、逻辑取消、独占场景绑定和预热 GPU 清理。

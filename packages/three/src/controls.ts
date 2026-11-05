@@ -1,6 +1,9 @@
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { ThreeApp } from "./three-app.ts";
 
+export { attachTransformControls } from "./transform-controls.ts";
+export type { TransformControlsHandle, TransformControlsOptions } from "./transform-controls.ts";
+
 export interface OrbitControlsHandle {
   readonly controls: OrbitControls;
   dispose(): void;

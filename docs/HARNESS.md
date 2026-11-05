@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 184 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 201 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 36 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 39 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
 | `pnpm run fixtures:models`      | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
@@ -59,6 +59,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 变换手柄阶段：ready 通过 13 项文档检查器测试、201 项主包单测、101 文件格式及 56 源文件 Lint/类型检查，九入口和演示构建成功。新增 17 项真实原生控件/资源单测，覆盖目标/独占、前置配置、借用 GPU 资源、外部 touch-action/轨道配置、取消/捕获/输入中途禁用、同步销毁和失败继续清理。连接失败首测暴露未连接时 disconnect 访问空 DOM，改为按实际 domElement 清理，保留原始失败；演示一次可空类型错误改为活动句柄局部快照，无忽略类型检查。
+
+全量浏览器 39/39 通过（约 2.4 分钟），零重试，截图已目视检查。三项新浏览器用例单独 3/3 通过（约 7.5 秒），真实绿色轴像素定位后鼠标拖拽移动对象、保持相机/另一宿主，松手后轨道拖拽可用；模式、模型替换/移除、销毁重建和三轮 buffer/program 回到基线均验证。独立 tarball 九入口、无 DOM 导入及四次严格编译通过，核心不含 TransformControls。库没有新增 RAF/render/依赖；演示消费者自主暂停动画/程序旋转、取消相机过渡以避写入竞争。
 
 2026-11-05 HDR 环境阶段：新增 12 项单测，累计 184 项；ready 的文档/单测/构建通过，首次静态检查的 typed-array 展开提示改为显式 Array.from，最终静态检查无警告。新增入口声明构建前的模块解析错误已通过先构建声明解决。测试初次错误把实例 abort 当成原型方法，已改为实际 manager 探针；未改原生运输行为。九入口 tarball 安装、无 DOM 导入及四次严格编译通过；首次消费样例把代码附在函数外导致 app 未定义，移动到实际消费函数后通过，失败临时目录按设计保留。
 
