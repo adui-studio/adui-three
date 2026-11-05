@@ -1,8 +1,7 @@
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
-test("two real WebGL scenes render, pause independently, resize, and rebuild without duplicate canvases", async ({
-  page,
-}) => {
+async function openScenes(page: Page) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
@@ -12,6 +11,11 @@ test("two real WebGL scenes render, pause independently, resize, and rebuild wit
     Number(await panel.getByTestId("frames").textContent());
   await expect(first).toHaveAttribute("data-state", "running");
   await expect.poll(() => frameCount()).toBeGreaterThan(2);
+  return { first, second, frameCount, errors };
+}
+
+test("two real WebGL scenes render with capped DPR and pause independently", async ({ page }) => {
+  const { first, second, frameCount, errors } = await openScenes(page);
   await expect(first.getByTestId("draw-calls")).not.toHaveText("0");
   await expect(second.getByTestId("draw-calls")).not.toHaveText("0");
   await expect(first.getByTestId("dpr")).toHaveText("2.00");
@@ -30,6 +34,11 @@ test("two real WebGL scenes render, pause independently, resize, and rebuild wit
   expect(await frameCount(second)).toBeGreaterThan(other);
   await first.getByRole("button", { name: "运行", exact: true }).click();
   await expect.poll(() => frameCount()).toBeGreaterThan(paused);
+  expect(errors).toEqual([]);
+});
+
+test("container resize and zero height suspend and restore rendering", async ({ page }) => {
+  const { first, frameCount, errors } = await openScenes(page);
   const width = await first.locator("canvas").evaluate((canvas: HTMLCanvasElement) => canvas.width);
   await first.getByRole("button", { name: "收窄容器" }).click();
   await expect
@@ -44,6 +53,13 @@ test("two real WebGL scenes render, pause independently, resize, and rebuild wit
   await first.getByRole("button", { name: "零高度" }).click();
   await expect.poll(() => frameCount()).toBeGreaterThan(zeroFrames);
   await first.getByRole("button", { name: "收窄容器" }).click();
+  expect(errors).toEqual([]);
+});
+
+test("repeated destruction and rebuilding keeps one canvas and working controls", async ({
+  page,
+}) => {
+  const { first, second, frameCount, errors } = await openScenes(page);
   for (let index = 0; index < 3; index++) {
     await first.getByRole("button", { name: "销毁", exact: true }).click();
     await expect(first.locator("canvas")).toHaveCount(0);
@@ -62,6 +78,10 @@ test("two real WebGL scenes render, pause independently, resize, and rebuild wit
   await expect(second.locator(".error")).toBeHidden();
   expect(errors).toEqual([]);
   await page.screenshot({ path: "test-results/core-playground.png", fullPage: true });
+});
+
+test("mobile viewport resizes both canvases without horizontal overflow", async ({ page }) => {
+  const { first, second, errors } = await openScenes(page);
   await page.setViewportSize({ width: 390, height: 844 });
   const mobileWidth = await first.locator(".viewport").evaluate((element) => element.clientWidth);
   await expect(first.getByTestId("size")).toHaveText(`${mobileWidth} × 340`);
@@ -77,4 +97,5 @@ test("two real WebGL scenes render, pause independently, resize, and rebuild wit
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
     .toBe(true);
   await page.screenshot({ path: "test-results/core-playground-mobile.png", fullPage: true });
+  expect(errors).toEqual([]);
 });

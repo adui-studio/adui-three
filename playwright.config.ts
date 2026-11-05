@@ -4,12 +4,16 @@ export default defineConfig({
   testDir: "./tests/browser",
   fullyParallel: false,
   workers: 1,
+  reporter: [["list"], ["./tests/browser/timing-reporter.ts"]],
+  // Software WebGL integration includes real rendering, layout and repeated lifecycle operations.
+  timeout: 60000,
   use: {
     baseURL: "http://127.0.0.1:4173",
     viewport: { width: 1440, height: 1100 },
     deviceScaleFactor: 3,
     launchOptions: { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] },
-    trace: "retain-on-failure",
+    // Keep action/DOM/network evidence without continuous screenshots of software WebGL frames.
+    trace: { mode: "retain-on-failure", screenshots: false, snapshots: true, sources: true },
   },
   webServer: {
     command:
