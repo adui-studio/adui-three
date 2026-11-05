@@ -289,6 +289,8 @@ geometry 入口导出 createInstancedMesh(app,options)、CreateInstancedMeshOpti
 
 handle 登记宿主 scope，拥有节点、instanceMatrix、instanceColor、morphTexture 和扩展 resources；不拥有几何体、材质、它们的纹理或外来子节点。清理标记结束并解除登记，尝试全部独立清理后聚合异常，重复 dispose 无操作。同步添加节点时宿主结束则回滚。公开 mesh 保留原生能力；直接替换自有 buffer 或绕过 helper 修改 count/矩阵须由调用方承担上传、边界和清理一致性。决策见 [ADR-0022](adr/0022-managed-instancing.md)。
 
+原生 dispose 监听异常不保证 WebGL GPU 清理：首次绘制前的消费者监听可能阻断后续 renderer 监听，而 BufferAttribute.dispose 仅对 WebGPU 有 GPU 释放语义。扩展清理登记 resources 可独立聚合失败；原生监听不得抛错。已阻断时消费者移除出错监听后可显式 mesh.dispose，handle.dispose 不重试。真实浏览器故障注入回归记录此边界，见 ADR-0022。
+
 ## 维护
 
 接口、数据结构、核心算法、生命周期和错误契约变化时同步类型、包 README、需求及测试。新增正式需求加入追踪；未来模块另标规划，不提前伪装为当前实现。

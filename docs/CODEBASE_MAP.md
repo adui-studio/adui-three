@@ -89,6 +89,8 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 实例化入口 [geometry.ts](../packages/three/src/geometry.ts)、[单测](../packages/three/tests/geometry.test.ts) 与 [浏览器回归](../tests/browser/geometry.spec.ts) 覆盖原生上传、边界和所有权。[bootstrap.ts](../apps/website/src/bootstrap.ts) 根据查询参数选择原双实例演示或 [instances.ts](../apps/website/src/instances.ts) 的独立实例演示；共十二个运行时入口。
 
+[实例清理故障回归](../tests/browser/geometry-disposal.spec.ts) 仅在 Playwright 路由中提供锁定原生源码和构建后的库模块，验证扩展 scope 错误与原生事件监听顺序的真实 WebGL 差异；不向产品暴露测试接口或引入外部 CDN。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

@@ -21,7 +21,7 @@ pnpm install --frozen-lockfile
 | `pnpm exec vp run -r test`      | 主包的 304 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 66 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 67 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 实例清理补查：新浏览器用例通过本地路由消费实际库产物和锁定的 Three.js 源码，不改生产页面。真实 WebGL 复现 extension 错误、绘制后注册的原生错误监听均删除两个实例 buffer；绘制前注册的错误监听阻断 renderer dispose，只删除零个 buffer。移除故障监听并显式原生 dispose 后可继续清理。纠正 ADR 对 BufferAttribute.dispose 的过度承诺：该方法的 GPU 释放只适用于 WebGPU，当前 WebGL 路径依赖节点事件。专项 1/1 通过（约 3.7 秒）。ready 通过 13 项文档测试、304 项单测、135 文件格式、80 源文件静态检查与构建。
+
+本轮首轮全量 66/67，通过新增故障回归，原截图 resize 用例实际宽度仍为 1198：点击后读取早于 ResizeObserver 更新。改成 expect.poll 等待真实 drawing buffer 变小，保留像素/尺寸比较、不增加超时或重试，随后完整 67/67 通过，零重试。首轮 trace/error 保存在忽略的 playwright-report/diagnostics/instance-disposal，不能以最后一次通过抹去首次失败。
 
 2026-11-06 实例化阶段：ready 通过 13 项文档检查器测试、304 项主包单测、134 文件格式与 79 源文件 Lint/类型检查，十二入口和演示构建成功。新增九项原生实例数学/资源单测覆盖固定容量、Float32 校验、上传/边界、instanceId、借用及异常清理。新增 GPU 探针最初有三个未绑定方法静态提示，改为显式 Reflect 获取及 call 后无警告；文档校验首次发现 FR-034 追踪未放入正式追踪节，移动后通过，未修改检查器。
 

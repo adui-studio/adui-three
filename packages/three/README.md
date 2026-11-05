@@ -117,6 +117,8 @@ capacity 是正整数，count 默认 0 且不能超过容量；支持预填尚�
 
 handle 拥有节点、实例属性、morphTexture 和扩展 resources，登记宿主 scope 并幂等清理；几何体、材质/纹理和外来子节点由调用方管理。material 数组快照列表，addToScene 可设 false，仍由宿主结束清理。公开 mesh 可作原生配置；直接替换自有 buffer 或绕过 helper 改 count/矩阵时，由调用方负责上传、边界和所有权一致性。演示地址 `/?demo=instances`。
 
+原生事件的异常仍遵循 Three.js 的派发语义：调用方在首次绘制前注册的 mesh dispose 监听若抛错，会阻断后续 renderer 监听，WebGL 实例 buffer 可能不能立即释放；BufferAttribute.dispose 在 WebGL 下不能补救这个路径。把会失败的自有清理登记到 instances.resources，避免从原生 dispose 监听抛错。若已经触发，调用方可移除出错监听后显式 mesh.dispose 让原生清理继续；handle.dispose 本身仍幂等且不会重试已结束的 handle。
+
 ## 截图
 
 ```ts

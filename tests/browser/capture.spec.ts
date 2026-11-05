@@ -156,7 +156,7 @@ test("in-flight encoding keeps the copied pixels and dimensions while the source
     .toBeGreaterThan(frames + 3);
   await panel.getByRole("button", { name: "暂停", exact: true }).click();
   await panel.getByRole("button", { name: "收窄容器", exact: true }).click();
-  expect((await canvasPixels(panel)).width).toBeLessThan(expected.width);
+  await expect.poll(async () => (await canvasPixels(panel)).width).toBeLessThan(expected.width);
   await page.evaluate(() => window.__captures.pending.shift()!());
   await expect(panel).toHaveAttribute("data-capture-state", "ready");
   const actual = await encodedPixels(panel);
