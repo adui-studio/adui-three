@@ -23,22 +23,22 @@ PR 沿用 [模板](.github/pull_request_template.md)，说明问题与结果、�
 采用 Conventional Commits，描述以一个 Unicode gitmoji 开头：
 
 ```text
-type(scope): emoji description
+type(scope): emoji 中文描述
 ```
 
-scope 可省略；标题尽量不超过 72 个字符，无句末句号。英文描述使用祈使语气。type 保留在行首，便于现有 Conventional Commits 工具识别。PR 标题及 squash 合并消息沿用同一格式。
+scope 可省略；标题尽量不超过 72 个字符，无句末句号。提交描述和正文使用中文；type/scope、API 名称及规范 footer 标识可保留英文。type 保留在行首，便于现有 Conventional Commits 工具识别。PR 标题及 squash 合并消息沿用同一格式。已有提交不因语言偏好而改写。
 
-| 场景       | 示例                                              |
-| ---------- | ------------------------------------------------- |
-| 新功能     | `feat(core): ✨ add scene lifecycle`              |
-| 修复       | `fix(core): 🐛 prevent duplicate animation loops` |
-| 文档       | `docs: 📝 explain resource ownership`             |
-| 重构       | `refactor(core): ♻️ extract frame scheduler`      |
-| 性能       | `perf(render): ⚡️ avoid redundant resize work`    |
-| 测试       | `test(core): ✅ cover repeated disposal`          |
-| 构建       | `build: 📦️ configure library exports`             |
-| CI         | `ci: 👷 add validation workflow`                  |
-| 配置与维护 | `chore: 🔧 add issue and pull request templates`  |
+| 场景       | 示例                                    |
+| ---------- | --------------------------------------- |
+| 新功能     | `feat(core): ✨ 增加场景生命周期`       |
+| 修复       | `fix(core): 🐛 防止动画循环重复调度`    |
+| 文档       | `docs: 📝 说明资源所有权`               |
+| 重构       | `refactor(core): ♻️ 提取帧调度器`       |
+| 性能       | `perf(render): ⚡️ 避免重复配置绘制尺寸` |
+| 测试       | `test(core): ✅ 验证重复销毁`           |
+| 构建       | `build: 📦️ 配置库导出入口`              |
+| CI         | `ci: 👷 增加验证工作流`                 |
+| 配置与维护 | `chore: 🔧 增加 Issue 与 PR 模板`       |
 
 破坏性变更使用 `type(scope)!: 💥 description`，正文写明迁移方法；必要时补 `BREAKING CHANGE:` footer。关联 Issue 按实际情况使用 `Refs: #编号` 或 `Closes: #编号`，不虚构编号。
 

@@ -30,7 +30,7 @@
 8. 根据 [Harness](docs/HARNESS.md) 运行适用检查；报告真实结果、失败与限制。GPU 行为不能用构建成功代替验收。
 9. 同步规则：需求改 REQUIREMENTS，接口改 SDD，边界改 ARCHITECTURE/ADR，阶段改 PROJECT_CONTEXT，重要目录改 CODEBASE_MAP，流程改 SKILLS/HARNESS。
 10. 文档变化执行 `pnpm run docs:test` 和 `pnpm run docs:check`；代码变化另运行 `pnpm run ready`。影响宿主、渲染、控制器或演示时执行 `pnpm run test:browser`。交付说明改动、原因、验证、未决事项。
-11. Git commit、PR 标题和 squash 消息采用 `type(scope): emoji description`，如 `feat(core): ✨ add scene lifecycle`；每条描述以一个匹配意图的 Unicode gitmoji 开头，详情见贡献指南。不改写已有提交。
+11. Git commit、PR 标题和 squash 消息采用 `type(scope): emoji 中文描述`，如 `feat(core): ✨ 增加场景生命周期`；提交描述和正文使用中文，type/scope、API 名称和规范 footer 标识可保留英文。每条描述以一个匹配意图的 Unicode gitmoji 开头，详情见贡献指南。不改写已有提交。
 
 ## Skills 与维护
 
