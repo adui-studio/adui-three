@@ -421,3 +421,21 @@ footer {
   display: block;
   color: #82958e;
 }
+.capture-preview:not([hidden]) {
+  display: block;
+  width: calc(100% - 40px);
+  max-height: 180px;
+  object-fit: contain;
+  margin: 0 20px 16px;
+  border: 1px solid #36504a;
+  border-radius: 6px;
+}
+.capture-format {
+  font: inherit;
+  font-size: 11px;
+  color: #b9cbc5;
+  background: #101916;
+  border: 1px solid #36504a;
+  border-radius: 4px;
+  padding: 4px;
+}

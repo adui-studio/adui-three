@@ -103,6 +103,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 蒙皮拾取阶段复用 threejs-interaction，核验 r187 SkinnedMesh 的一次 sphere、可选 box 与 updateMatrixWorld/updateWorldMatrix 差异。以失败数学用例复现旧边界后按需刷新，不增加 RAF 或自动推进动画；保留 opt-out 并明确顶点计算成本。
 
+截图阶段复用既有宿主/渲染生命周期设计，核验 HTML toBlob/drawImage 标准和原生 format fallback。通过同任务复制隔离后续帧，不启用 preserveDrawingBuffer 或第二循环；应用拥有预览 URL，真实 PNG 解码比较 GPU 输出，严格包消费扩展到十一入口。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

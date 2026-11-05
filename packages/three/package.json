@@ -62,6 +62,11 @@
       "types": "./dist/textures.d.mts",
       "development": "./src/textures.ts",
       "import": "./dist/textures.mjs"
+    },
+    "./capture": {
+      "types": "./dist/capture.d.mts",
+      "development": "./src/capture.ts",
+      "import": "./dist/capture.mjs"
     }
   },
   "scripts": {

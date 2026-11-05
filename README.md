@@ -19,6 +19,7 @@
 - **模型动画**：独立 Mixer，复用宿主循环，播放/暂停/切换/单次播放，随模型或宿主清理。
 - **泛光后处理**：可选 HDR 效果链，复用宿主绘制、跟随尺寸，显式关闭或释放资源。
 - **相机取景**：按模型世界边界、画布比例与 zoom 计算视角，支持原生 OrbitControls 同步。
+- **画布截图**：复用当前管线导出 PNG/JPEG/WebP Blob，支持取消，不推进场景时间。
 
 ## 快速开始
 
@@ -63,6 +64,8 @@ window.addEventListener("pagehide", () => app.dispose(), { once: true });
 `scene`、`camera` 和 `renderer` 是原生对象，可直接配置。geometry、material、texture 需分别登记；只登记 Mesh 不会递归接管其资源。外部共享资源由其所有者管理。
 
 暂停状态可调用 `app.render()` 绘制一帧并更新标签；不推进动画或启动宿主。`app.setRenderPipeline(pipeline)` 可独占替换绘制阶段，契约见 [管线与单次绘制](packages/three/README.md#绘制管线与单次绘制)。
+
+`captureFrame(app, options)` 从可选 `@adui/three/capture` 入口导出实际画布图像；演示可选择格式、预览和下载。它不包含 DOM 标签，取消和临时画布所有权见[截图 API](packages/three/README.md#截图)。
 
 ### 相机控制
 
@@ -183,7 +186,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 282 项主包单元测试和 59 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
+当前有 295 项主包单元测试和 64 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
 
 ## 项目结构
 

@@ -2,7 +2,7 @@
 
 ## 当前实现
 
-核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing、environment、textures 分别提供控制器/变换、模型加载、拾取、DOM 标签、动画/定位、取景、泛光/描边、HDR 环境和独立图片纹理。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
+核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing、environment、textures、capture 分别提供控制器/变换、模型加载、拾取、DOM 标签、动画/定位、取景、泛光/描边、HDR 环境、独立图片纹理和画布截图。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
 
 核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画扩展见 [ADR-0004](adr/0004-animation-lifecycle.md)。完整选项、默认值和示例以 [主包 README](../packages/three/README.md) 与导出类型为准；已通过可选泛光模块接入自有 composer；尚无寻路、框架适配或 WebGPU 实现。
 
@@ -61,6 +61,12 @@ running 是用户运行意图；文档隐藏或容器零尺寸时暂停 RAF 但�
 资源 scope 内按对象引用去重；借入或跨实例共享资源留给外部所有者，不由某个实例独占登记。登记 Mesh 不自动接管其 geometry/material/texture。textures 需单独登记；材质释放不隐含纹理释放。scope 销毁后 track 抛错，untrack 只解除登记。异步业务应检查 signal 并自行清理迟到结果；模型加载另见下节契约。
 
 容器尺寸基于 clientWidth/clientHeight，建议无 padding，CSS transform 不改变绘制分辨率。构造仅限现代浏览器，要求 WebGL 2 / ResizeObserver / matchMedia；模块导入不访问 DOM。没有数据库、事务、后端鉴权或隐式遥测；资产权限由应用负责。
+
+## 画布截图契约
+
+capture 独立入口提供 captureFrame(app, CaptureFrameOptions):Promise<Blob>。type 默认 PNG，可选 JPEG/WebP；quality 可选有限 [0,1]，signal 可选。校验可绘制状态与默认 render target，复用 app.render 后同步复制当前 drawing buffer 到 detached Canvas 2D，再 toBlob；不推进动画、改变运行意图/相机/管线或增加 RAF。像素与后续帧/尺寸隔离，不包含 DOM/CSS 界面，不是 HDR/任意分辨率导出。
+
+pending 编码登记宿主 scope 并监听两个 signal，逻辑取消立即拒绝 AbortError，迟到结果丢弃；所有结束路径解除登记/监听、归零画布，清理错误继续并聚合。原生 null/编码/CORS、隐藏/零尺寸/丢失上下文/非默认目标或宿主绘制重入失败正常拒绝。浏览器格式可回退 PNG，以实际 Blob.type 为准；Blob URL/下载属于应用，详见 [ADR-0021](adr/0021-frame-capture.md)。
 
 ## 上下文丢失契约
 
@@ -270,6 +276,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-030  | 模型实例契约                      | gltf-clone.ts、gltf-assets.ts、资源快照与演示    | 原生骨骼/morph/租约单测、GPU/跨宿主/包消费回归    |
 | FR-031  | 上下文丢失契约                    | three-app.ts、演示诊断与重建                     | 事件/异常/清理单测、真实上下文丢失及跨宿主回归    |
 | FR-032  | 对象拾取契约                      | interaction.ts、原生蒙皮边界与 Reach 样例        | 真实边界/失效/重入单测、GPU 像素定位鼠标回归      |
+| FR-033  | 画布截图契约                      | capture.ts、独立导出和演示预览                   | 生命周期/编码单测、原生 PNG/格式/URL 与包消费回归 |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                      |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器               |
 

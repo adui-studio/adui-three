@@ -97,6 +97,22 @@ detach(); // 恢复原生绘制，不释放 pipeline；资源由其所有者管�
 
 `development` 条件导出指向随包包含的 src，便于 Vite 开发时 HMR；默认 import 导出指向 dist，类型来自 dist 声明。不提供 CJS、WebXR、WebGPU、URL 模型缓存或框架适配；显式模型实例按下述租约共享资产。
 
+## 截图
+
+```ts
+import { captureFrame } from "@adui/three/capture";
+
+const controller = new AbortController();
+const image = await captureFrame(app, { type: "image/png", signal: controller.signal });
+// 返回 Blob；按 image.type 决定文件后缀。Blob URL 和下载由应用自己管理。
+```
+
+type 默认 image/png，可选 image/jpeg / image/webp；quality 可选有限 [0,1]，由浏览器对有损格式解释，未指定时沿用浏览器默认值。若格式不支持可能回退 PNG，以实际 Blob.type 为准。原生编码失败/null、CORS SecurityError 和宿主绘制错误正常拒绝。
+
+先 app.render，再在同一任务将当前实际 drawing buffer 复制到独立 Canvas 2D 后编码；不推进动画、改变宿主启停、相机或渲染配置，不需要 preserveDrawingBuffer。后续帧/resize 不改变已截取的像素；包含当前管线输出，不含 DOM 标签、CSS 背景和其他界面。输出是普通浏览器图像，默认 2D 色彩处理，不是原始 HDR、任意分辨率或 DOM 合成服务。
+
+隐藏、零尺寸、上下文不可用或当前 render target 非默认时拒绝；自定义管线须确实输出画布。不要从宿主更新/绘制/完成阶段调用，单次绘制重入会拒绝。signal、宿主或 app.resources 结束立即逻辑取消，原生编码可能继续，迟到结果丢弃。任务拥有临时画布并清监听/登记、归零尺寸；Blob 交给应用后自行管理引用或 URL。截图有与像素数相关的 CPU/内存成本，没有后台计时器或第二循环。
+
 ## WebGL 上下文丢失
 
 `app.contextLost` 初始 false；自有 canvas 收到原生 webglcontextlost 后设为 true 并完整 dispose，标记保留用于诊断。暂停、隐藏或 ready 状态同样结束；旧 canvas 的恢复事件不能复活宿主。普通主动 dispose 不把此属性设为 true。

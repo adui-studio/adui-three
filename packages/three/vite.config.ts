@@ -13,6 +13,7 @@ export default defineConfig({
       postprocessing: "src/postprocessing.ts",
       environment: "src/environment.ts",
       textures: "src/textures.ts",
+      capture: "src/capture.ts",
     },
     format: "esm",
     target: "es2022",

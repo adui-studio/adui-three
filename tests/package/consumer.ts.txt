@@ -1,4 +1,5 @@
 import { loadTexture, loadKTX2 } from "@adui/three/textures";
+import { captureFrame } from "@adui/three/capture";
 import { loadHDR, attachEnvironment } from "@adui/three/environment";
 import { ResourceScope, ThreeApp } from "@adui/three";
 import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
@@ -15,6 +16,8 @@ import { BoxGeometry, Mesh, MeshBasicMaterial } from "three";
 // Compile only: all library values come from the installed archive, without workspace paths.
 export async function consume(container: HTMLElement, overlay: HTMLElement, model: GLTFModel) {
   const app = new ThreeApp(container, { maxPixelRatio: 2 });
+  const image: Blob = await captureFrame(app, { type: "image/webp", quality: 0.8, signal: app.signal });
+  void image;
   const contextLost: boolean = app.contextLost;
   void contextLost;
   const scope = new ResourceScope();

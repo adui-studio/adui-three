@@ -1,5 +1,6 @@
 import "./style.css";
 import { ThreeApp } from "@adui/three";
+import { captureFrame } from "@adui/three/capture";
 import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
 import type { OrbitControlsHandle, TransformControlsHandle } from "@adui/three/controls";
 import { fitObject, transitionToObject } from "@adui/three/camera";
@@ -58,6 +59,8 @@ function mountPanel(id: string, color: number): void {
     <div class="stage"><div class="viewport" aria-label="场景 ${id}，拖动旋转，滚轮缩放"><div class="label-overlay"></div></div><span class="stage-hint">拖动旋转 · 滚轮缩放</span><p class="error" role="alert" hidden></p></div>
     <div class="metrics"><div><span>UPDATES</span><strong data-testid="frames">0</strong></div><div><span>VIEWPORT</span><strong data-testid="size">—</strong></div><div><span>DPR</span><strong data-testid="dpr">—</strong></div><div><span>DRAW CALLS</span><strong data-testid="draw-calls">0</strong></div></div>
     <div class="actions"><button data-action="start" class="primary">运行</button><button data-action="stop">暂停</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建 ↻</button></div>
+    <div class="effect-actions"><select class="capture-format" data-action="capture-format" aria-label="截图格式"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select><button data-action="capture">截图</button><button data-action="cancel-capture">取消截图</button><button data-action="clear-capture">清除截图</button><a data-testid="capture-download" hidden>下载截图</a><span data-testid="capture-state">idle</span></div>
+    <img class="capture-preview" data-testid="capture-preview" alt="场景截图预览" hidden>
     <div class="resize-actions"><button data-action="width" aria-pressed="false">收窄容器</button><button data-action="zero" aria-pressed="false">零高度</button><button data-action="labels" aria-pressed="true">显示标签</button><button data-action="fit">适配视角</button><button data-action="transition">平滑取景</button><button data-action="cancel-transition">取消过渡</button><button data-action="large-model" aria-pressed="false">大模型</button></div>
     <p class="camera-feedback" role="status">取景过渡：<span data-testid="transition-state">idle</span> · <span data-testid="transition-progress">0</span>%</p>
     <div class="effect-actions"><button data-action="transform" aria-pressed="false">变换手柄</button><button data-action="transform-mode">切换变换</button><button data-action="remove-transform">释放手柄</button></div>
@@ -121,6 +124,10 @@ function mountPanel(id: string, color: number): void {
   let textureVersion = 0;
   let textureState = "idle";
   let textureFlip = true;
+  let captureRequest: AbortController | undefined;
+  let captureVersion = 0;
+  let captureURL: string | undefined;
+  let captureState = "idle";
 
   function addLabel(
     object: Object3D,
@@ -151,6 +158,12 @@ function mountPanel(id: string, color: number): void {
     const state = app?.state ?? "unavailable";
     card.dataset.state = state;
     card.dataset.contextLost = String(app?.contextLost ?? false);
+    card.dataset.captureState = captureState;
+    card.querySelector('[data-testid="capture-state"]')!.textContent = captureState;
+    button("capture").disabled =
+      !app || state === "disposed" || !app.size.width || !app.size.height || !!captureRequest;
+    button("cancel-capture").disabled = !captureRequest;
+    button("clear-capture").disabled = !captureURL && !captureRequest;
     card.querySelector(".state")!.textContent = state + (app?.contextLost ? " · GPU lost" : "");
     card.querySelector('[data-testid="frames"]')!.textContent = String(frames);
     const size = app?.size;
@@ -336,6 +349,67 @@ function mountPanel(id: string, color: number): void {
     if (placeholder) placeholder.visible = !instance || instance.disposed;
     previous?.dispose();
     if (labels && !labels.disposed) labels.update();
+  }
+
+  function clearCapture(): void {
+    captureVersion++;
+    captureRequest?.abort();
+    captureRequest = undefined;
+    const preview = card.querySelector<HTMLImageElement>('[data-testid="capture-preview"]')!;
+    preview.removeAttribute("src");
+    preview.hidden = true;
+    const download = card.querySelector<HTMLAnchorElement>('[data-testid="capture-download"]')!;
+    download.removeAttribute("href");
+    download.hidden = true;
+    if (captureURL) URL.revokeObjectURL(captureURL);
+    captureURL = undefined;
+    captureState = "idle";
+  }
+
+  async function requestCapture(): Promise<void> {
+    const owner = app;
+    if (!owner || owner.state === "disposed") return;
+    const version = ++captureVersion;
+    const controller = new AbortController();
+    captureRequest?.abort();
+    captureRequest = controller;
+    captureState = "encoding";
+    refresh();
+    try {
+      const selectedFormat = card.querySelector<HTMLSelectElement>(
+        '[data-action="capture-format"]',
+      )!.value;
+      const type =
+        selectedFormat === "image/jpeg"
+          ? "image/jpeg"
+          : selectedFormat === "image/webp"
+            ? "image/webp"
+            : "image/png";
+      const image = await captureFrame(owner, { signal: controller.signal, type, quality: 0.9 });
+      if (version !== captureVersion || owner !== app || owner.signal.aborted) return;
+      const url = URL.createObjectURL(image);
+      if (captureURL) URL.revokeObjectURL(captureURL);
+      captureURL = url;
+      const preview = card.querySelector<HTMLImageElement>('[data-testid="capture-preview"]')!;
+      preview.src = url;
+      preview.hidden = false;
+      const download = card.querySelector<HTMLAnchorElement>('[data-testid="capture-download"]')!;
+      download.href = url;
+      const extension =
+        image.type === "image/jpeg" ? "jpg" : image.type === "image/webp" ? "webp" : "png";
+      download.download = `scene-${id}.${extension}`;
+      download.hidden = false;
+      captureState = "ready";
+    } catch (error) {
+      if (version !== captureVersion || owner !== app) return;
+      captureState =
+        error instanceof DOMException && error.name === "AbortError" ? "cancelled" : "error";
+    } finally {
+      if (version === captureVersion) {
+        captureRequest = undefined;
+        refresh();
+      }
+    }
   }
 
   function clearInstance(): void {
@@ -574,6 +648,7 @@ function mountPanel(id: string, color: number): void {
       clearModel();
       errorOutput.hidden = true;
       app = new ThreeApp(viewport, { camera: { position: [4, 3, 5] }, maxPixelRatio: 2 });
+      app.resources.track({ dispose: clearCapture });
       const owner = app;
       owner.signal.addEventListener(
         "abort",
@@ -701,6 +776,9 @@ function mountPanel(id: string, color: number): void {
       if (action === "start") app?.start();
       if (action === "stop") app?.stop();
       if (action === "render") app?.render();
+      if (action === "capture") void requestCapture();
+      if (action === "cancel-capture") captureRequest?.abort();
+      if (action === "clear-capture") clearCapture();
       if (action === "dispose") {
         app?.dispose();
         clearInstance();

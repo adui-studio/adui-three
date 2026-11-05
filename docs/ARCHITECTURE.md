@@ -61,6 +61,8 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 ## 关键取舍
 
+capture 是不含运行时 Three.js/addon 依赖的可选入口，复用宿主单次绘制、借用 canvas 并拥有独立 Canvas 2D 编码面；完成返回 Blob，预览 URL/下载由消费者管理。默认核心不反向导入，见 [ADR-0021](adr/0021-frame-capture.md)。
+
 拾取入口在 CPU 查询时可刷新蒙皮边界和骨骼矩阵，保持原生 Raycaster、显式借用目标及无额外调度；应用可关闭刷新以使用自有边界策略，见 [ADR-0020](adr/0020-skinned-picking.md)。
 
 上下文丢失时结束该宿主，使用既有 abort 和所有权清理通知应用显式重建；不透明替换 renderer 或清借用资产，也不自动恢复旧 GPU 图。跨宿主实例继续保留其租约，见 [ADR-0019](adr/0019-context-loss.md)。

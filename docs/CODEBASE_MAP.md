@@ -83,6 +83,10 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 上下文丢失在 three-app.ts 复用完整 dispose，通过 contextLost 诊断；[真实上下文回归](../tests/browser/context.spec.ts) 使用 WEBGL_lose_context 验证旧 canvas 失效、跨宿主实例、HDR/图片/泛光重建及迟到模型。核心事件/清理用例在 three-app.test.ts。
 
+## 截图
+
+截图入口 [capture.ts](../packages/three/src/capture.ts) 复用单次绘制并拥有临时 2D 编码面；[单测](../packages/three/tests/capture.test.ts) 验证取消/清理与并发，[浏览器截图回归](../tests/browser/capture.spec.ts) 验证实际编码像素/格式、快照隔离及消费者 URL 生命周期。十一运行时入口由 package.json/vite.config.ts 和独立消费样例覆盖。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。
