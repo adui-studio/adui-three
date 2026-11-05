@@ -42,6 +42,11 @@
       "development": "./src/animation.ts",
       "import": "./dist/animation.mjs"
     },
+    "./camera": {
+      "types": "./dist/camera.d.mts",
+      "development": "./src/camera.ts",
+      "import": "./dist/camera.mjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

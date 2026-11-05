@@ -9,6 +9,7 @@ export default defineConfig({
       interaction: "src/interaction.ts",
       labels: "src/labels.ts",
       animation: "src/animation.ts",
+      camera: "src/camera.ts",
     },
     format: "esm",
     target: "es2022",

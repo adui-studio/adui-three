@@ -13,6 +13,7 @@
 | [interaction.ts](../packages/three/src/interaction.ts)                                                        | 可选拾取、点击/悬停与监听清理                     |
 | [labels.ts](../packages/three/src/labels.ts)                                                                  | DOM 投影、独占元素挂载与标签层清理                |
 | [animation.ts](../packages/three/src/animation.ts)                                                            | 单 Mixer、片段控制、双范围清理与事件重入          |
+| [camera.ts](../packages/three/src/camera.ts)                                                                  | 世界包围球取景、裁剪面和原生控件同步              |
 | [loaders.ts](../packages/three/src/loaders.ts) / [gltf-resources.ts](../packages/three/src/gltf-resources.ts) | GLTF/GLB 逻辑取消与资源快照                       |
 | [ktx2-task.ts](../packages/three/src/ktx2-task.ts)                                                            | KTX2 输入隔离、在途解析计数和纹理移交             |
 | [打包配置](../packages/three/vite.config.ts)                                                                  | ESM/声明、多入口和 Three.js 外部化                |
@@ -32,10 +33,11 @@
 - [动画单测](../packages/three/tests/animation.test.ts) / [浏览器动画](../tests/browser/animation.spec.ts)：真实数值采样、片段/状态、模型移除、事件重入与双实例。
 - [压缩浏览器回归](../tests/browser/compression.spec.ts) 配合加载器单测：配置、Worker 生命周期、同 URL 取消、初始化时销毁和错误恢复。[解码许可](../apps/website/public/licenses/README.md) 记录本地分发来源。
 - [KTX2 单测](../packages/three/tests/ktx2-task.test.ts) / [浏览器回归](../tests/browser/ktx2.spec.ts)：缓冲隔离、部分失败清理、真实转码、上传/删除、同 URL、初始化销毁和 RGBA 回退。
+- [相机单测](../packages/three/tests/camera.test.ts) / [浏览器取景](../tests/browser/camera.spec.ts)：投影、世界变换、控件惯性/限制、同步事件、暂停绘制和大模型。
 
 ## 调用链与定位
 
-页面 index.html → main.ts → 主包/controls/loaders/interaction/labels/animation 公开入口 → 调度更新、Mixer、渲染与 DOM 投影，或异步模型/拾取事件。应用依赖主库，库不反向引用应用。
+页面 index.html → main.ts → 主包/controls/loaders/interaction/labels/animation/camera 公开入口 → 调度更新、Mixer、渲染与 DOM 投影，或异步模型/拾取事件及即时取景。应用依赖主库，库不反向引用应用。
 
 ready → 文档测试/校验 → vp check → 主包单测 → 主包和演示 build。test:browser → 生产 build → preview → Chromium。test-results 与 dist 为忽略提交的产物。
 

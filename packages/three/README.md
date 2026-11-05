@@ -135,6 +135,27 @@ Draco 实例由单次任务拥有，普通成功/失败后释放。signal、宿�
 
 meshoptDecoder 接受与原生 setMeshoptDecoder 相同的模块类型，保持借用，不调用 useWorkers 或清理其 Workers；应用管理其共享存活期。模块可按需动态导入。缺失解码器、文件 404 与解码失败会正常拒绝，可随后重新加载。当前浏览器样例实测 KHR_draco_mesh_compression 和 EXT_meshopt_compression。
 
+## 相机取景
+
+```ts
+import { computeObjectFrame, fitObject } from "@adui/three/camera";
+
+const plan = computeObjectFrame(app.camera, model.scene, { padding: 1.2 });
+const frame = fitObject(app, model.scene, { padding: 1.2 });
+// 已有 OrbitControls 时，传 controls: orbitHandle.controls，复用同一控件。
+console.log(plan.bounds, frame.center, frame.position, frame.near, frame.far);
+```
+
+computeObjectFrame 更新目标及祖先/后代世界矩阵，按世界 AABB 的包围球计算中心、半径与相机位置，不改变相机姿态或裁剪面。返回 `ObjectFrame` 的 bounds/center/position 是独立快照；隐藏后代也纳入边界，原生实例/批处理边界需由应用保持有效。空/零/非有限边界和超出数值精度的取景拒绝。
+
+`ObjectFrameOptions`：padding 默认 1.2、有限且 >=1；minimumDistance 默认 0、有限非负；direction 可指定从中心指向相机的非零世界向量，默认保持当前视线方向。计算同时考虑垂直 FOV、aspect 对应的水平 FOV 和 zoom。包围球方案会留空白，不自动改变模型位置/尺寸，不保证最紧凑构图，也不覆盖着色器位移。
+
+fitObject 使用当前 app.camera 和尺寸立即应用；支持宿主 ready/stopped/running，零尺寸、宿主或 resource scope 销毁后拒绝。支持未挂父节点、无缩放、自动矩阵且无 view/filmOffset 的透视相机。默认 adjustClipping=true，设置推荐 near/far；它们针对当前目标，其他物体可能被裁剪。设 false 时保留现有裁剪面，并先检查能否容纳整个取景球。
+
+传入 `FitObjectOptions.controls` 时必须属于当前相机。遵守 minDistance，maxDistance 或 cursor/目标半径约束无法容纳时写入前拒绝；不修改这些限制。控件角度限制仍生效，返回 position 反映最终位置。通过公开 update(0) 先消耗残余惯性，再同步相机/target；临时关闭的 damping/autoRotate 标志始终恢复。原生 change 回调会执行，回调中销毁宿主阻止后续取景写入；同相机重入拒绝。消费者回调抛错时，不承诺回滚原生更新已产生的变动。
+
+两个函数不创建循环、资源句柄、订阅或自动播放/启动，也不直接 render。暂停时应用若希望立即显示，可显式 render 一次并更新标签；演示使用这一方式。旋转、动画、resize 或模型替换后，按需重新调用取景。相机过渡、正交/父级/偏轴相机留后续，详见 [ADR-0007](../../docs/adr/0007-camera-framing.md)。
+
 ## KTX2 纹理模型
 
 ```ts

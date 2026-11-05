@@ -18,6 +18,8 @@ Draco 任务所有权、借用 Meshopt 与本地解码资源决策见 [ADR-0005]
 
 KTX2 的能力检测、缓冲复制、在途转码与纹理移交见 [ADR-0006](adr/0006-ktx2-lifecycle.md)。
 
+相机取景与 OrbitControls 同步见 [ADR-0007](adr/0007-camera-framing.md)。
+
 ```mermaid
 flowchart TD
   App[应用 / website 演示] --> Core[主包 @adui/three]
@@ -33,6 +35,9 @@ flowchart TD
   App --> Animation[可选 animation 子入口]
   Animation --> Core
   Animation --> Three
+  App --> Framing[可选 camera 取景]
+  Framing --> Core
+  Framing --> Three
   Adapter[未来 Vue / React 适配] --> Core
   Feature[未来可选功能模块] --> Core
   Core --> Three[Three.js 与按需 addons]
@@ -42,6 +47,8 @@ flowchart TD
 单主包用内部模块组合宿主、调度、尺寸与资源归属；宿主暴露原生 Three.js 对象，演示依赖公开入口。OrbitControls 从 controls、GLTF/GLB 从 loaders、拾取从 interaction、DOM 标签从 labels、模型动画从 animation 子入口接入；核心默认入口不依赖这些可选模块。标签在渲染完成阶段同步投影；动画在统一更新阶段驱动 Mixer，绑定宿主与模型扩展 scope，均无第二循环。animation 对 GLTFModel 仅有类型引用，loader 不导入动画或自动播放。后处理留后续。Vue/Pinia、业务解密和场景路径不进入核心。
 
 截图中 `@adui/three-utils`、`@adui/three-effects`、`@adui/three-controls`、`@adui/three-gis`、`@adui/three-editor`、`@adui/three-vue`、`@adui/three-react` 仅记录为未来可能命名，不视为已批准拆包。
+
+camera 为无独立调度/资源的即时计算与应用入口，仅按类型借用 ThreeApp 和 OrbitControls；默认核心不依赖取景。应用选择目标、触发时机及暂停时的绘制策略。
 
 ## 关键取舍
 

@@ -17,6 +17,7 @@
 - **对象拾取**：显式目标、最近命中、点击与悬停变化；拖拽过滤，随实例清理监听。
 - **DOM 标签**：跟随对象定位，可选交互，自动隐藏视野外目标，随实例移除 DOM 与监听。
 - **模型动画**：独立 Mixer，复用宿主循环，播放/暂停/切换/单次播放，随模型或宿主清理。
+- **相机取景**：按模型世界边界、画布比例与 zoom 计算视角，支持原生 OrbitControls 同步。
 
 ## 快速开始
 
@@ -111,6 +112,17 @@ DOM 标签通过 `@adui/three/labels` 的 `attachDOMLabels(app, overlay)` 接入
 
 KTX2 纹理模型通过 `ktx2: { transcoderPath: { js, wasm } }` 接入，按当前 renderer 能力转码；目录方式同样支持。演示提供外部纹理 GLTF、内嵌 GLB 和缺少转码器示例，详见 [KTX2 API](packages/three/README.md#ktx2-纹理模型)。
 
+### 相机取景
+
+```ts
+import { fitObject } from "@adui/three/camera";
+
+fitObject(app, model.scene, { padding: 1.2 });
+// 已接入 OrbitControls 时传入 controls: orbitHandle.controls。
+```
+
+这是即时取景，不会启动宿主或创建额外循环。演示的“适配视角”和“大模型”可验证不同尺寸目标，选项、裁剪面和控件限制见 [相机 API](packages/three/README.md#相机取景)。
+
 ### 模型动画
 
 ```ts
@@ -141,7 +153,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 105 项主包单元测试和 21 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
+当前有 118 项主包单元测试和 24 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
 
 ## 项目结构
 

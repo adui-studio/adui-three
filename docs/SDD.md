@@ -2,7 +2,7 @@
 
 ## 当前实现
 
-核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation 分别提供控制器、模型加载、拾取、DOM 标签和动画。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
+核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera 分别提供控制器、模型加载、拾取、DOM 标签、动画和取景。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
 
 核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画扩展见 [ADR-0004](adr/0004-animation-lifecycle.md)。完整选项、默认值和示例以 [主包 README](../packages/three/README.md) 与导出类型为准；尚无 composer、寻路、框架适配或 WebGPU 实现。
 
@@ -90,6 +90,14 @@ modelHandle 的资源快照建立后才移交已创建纹理，随模型/宿主�
 
 实测范围为模型中的 ETC1S/BasisLZ、压缩上传和禁用压缩扩展时的 RGBA 回退；无独立纹理入口、不强制某一 GPU 压缩格式。原创 checker.ktx2 具有 16×16 像素和 5 级 mip，ktx2.gltf 使用外部纹理便于验证 URL 合并，ktx2.glb 内嵌同一内容。固定哈希的官方 Basis 开发编码工具缓存于忽略目录，首次生成需网络，运行时资源仍来自锁定 Three.js。原生请求/Worker 永不完成和未返回的其他局部资源仍有边界，不承诺自动超时或长期无泄漏。
 
+## 相机取景契约
+
+[camera.ts](../packages/three/src/camera.ts) 为独立入口，导出 computeObjectFrame、fitObject、ObjectFrameOptions、FitObjectOptions、ObjectFrame。computeObjectFrame 接收透视相机与借用对象，更新世界矩阵后以 Box3.setFromObject(true) 得到 AABB；取对角线一半为半径，结合 zoom 的有效双轴半视角与 padding 计算距离，minimumDistance 作下限。推荐 near=(distance-radius)/2、far=distance+2*radius，检查数值范围；返回向量/边界快照，不移动相机。
+
+fitObject 在宿主/scope 存活和非零视口时即时应用；默认 adjustClipping=true，false 时先验证当前裁剪范围可容纳目标。可借用当前相机的 OrbitControls，合并 minDistance，检查 maxDistance、cursor/目标半径与有效角度配置；不可容纳时先拒绝。原生角度限制可改变方向，保守球仍用于取景。临时关闭 damping/autoRotate，经公开 update(0) 清惯性后写 position/target，再更新投影、控件和世界矩阵；finally 恢复设置。WeakSet 仅防同相机同步重入，无长期订阅或资源持有；同步事件中检查宿主存活，错误不承诺回滚消费者副作用。
+
+只支持未挂父节点、无缩放、自动矩阵、居中视锥的透视相机。空/退化/非有限边界和参数拒绝，目标不要求挂入本场景，函数不接管或变换它。无 RAF/render/自动启动，不自动跟随动画或 resize；暂停时演示显式绘制一次并更新标签。详细默认值与限制见主包 README、[ADR-0007](adr/0007-camera-framing.md)。
+
 ## 模型动画契约
 
 [animation.ts](../packages/three/src/animation.ts) 导出 attachGLTFAnimations、GLTFAnimationsHandle、PlayAnimationOptions、AnimationState。接收已加载模型，片段引用拍只读数组快照；一个根对象只允许一个活动句柄，同时登记宿主和模型 scopes，任一结束都取消更新并清理自有 Mixer，不释放借用资产。
@@ -166,6 +174,7 @@ add 接收 object、独占挂载的 detached element、局部 offset=[0,0,0]、a
 | FR-016  | 模型动画契约、GLTF / GLB 异步契约 | animation.ts、模型 resources、原创动画 GLB       | 动画/加载器单测、生产浏览器动画回归         |
 | FR-017  | 压缩解码契约                      | loaders.ts、原创建模与压缩生成、演示本地 decoder | 解码器单测、原生 Worker/迟到清理浏览器回归  |
 | FR-018  | KTX2 模型契约                     | loaders.ts、ktx2-task.ts、原创纹理与模型         | KTX2/加载器单测、Worker/上传/回退浏览器回归 |
+| FR-019  | 相机取景契约                      | camera.ts、演示模型尺寸与显式取景                | 真实数学/控件单测、浏览器取景与交互回归     |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器         |
 

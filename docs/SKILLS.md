@@ -57,6 +57,8 @@
 
 同日 KTX2 阶段复用 threejs-loaders 与 threejs-asset-pipeline，核验 r187 KTX2/GLTFLoader 的回调、全局任务缓存、吞纹理错误和未初始化 dispose 计数，以及 Khronos KHR_texture_basisu。采用任务自有适配层与解析输入复制；共享实例建议的性能取舍另记 ADR-0006。未安装泛化资产优化工具，原创棋盘由固定提交/字节哈希的官方 Basis WASM 编码器生成，代码缓存不进入仓库或运行时分发。
 
+同日按用户要求使用 git-commit 与 gitmoji 分步提交既有成果，格式遵循贡献指南，未改写历史；随后相机阶段复用 threejs-fundamentals 与 threejs-interaction，核验 r187 的精确 Box3 路径、有效 FOV 和原生控件 update/限制。取景采用即时函数，不复制 Skill 的渲染循环或引入额外动画依赖。
+
 ## 发现与创建原则
 
 先按任务读取本索引，复用现有规则；会话提供的主机 Skill 按平台发现与加载，不能写成仓库已安装资产。若后续模型迁移、GPU 验证等流程反复出现，可再提取项目自有 Skill，不与第三方副本混淆。

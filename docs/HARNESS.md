@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`        | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`       | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`        | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`  | 主包的 105 项单元测试                                              |
+| `pnpm exec vp run -r test`  | 主包的 118 项单元测试                                              |
 | `pnpm exec vp run -r build` | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`            | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`     | 构建演示并执行 21 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`     | 构建演示并执行 24 项真实 Chromium 多步骤回归                       |
 | `pnpm run fixtures:models`  | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
 
 首次浏览器回归需执行 `pnpm exec playwright install chromium`。测试使用 Playwright 1.64.1 / Chromium / SwiftShader，DPR=3 验证宿主上限 2；preview 使用 127.0.0.1:4173，端口需空闲，测试结束自动收尾。截图和失败 trace 位于忽略提交的 test-results。
@@ -53,6 +53,10 @@ pnpm install --frozen-lockfile
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 相机取景阶段：ready 通过 13 项文档测试、118 项主包单测、76 文件格式与 38 源文件 Lint/类型检查，七入口 ESM/声明及演示构建成功。真实数学/OrbitControls 单测覆盖世界变换、双轴 FOV/zoom、方向/尺度/数值边界、裁剪与控件限制、惯性消耗、重入和同步销毁。七个包公开入口在无 DOM/禁止网络的 Node 环境解析导入成功；camera 产物无运行时 addon 导入，核心入口不包含取景实现。npm pack dry-run 为 32 文件，包含 camera 的源码、ESM 和声明，无二进制；未发布。
+
+新增浏览器首轮 2/3 通过：窄屏断言假设手机布局会令水平 FOV 更小，但实际视口为 340×340，取景距离保持相同是正确结果。测试进一步收窄容器后，三项通过（约 11.6 秒），未放宽距离断言；大模型、暂停绘制/帧计数、标签与拾取、多实例、零尺寸、重建和真实拖拽均验证。首轮全量 24/24 通过（约 1.4 分钟）；补充放大/恢复尺寸反馈和断言后再次全量 24/24 通过（约 2 分钟）。大模型截图已目视检查。限居中、未挂父节点、无缩放的自动矩阵透视相机；取景是快照，不代表相机动画、完整硬件矩阵或长期性能已验收。
 
 2026-11-05 KTX2 阶段：ready 通过 13 项文档测试、105 项主包单测、72 文件格式与 35 源文件 Lint/类型检查，六入口 ESM/声明及演示构建成功。四项新增浏览器用例单独通过（约 10.6 秒），随后全量 21/21 通过（约 58.8 秒），未修改断言等待或启用重试。真实 Worker/Blob URL 计数、压缩纹理上传与模型移除时删除纹理均可观察；同 URL 外部 KTX2 单次请求仍产生两个独立转码 Worker；初始化中销毁未复活，禁用压缩扩展时验证实际 RGBA 上传。桌面棋盘贴图截图已目视检查。
 
