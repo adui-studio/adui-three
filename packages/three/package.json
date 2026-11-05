@@ -52,7 +52,12 @@
       "development": "./src/postprocessing.ts",
       "import": "./dist/postprocessing.mjs"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./environment": {
+      "types": "./dist/environment.d.mts",
+      "development": "./src/environment.ts",
+      "import": "./dist/environment.mjs"
+    }
   },
   "scripts": {
     "build": "vp pack",

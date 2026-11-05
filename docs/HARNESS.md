@@ -12,22 +12,23 @@ pnpm install --frozen-lockfile
 
 ## 命令
 
-| 命令                        | 范围                                                               |
-| --------------------------- | ------------------------------------------------------------------ |
-| `pnpm run dev`              | 先构建主包声明，再启动演示；development 条件指向主包 src，支持 HMR |
-| `pnpm run docs:test`        | 文档检查器的正确输入与失败路径回归                                 |
-| `pnpm run docs:check`       | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
-| `pnpm exec vp check`        | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`  | 主包的 172 项单元测试                                              |
-| `pnpm exec vp run -r build` | 主包 ESM/声明与 website 类型检查、生产构建                         |
-| `pnpm run ready`            | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`     | 构建演示并执行 33 项真实 Chromium 多步骤回归                       |
-| `pnpm run test:package`     | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
-| `pnpm run fixtures:models`  | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
+| 命令                            | 范围                                                               |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `pnpm run dev`                  | 先构建主包声明，再启动演示；development 条件指向主包 src，支持 HMR |
+| `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
+| `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
+| `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
+| `pnpm exec vp run -r test`      | 主包的 184 项单元测试                                              |
+| `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
+| `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
+| `pnpm run test:browser`         | 构建演示并执行 36 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
+| `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
+| `pnpm run fixtures:models`      | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
 
 首次浏览器回归需执行 `pnpm exec playwright install chromium`。测试使用 Playwright 1.64.1 / Chromium / SwiftShader，DPR=3 验证宿主上限 2；preview 使用 127.0.0.1:4173，端口需空闲，测试结束自动收尾。截图和失败 trace 位于忽略提交的 test-results。
 
-test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装真实 tarball、固定开发基准 three 和当前锁定的 TypeScript；不修改工作区依赖或锁文件。先以库声明消费方式编译，再为直接 import three 的应用添加匹配 @types/three，执行 NodeNext、Bundler、Bundler+development 三种类型解析，均使用 strict 与 skipLibCheck=false。两个 .ts.txt 仅是输入样例，复制到临时项目后才编译；Node 检查另覆盖八个默认入口、禁止 fetch、数学/资源操作、私有路径拒绝和 development 源码文件存在性。development 仅检查解析，不尝试在 Node 执行 node_modules 内的 TS。
+test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装真实 tarball、固定开发基准 three 和当前锁定的 TypeScript；不修改工作区依赖或锁文件。先以库声明消费方式编译，再为直接 import three 的应用添加匹配 @types/three，执行 NodeNext、Bundler、Bundler+development 三种类型解析，均使用 strict 与 skipLibCheck=false。两个 .ts.txt 仅是输入样例，复制到临时项目后才编译；Node 检查另覆盖九个默认入口、禁止 fetch、数学/资源操作、私有路径拒绝和 development 源码文件存在性。development 仅检查解析，不尝试在 Node 执行 node_modules 内的 TS。
 
 该命令独立于 ready，安装可能访问 registry、复用本地 store；不表示离线可用、发布权限已确认或包已发布。成功时核验临时绝对路径后仅删除本次项目；失败打印并保留诊断目录。依据见 [pnpm pack](https://pnpm.io/cli/pack)、[pnpm install](https://pnpm.io/cli/install)、[Node 条件导出](https://nodejs.org/api/packages.html#conditional-exports) 与 [skipLibCheck](https://www.typescriptlang.org/tsconfig/skipLibCheck.html)。
 
@@ -58,6 +59,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 HDR 环境阶段：新增 12 项单测，累计 184 项；ready 的文档/单测/构建通过，首次静态检查的 typed-array 展开提示改为显式 Array.from，最终静态检查无警告。新增入口声明构建前的模块解析错误已通过先构建声明解决。测试初次错误把实例 abort 当成原型方法，已改为实际 manager 探针；未改原生运输行为。九入口 tarball 安装、无 DOM 导入及四次严格编译通过；首次消费样例把代码附在函数外导致 app 未定义，移动到实际消费函数后通过，失败临时目录按设计保留。
+
+全量浏览器 36/36 通过（约 2.4 分钟），零重试。三项新增 HDR 浏览器回归 3/3 通过（约 19.1 秒）：实际照明/背景/恢复像素、暂停与泛光共存、同 URL 单请求隔离取消、宿主销毁重建与无效 HDR 恢复，以及三轮源纹理/立方背景/PMREM 目标释放回到预热基线。生成器 scratch 属于 renderer，共享到宿主结束；不把首轮预热分配误称每资产泄漏。截图已目视检查，演示反馈样式随后与既有界面统一。原创 studio.hdr 两次离线生成 SHA256 一致（03fee1e87bcbdf6ea983e6c1a1aa6450f0e81144d5d19d1c338f22a27d1d244f），无第三方图像或新依赖。
 
 2026-11-05 组合描边阶段：ready 通过 13 项文档检查器测试、172 项主包单测、91 文件格式及 49 源文件 Lint/类型检查，八入口构建与演示构建成功。新增 10 项单测验证组合顺序、原生参数、选择快照/借用所有权、场景异常恢复、尺寸重入和清理。尺寸失败回归最初暴露目标仍为 600px 而重试应为 800px；修复仅在成功后记录快照，并由宿主保留 dirty 标记、下次绘制前重试。55 项宿主/后处理定向用例和最终 ready 均通过。全量浏览器 33/33 通过（约 2.3 分钟），零重试；实际黄色边缘、真实拾取/空白选择、模型替换/移除和三轮组合资源释放均验证，截图已目视检查。test:package 的八入口真实安装、无 DOM 导入及四次严格编译通过。
 

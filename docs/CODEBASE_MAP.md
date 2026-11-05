@@ -44,6 +44,9 @@
 
 ## 调用链与定位
 
+- [environment.ts](../packages/three/src/environment.ts) / [单测](../packages/three/tests/environment.test.ts) / [浏览器回归](../tests/browser/environment.spec.ts)：HDR 加载、逻辑取消、独占场景绑定和预热 GPU 清理。
+- [HDR 生成器](../scripts/generate-environment-fixture.mjs) / [原创环境资产](../apps/website/public/environments/README.md)：无网络 RGBE 数学渐变，支持逐字节重建。
+
 页面 index.html → main.ts → 主包/controls/loaders/interaction/labels/animation/camera 公开入口 → 调度更新、Mixer、渲染与 DOM 投影，或异步模型/拾取事件及即时取景。应用依赖主库，库不反向引用应用。
 
 ready → 文档测试/校验 → vp check → 主包单测 → 主包和演示 build。test:browser → 生产 build → preview → Chromium。test-results 与 dist 为忽略提交的产物。

@@ -58,6 +58,8 @@ camera 提供即时规划/应用以及可取消平滑过渡，仅按类型借用
 
 ## 关键取舍
 
+environment 是独立可选入口，下载/解码后的 HDR 资产由宿主拥有，场景绑定借用资产并同时登记两方清理。加载不改变场景；应用决定请求版本及绑定/绘制时机。复用 renderer 自动环境转换，不反向导入 website 或重复生成 PMREM，见 [ADR-0012](adr/0012-hdr-environment.md)。
+
 - 保留现有 Monorepo 与工具链；公共能力先在主包中按职责组织，出现独立复用需求再拆包。
 - 单一 RAF 更新模块并统一 render；用 epoch 隔离旧调度，WebXR 不在支持范围。实现契约见 [SDD](SDD.md)。
 - Three.js peer 范围 >=0.187.0 <0.188.0，开发版本固定 0.187.0；类型包作为 dependency 随库安装。ESM/ES2022 与声明由 Vite+ pack 生成，Three.js/addons 保持外部依赖。development 导出指向随包包含的 src。

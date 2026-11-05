@@ -6,6 +6,8 @@ import { fitObject, transitionToObject } from "@adui/three/camera";
 import type { CameraTransitionHandle } from "@adui/three/camera";
 import { attachPostprocessing } from "@adui/three/postprocessing";
 import type { PostprocessingHandle } from "@adui/three/postprocessing";
+import { attachEnvironment, loadHDR } from "@adui/three/environment";
+import type { EnvironmentBinding, HDREnvironment } from "@adui/three/environment";
 import { attachGLTFAnimations } from "@adui/three/animation";
 import type { GLTFAnimationsHandle } from "@adui/three/animation";
 import { attachPicking } from "@adui/three/interaction";
@@ -56,6 +58,8 @@ function mountPanel(id: string, color: number): void {
     <div class="resize-actions"><button data-action="width" aria-pressed="false">收窄容器</button><button data-action="zero" aria-pressed="false">零高度</button><button data-action="labels" aria-pressed="true">显示标签</button><button data-action="fit">适配视角</button><button data-action="transition">平滑取景</button><button data-action="cancel-transition">取消过渡</button><button data-action="large-model" aria-pressed="false">大模型</button></div>
     <p class="camera-feedback" role="status">取景过渡：<span data-testid="transition-state">idle</span> · <span data-testid="transition-progress">0</span>%</p>
     <div class="effect-actions"><button data-action="bloom" aria-pressed="false">泛光</button><button data-action="bloom-strength" aria-pressed="false">增强泛光</button><button data-action="outline" aria-pressed="false">选择描边</button><button data-action="remove-bloom">释放后处理</button><span data-testid="bloom-state">idle</span></div>
+    <div class="effect-actions"><button data-action="environment">加载 HDR</button><button data-action="environment-background" aria-pressed="true">环境背景</button><button data-action="cancel-environment">取消环境</button><button data-action="remove-environment">移除环境</button><button data-action="environment-error">环境失败</button></div>
+    <p class="environment-feedback" role="status">环境：<span data-testid="environment-state">idle</span> · 原创 HDR 渐变</p>
     <div class="model-actions"><button data-action="glb">加载 GLB</button><button data-action="gltf">加载 GLTF</button><button data-action="draco">加载 Draco</button><button data-action="meshopt">加载 Meshopt</button><button data-action="ktx2">加载 KTX2</button><button data-action="ktx2-glb">KTX2 GLB</button><button data-action="decoder-error">缺少解码器</button><button data-action="ktx2-error">缺少转码器</button><button data-action="cancel-model">取消加载</button><button data-action="remove-model">移除模型</button><button data-action="invalid-model">失败示例</button></div>
     <p class="model-feedback" role="status">模型未加载 · 使用项目原创的内嵌纹理样例</p>
     <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-once">单次播放</button><button data-action="animation-stop">停止动画</button></div>
@@ -92,6 +96,12 @@ function mountPanel(id: string, color: number): void {
   let selectedObject: Object3D | undefined;
   let glow: Mesh | undefined;
   let strongBloom = false;
+  let environment: HDREnvironment | undefined;
+  let environmentBinding: EnvironmentBinding | undefined;
+  let environmentRequest: AbortController | undefined;
+  let environmentVersion = 0;
+  let environmentState = "idle";
+  let environmentBackground = true;
 
   function addLabel(
     object: Object3D,
@@ -138,6 +148,14 @@ function mountPanel(id: string, color: number): void {
     button("fit").disabled = !app || state === "disposed" || !app.size.width || !app.size.height;
     button("render").disabled = button("fit").disabled;
     card.dataset.renderCount = String(draws);
+    card.dataset.environmentState = environmentState;
+    card.querySelector('[data-testid="environment-state"]')!.textContent = environmentState;
+    for (const action of ["environment", "environment-error"])
+      button(action).disabled = !app || state === "disposed";
+    button("cancel-environment").disabled = environmentState !== "loading";
+    button("remove-environment").disabled = !environment || environment.disposed;
+    button("environment-background").disabled = !environment || environment.disposed;
+    button("environment-background").setAttribute("aria-pressed", String(environmentBackground));
     button("transition").disabled = button("fit").disabled;
     button("cancel-transition").disabled = transition?.state !== "running";
     const bloomState = !effects
@@ -247,6 +265,51 @@ function mountPanel(id: string, color: number): void {
     return effects;
   }
 
+  function clearEnvironment(): void {
+    environmentVersion++;
+    environmentRequest?.abort();
+    environmentRequest = undefined;
+    environment?.dispose();
+    environment = undefined;
+    environmentBinding = undefined;
+    environmentState = "idle";
+  }
+
+  async function requestEnvironment(url: string): Promise<void> {
+    if (!app || app.state === "disposed") return;
+    const version = ++environmentVersion;
+    environmentRequest?.abort();
+    const controller = new AbortController();
+    environmentRequest = controller;
+    const owner = app;
+    environmentState = "loading";
+    refresh();
+    let loaded: HDREnvironment | undefined;
+    try {
+      loaded = await loadHDR(owner, url, { signal: controller.signal });
+      if (version !== environmentVersion || owner !== app || loaded.disposed) {
+        loaded.dispose();
+        return;
+      }
+      environment?.dispose();
+      environmentBinding = attachEnvironment(owner, loaded, { background: environmentBackground });
+      environment = loaded;
+      loaded = undefined;
+      environmentState = "loaded";
+      if (owner.state !== "running") owner.render();
+    } catch (error) {
+      loaded?.dispose();
+      if (version !== environmentVersion || owner !== app) return;
+      environmentState =
+        error instanceof DOMException && error.name === "AbortError" ? "cancelled" : "error";
+    } finally {
+      if (version === environmentVersion) {
+        environmentRequest = undefined;
+        refresh();
+      }
+    }
+  }
+
   async function requestModel(
     url: string,
     compression?: "draco" | "meshopt" | "ktx2",
@@ -324,6 +387,7 @@ function mountPanel(id: string, color: number): void {
       effects = undefined;
       glow = undefined;
       strongBloom = false;
+      clearEnvironment();
       clearModel();
       errorOutput.hidden = true;
       app = new ThreeApp(viewport, { camera: { position: [4, 3, 5] }, maxPixelRatio: 2 });
@@ -435,8 +499,24 @@ function mountPanel(id: string, color: number): void {
       if (action === "dispose") {
         app?.dispose();
         clearModel();
+        clearEnvironment();
       }
       if (action === "rebuild") rebuild();
+      if (action === "environment") void requestEnvironment("/environments/studio.hdr");
+      if (action === "environment-error") void requestEnvironment("/environments/invalid.hdr");
+      if (action === "cancel-environment") environmentRequest?.abort();
+      if (action === "remove-environment") {
+        clearEnvironment();
+        if (app?.state !== "running") app?.render();
+      }
+      if (action === "environment-background" && app && environment && !environment.disposed) {
+        environmentBackground = !environmentBackground;
+        environmentBinding?.dispose();
+        environmentBinding = attachEnvironment(app, environment, {
+          background: environmentBackground,
+        });
+        if (app.state !== "running") app.render();
+      }
       if (action === "glb") void requestModel("/models/sample.glb");
       if (action === "gltf") void requestModel("/models/sample.gltf");
       if (action === "draco") void requestModel("/models/draco.glb", "draco");
@@ -550,6 +630,7 @@ function mountPanel(id: string, color: number): void {
     card.removeEventListener("click", click);
     app?.dispose();
     clearModel();
+    clearEnvironment();
   });
 }
 

@@ -7,3 +7,4 @@ export * from "@adui/three/labels";
 export * from "@adui/three/animation";
 export * from "@adui/three/camera";
 export * from "@adui/three/postprocessing";
+export * from "@adui/three/environment";

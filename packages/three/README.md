@@ -371,6 +371,26 @@ OutlineOptions：selectedObjects=[]，按数组快照借用对象；edgeStrength
 
 沿用原生组/网格选择，不提供单个 instanceId 描边、透明图案级遮罩或完整骨骼/morph 验收。pulsePeriod 默认 0，直接开启原生脉冲使用墙钟，不受宿主 delta 暂停保证。原生 pass 可能保留 CPU 引用，应用应解除不再需要的引用。
 
+## HDR 环境
+
+```ts
+import { loadHDR, attachEnvironment } from "@adui/three/environment";
+
+const controller = new AbortController();
+const environment = await loadHDR(app, "/studio.hdr", { signal: controller.signal });
+// 加载只创建资产。应用先检查请求版本，决定是否应用。
+const binding = attachEnvironment(app, environment, { background: true, intensity: 1 });
+if (app.state !== "running") app.render();
+// binding.dispose(); // 恢复场景，资产可再次绑定。
+// environment.dispose(); // 先解绑，再释放纹理与原生缓存；宿主销毁也会释放。
+```
+
+loadHDR 返回 HDREnvironment，提供原生 texture、前置资源 resources、disposed 与幂等 dispose。保留 HDRLoader 的 HalfFloat 和 LinearSRGB，设置 EquirectangularReflectionMapping；不自动改场景、绘制或启停。options 支持 signal、onProgress({ loaded, total, ratio }) 和 onCleanupError；未知总量为 null。取消立即拒绝 AbortError，迟到字节跳过解码，不中止可能与其他请求共享的运输。进度回调异常拒绝本任务；已结算后的清理异常交报告器或控制台。
+
+attachEnvironment 只借用同一宿主的活动 HDREnvironment；background=false、intensity=1，强度为非负有限数。每个宿主一个绑定，替换时先释放旧绑定。EnvironmentBinding 提供 disposed 和幂等 dispose，同时登记宿主/资产 scope；解绑不释放资产，资产释放先解绑再纹理清理。原场景 environment、background 和强度只在当前值仍属于绑定时恢复，保留外部变更。原值借用，需由外部保持存活；相同值改回的 ABA 无法区分。
+
+原生 renderer 自动生成 PMREM 照明/立方背景并在源纹理 dispose 时清理，不需手动生成。生成器共享 scratch 会保留至 renderer.dispose；释放单资产回到预热基线。不要单独 texture.dispose，也不要在释放资产后继续将纹理借用于其他场景/材质。当前仅 Radiance 等距柱状 HDR，不含 EXR、跨宿主资源共享或完整硬件/长期资源承诺。
+
 ## 开发与验证
 
 根目录运行 `pnpm run dev` 打开双实例演示，`pnpm run ready` 执行静态检查、文档和单元测试及构建，`pnpm run test:browser` 验证构建后演示的实际 WebGL 行为。首次浏览器测试前运行 `pnpm exec playwright install chromium`。完整契约和验证范围见仓库 docs/SDD.md 与 docs/HARNESS.md；npm 安装包不包含仓库工程文档。

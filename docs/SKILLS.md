@@ -81,6 +81,8 @@
 
 组合效果阶段继续核验 r187 OutlinePass 的核范围、场景可见性切换及原生墙钟脉冲，复用原生效果而不访问私有缓存。新增选择/组合回归，并修正 resize 失败的尺寸去重及宿主重试状态；本地验证后分步中文提交。
 
+HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextureLoader.createDataTexture、Scene 与固定依赖的 WebGLEnvironments。加载前的运输取消建议不直接采纳：同 URL 共享运输只逻辑取消。原生 renderer 自动预过滤，不重复创建 PMREM；GPU 释放以预热基线验证，最终资源归宿主 renderer。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

@@ -125,6 +125,10 @@ KTX2 纹理模型通过 `ktx2: { transcoderPath: { js, wasm } }` 接入，按当
 
 从 `@adui/three/postprocessing` 导入 `attachBloom(app, { strength: 1, radius: 0.4, threshold: 0.85 })`；通过返回的 `pass` 调整原生参数或关闭效果，`dispose()` 完全释放并恢复默认绘制。演示提供泛光、强度和释放操作；限制及颜色/资源约定见 [泛光 API](packages/three/README.md#泛光后处理)。
 
+### HDR 环境
+
+从 `@adui/three/environment` 导入 `loadHDR` 与 `attachEnvironment`，先加载资产，再按应用的请求版本绑定环境照明/可选背景。资产或宿主释放时先解绑，保留外部场景变更；演示提供加载、背景切换、取消和失败恢复，见 [HDR API](packages/three/README.md#hdr-环境)。
+
 ### 相机取景
 
 ```ts
@@ -169,7 +173,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 172 项主包单元测试和 33 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
+当前有 184 项主包单元测试和 36 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
 
 ## 项目结构
 

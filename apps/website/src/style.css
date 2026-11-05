@@ -299,6 +299,7 @@ button:disabled {
   gap: 18px;
   padding: 0 24px 18px;
 }
+.environment-feedback,
 .camera-feedback {
   margin: 0 24px 16px;
   color: #8fae9c;

@@ -11,6 +11,7 @@ export default defineConfig({
       animation: "src/animation.ts",
       camera: "src/camera.ts",
       postprocessing: "src/postprocessing.ts",
+      environment: "src/environment.ts",
     },
     format: "esm",
     target: "es2022",
