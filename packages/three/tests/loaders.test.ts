@@ -127,6 +127,30 @@ test("detached models remain owned and are released by the host", async () => {
   expect(data.geometryDisposal).toHaveBeenCalledOnce();
 });
 
+test("model extension cleanup runs before assets and failures still release decoded resources", async () => {
+  const env = host();
+  const data = asset();
+  const io = transport();
+  const pending = loadGLTF(env.app, "extensions.glb");
+  io.requests[0]!.resolve(data.gltf);
+  const model = await pending;
+  const extension = {
+    dispose: vi.fn(() => {
+      expect(data.geometryDisposal).not.toHaveBeenCalled();
+      expect(model.disposed).toBe(true);
+      throw new Error("extension failed");
+    }),
+  };
+  model.resources.track(extension);
+  expect(() => model.dispose()).toThrow(AggregateError);
+  expect(model.resources.disposed).toBe(true);
+  expect(extension.dispose).toHaveBeenCalledOnce();
+  expect(data.geometryDisposal).toHaveBeenCalledOnce();
+  expect(data.image.close).toHaveBeenCalledOnce();
+  expect(() => model.dispose()).not.toThrow();
+  env.dispose();
+});
+
 test("pre-aborted and disposed hosts never start a request", async () => {
   const env = host();
   const io = transport();

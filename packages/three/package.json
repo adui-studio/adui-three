@@ -37,6 +37,11 @@
       "development": "./src/labels.ts",
       "import": "./dist/labels.mjs"
     },
+    "./animation": {
+      "types": "./dist/animation.d.mts",
+      "development": "./src/animation.ts",
+      "import": "./dist/animation.mjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

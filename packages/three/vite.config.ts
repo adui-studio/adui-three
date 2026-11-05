@@ -8,6 +8,7 @@ export default defineConfig({
       loaders: "src/loaders.ts",
       interaction: "src/interaction.ts",
       labels: "src/labels.ts",
+      animation: "src/animation.ts",
     },
     format: "esm",
     target: "es2022",

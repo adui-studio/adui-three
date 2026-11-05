@@ -4,6 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 import type { ThreeApp } from "./three-app.ts";
 import { collectGLTFResources } from "./gltf-resources.ts";
+import { ResourceScope } from "./resources.ts";
 
 export interface ModelProgress {
   /** Bytes of the primary GLTF/GLB request, not total dependency/decode progress. */
@@ -27,6 +28,8 @@ export interface GLTFModel {
   readonly scene: Group;
   readonly gltf: GLTF;
   readonly disposed: boolean;
+  /** Model-scoped dispose hooks run before scene nodes and GPU assets. */
+  readonly resources: ResourceScope;
   dispose(): void;
 }
 
@@ -36,11 +39,13 @@ function aborted(): DOMException {
 
 function modelHandle(app: ThreeApp, gltf: GLTF, closeImages: boolean): GLTFModel {
   const resources = collectGLTFResources(gltf, closeImages);
+  const extensions = new ResourceScope();
   const roots = new Set([gltf.scene, ...gltf.scenes]);
   let disposed = false;
   const model: GLTFModel = {
     scene: gltf.scene,
     gltf,
+    resources: extensions,
     get disposed(): boolean {
       return disposed;
     },
@@ -49,6 +54,11 @@ function modelHandle(app: ThreeApp, gltf: GLTF, closeImages: boolean): GLTFModel
       disposed = true;
       app.resources.untrack(model);
       const errors: unknown[] = [];
+      try {
+        extensions.dispose();
+      } catch (error) {
+        errors.push(error);
+      }
       for (const root of roots) {
         try {
           root.removeFromParent();
