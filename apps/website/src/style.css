@@ -6,6 +6,17 @@
   color-scheme: dark;
 }
 
+.instances-stage {
+  height: 420px;
+  position: relative;
+}
+
+.instances-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .model-actions {
   display: flex;
   flex-wrap: wrap;

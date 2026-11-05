@@ -1,5 +1,6 @@
 import { loadTexture, loadKTX2 } from "@adui/three/textures";
 import { captureFrame } from "@adui/three/capture";
+import { createInstancedMesh } from "@adui/three/geometry";
 import { loadHDR, attachEnvironment } from "@adui/three/environment";
 import { ResourceScope, ThreeApp } from "@adui/three";
 import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
@@ -11,7 +12,7 @@ import { attachGLTFAnimations } from "@adui/three/animation";
 import { attachBloom, attachPostprocessing } from "@adui/three/postprocessing";
 import { computeObjectFrame, fitObject, transitionToObject } from "@adui/three/camera";
 import type { CameraTransitionResult } from "@adui/three/camera";
-import { BoxGeometry, Mesh, MeshBasicMaterial } from "three";
+import { BoxGeometry, Color, Matrix4, Mesh, MeshBasicMaterial } from "three";
 
 // Compile only: all library values come from the installed archive, without workspace paths.
 export async function consume(container: HTMLElement, overlay: HTMLElement, model: GLTFModel) {
@@ -23,6 +24,11 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   const scope = new ResourceScope();
   const object = new Mesh(scope.track(new BoxGeometry()), scope.track(new MeshBasicMaterial()));
   app.scene.add(object);
+  const instances = createInstancedMesh(app, { geometry: object.geometry, material: object.material, capacity: 10 });
+  instances.setMatrixAt(0, new Matrix4().makeTranslation(1, 0, 0));
+  instances.setColorAt(0, new Color(0xff0000));
+  instances.setCount(1);
+  instances.dispose();
   const { controls } = attachOrbitControls(app);
   controls.target.set(0, 1, 0);
   const gizmo = attachTransformControls(app, { object, orbitControls: controls, mode: "translate", space: "world", size: 1 });

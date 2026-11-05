@@ -97,6 +97,26 @@ detach(); // 恢复原生绘制，不释放 pipeline；资源由其所有者管�
 
 `development` 条件导出指向随包包含的 src，便于 Vite 开发时 HMR；默认 import 导出指向 dist，类型来自 dist 声明。不提供 CJS、WebXR、WebGPU、URL 模型缓存或框架适配；显式模型实例按下述租约共享资产。
 
+## 实例化网格
+
+```ts
+import { createInstancedMesh } from "@adui/three/geometry";
+import { BoxGeometry, MeshBasicMaterial, Matrix4, Color } from "three";
+
+const geometry = app.resources.track(new BoxGeometry());
+const material = app.resources.track(new MeshBasicMaterial());
+const instances = createInstancedMesh(app, { geometry, material, capacity: 100 });
+instances.setMatrixAt(0, new Matrix4().makeTranslation(2, 0, 0));
+instances.setColorAt(0, new Color(0xff0000));
+instances.setCount(1);
+app.render();
+instances.dispose(); // 不释放借用的 geometry/material
+```
+
+capacity 是正整数，count 默认 0 且不能超过容量；支持预填尚未激活的槽位。setMatrixAt 复制有限 Float32 仿射矩阵，量化后行列式必须有限且大于零；不支持零缩放或反射。setColorAt 复制非负有限 Float32 线性 RGB。写入自动标记上传，矩阵/count 更新清空原生包围体；不启动循环或隐式绘制。拾取结果保留原生 instanceId。
+
+handle 拥有节点、实例属性、morphTexture 和扩展 resources，登记宿主 scope 并幂等清理；几何体、材质/纹理和外来子节点由调用方管理。material 数组快照列表，addToScene 可设 false，仍由宿主结束清理。公开 mesh 可作原生配置；直接替换自有 buffer 或绕过 helper 改 count/矩阵时，由调用方负责上传、边界和所有权一致性。演示地址 `/?demo=instances`。
+
 ## 截图
 
 ```ts

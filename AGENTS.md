@@ -32,6 +32,7 @@
 - [上下文丢失决策](docs/adr/0019-context-loss.md)：结束失效宿主、保留诊断并显式重建。
 - [蒙皮拾取决策](docs/adr/0020-skinned-picking.md)：按需更新边界、骨骼矩阵与拾取重入保护。
 - [截图决策](docs/adr/0021-frame-capture.md)：同任务复制、独立编码、取消和临时画布清理。
+- [实例化决策](docs/adr/0022-managed-instancing.md)：借用几何体/材质、实例数据上传和专属 buffer 清理。
 
 ## 工作流程与约束
 

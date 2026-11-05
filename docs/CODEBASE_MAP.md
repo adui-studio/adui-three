@@ -57,7 +57,7 @@
 - [environment.ts](../packages/three/src/environment.ts) / [单测](../packages/three/tests/environment.test.ts) / [浏览器回归](../tests/browser/environment.spec.ts)：HDR 加载、逻辑取消、独占场景绑定和预热 GPU 清理。
 - [HDR 生成器](../scripts/generate-environment-fixture.mjs) / [原创环境资产](../apps/website/public/environments/README.md)：无网络 RGBE 数学渐变，支持逐字节重建。
 
-页面 index.html → main.ts → 主包及九个可选子入口 → 调度更新、Mixer、渲染与 DOM 投影，或异步模型/拾取事件及即时取景。应用依赖主库，库不反向引用应用。
+页面 index.html → bootstrap.ts → main.ts / instances.ts → 主包及可选子入口 → 调度更新、Mixer、渲染与 DOM 投影，或异步模型/拾取事件及即时取景。应用依赖主库，库不反向引用应用。
 
 ready → 文档测试/校验 → vp check → 主包单测 → 主包和演示 build。test:browser → 生产 build → preview → Chromium。test-results 与 dist 为忽略提交的产物。
 
@@ -85,7 +85,9 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 ## 截图
 
-截图入口 [capture.ts](../packages/three/src/capture.ts) 复用单次绘制并拥有临时 2D 编码面；[单测](../packages/three/tests/capture.test.ts) 验证取消/清理与并发，[浏览器截图回归](../tests/browser/capture.spec.ts) 验证实际编码像素/格式、快照隔离及消费者 URL 生命周期。十一运行时入口由 package.json/vite.config.ts 和独立消费样例覆盖。
+截图入口 [capture.ts](../packages/three/src/capture.ts) 复用单次绘制并拥有临时 2D 编码面；[单测](../packages/three/tests/capture.test.ts) 验证取消/清理与并发，[浏览器截图回归](../tests/browser/capture.spec.ts) 验证实际编码像素/格式、快照隔离及消费者 URL 生命周期。十二运行时入口由 package.json/vite.config.ts 和独立消费样例覆盖。
+
+实例化入口 [geometry.ts](../packages/three/src/geometry.ts)、[单测](../packages/three/tests/geometry.test.ts) 与 [浏览器回归](../tests/browser/geometry.spec.ts) 覆盖原生上传、边界和所有权。[bootstrap.ts](../apps/website/src/bootstrap.ts) 根据查询参数选择原双实例演示或 [instances.ts](../apps/website/src/instances.ts) 的独立实例演示；共十二个运行时入口。
 
 ## 维护
 

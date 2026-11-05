@@ -67,6 +67,11 @@
       "types": "./dist/capture.d.mts",
       "development": "./src/capture.ts",
       "import": "./dist/capture.mjs"
+    },
+    "./geometry": {
+      "types": "./dist/geometry.d.mts",
+      "development": "./src/geometry.ts",
+      "import": "./dist/geometry.mjs"
     }
   },
   "scripts": {

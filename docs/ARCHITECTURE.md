@@ -25,8 +25,10 @@ flowchart TD
   App[应用 / website] --> Core[主包核心 ThreeApp / ResourceScope]
   App --> Native[可选 controls / loaders / postprocessing / environment]
   App --> Modules[可选 interaction / labels / animation / camera / textures]
+  App --> Tools[可选 capture / geometry]
   Native -. 借用宿主 .-> Core
   Modules -. 借用宿主 .-> Core
+  Tools -. 借用宿主 .-> Core
   Core --> Three[Three.js 核心]
   Native --> Three
   Native --> Addons[Three.js 按需 addons]
@@ -87,6 +89,8 @@ environment 是独立可选入口，下载/解码后的 HDR 资产由宿主拥�
 应用传入容器和配置 → 宿主建立场景/相机/渲染器 → 绑定尺寸和可见性监听 → 应用 start → 主循环更新并渲染 → 应用卸载时释放。GPU 和 DOM 资源与实例绑定；借用资源由外部管理。模型通过独立 loadGLTF 任务创建并由返回句柄拥有；逻辑取消与迟到清理绑定宿主/调用方 signal，不中止可能共享的运输。
 
 build 构建主库 ESM/声明和 website；浏览器回归以生产构建演示验证真实 WebGL。npm 发布和站点部署未执行。无内置私有资产服务、Stats 或遥测；帧异常停止后抛出，清理异常聚合报告。
+
+geometry 是可选的原生实例化网格管理入口：依赖核心的宿主类型和 ResourceScope，借用几何体/材质，拥有节点及实例属性；无循环、无反向应用依赖。见 [ADR-0022](adr/0022-managed-instancing.md)。
 
 ## 风险与维护
 

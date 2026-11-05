@@ -14,6 +14,7 @@ export default defineConfig({
       environment: "src/environment.ts",
       textures: "src/textures.ts",
       capture: "src/capture.ts",
+      geometry: "src/geometry.ts",
     },
     format: "esm",
     target: "es2022",

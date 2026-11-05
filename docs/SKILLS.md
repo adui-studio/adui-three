@@ -105,6 +105,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 截图阶段复用既有宿主/渲染生命周期设计，核验 HTML toBlob/drawImage 标准和原生 format fallback。通过同任务复制隔离后续帧，不启用 preserveDrawingBuffer 或第二循环；应用拥有预览 URL，真实 PNG 解码比较 GPU 输出，严格包消费扩展到十一入口。
 
+实例化阶段复用 threejs-geometry，并以 r187 官方源码核验 needsUpdate、包围体和新的 Object3D/BufferAttribute dispose；不直接照搬 Skill 版本。以真实 draw 参数、像素、拾取和 GPU buffer 回归检验管理契约。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。
