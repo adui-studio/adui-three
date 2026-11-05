@@ -17,6 +17,7 @@
 - [压缩解码决策](docs/adr/0005-compressed-models.md)：显式解码配置、任务所有权和本地资产。
 - [KTX2 生命周期决策](docs/adr/0006-ktx2-lifecycle.md)：能力检测、输入隔离、在途转码与纹理清理。
 - [相机取景决策](docs/adr/0007-camera-framing.md)：世界边界、透视视锥、控件约束与即时应用。
+- [渲染管线决策](docs/adr/0009-render-pipeline.md)：独占绘制替换、尺寸通知与单次绘制。
 - [贡献指南](CONTRIBUTING.md)：Issue/PR 模板及 emoji 提交规范。
 
 ## 工作流程与约束

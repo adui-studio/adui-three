@@ -40,6 +40,12 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   app.onAfterRender(() => labels.update());
   app.start();
   app.stop();
+  app.render();
+  const detachPipeline = app.setRenderPipeline({
+    render: ({ delta }) => { object.rotation.y += delta; app.renderer.render(app.scene, app.camera); },
+    resize: ({ width, height, pixelRatio }) => { console.log(width, height, pixelRatio); },
+  });
+  detachPipeline();
   app.dispose();
   scope.dispose();
 }

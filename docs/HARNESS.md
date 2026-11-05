@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`        | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`       | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`        | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`  | 主包的 135 项单元测试                                              |
+| `pnpm exec vp run -r test`  | 主包的 146 项单元测试                                              |
 | `pnpm exec vp run -r build` | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`            | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`     | 构建演示并执行 27 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`     | 构建演示并执行 28 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`     | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:models`  | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
 
@@ -58,6 +58,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 渲染管线阶段：ready 通过 13 项文档测试、146 项主包单测、86 文件格式与 46 源文件 Lint/类型检查，七入口 ESM/声明及演示构建成功。新增 11 项宿主用例覆盖独占租约、尺寸/零尺寸/DPR、初始化中断、错误停止、单次绘制、不累计时间、重入及多实例；初次静态检查的七条未绑定测试方法提示已用显式 spy 修正。全量浏览器 28/28 通过（约 1.2 分钟），新增单次绘制用例验证暂停帧数/完成计数、标签、零尺寸和重建；未修改既有超时或重试。test:package 的真实安装及四次严格编译通过，消费样例已使用新接口；无新依赖、无 CI、未发布 npm。
 
 2026-11-05 输入回归稳定性修复：本地首轮完整浏览器回归 26/27 通过（约 2.5 分钟），输入打断用例预期 cancelled 实际 completed。reporter 显示 scrollIntoView 约 759ms、boundingBox 486ms，加上其他自动化操作使 2 秒过渡先于 pointerdown 结束。用例改为在同一浏览器任务通过公开 UI 开始过渡并暂停宿主，定位画布期间保持请求，再执行真实鼠标拖拽；断言取消并恢复宿主，额外验证同一手势已交给恢复的控件（标签投影改变）。生产逻辑、过渡时长、用例超时和零重试均未改变。三项相机过渡单独 3/3 通过（约 28 秒），随后全量 27/27 通过（约 1.5 分钟）。原失败 trace/reporter 保留于忽略的 playwright-report/diagnostics/ci-input-race。
 

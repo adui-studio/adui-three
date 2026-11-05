@@ -27,6 +27,8 @@
 
 ## 测试入口
 
+- [宿主管线和单次绘制](../packages/three/tests/three-app.test.ts) / [浏览器单次绘制](../tests/browser/render.spec.ts)：独占、尺寸、暂停、错误、重入与完成阶段。
+
 - [帧循环](../packages/three/tests/frame-loop.test.ts)、[资源](../packages/three/tests/resources.test.ts)、[宿主](../packages/three/tests/three-app.test.ts)、[模型](../packages/three/tests/loaders.test.ts)：主包单测。
 - [场景](../tests/browser/scene.spec.ts)、[模型](../tests/browser/models.spec.ts)：真实 WebGL、尺寸、异步竞争和图像清理回归。
 - [拾取单测](../packages/three/tests/interaction.test.ts) / [浏览器交互](../tests/browser/interaction.spec.ts)：坐标、目标过滤、手势、订阅与销毁，多实例和模型切换。

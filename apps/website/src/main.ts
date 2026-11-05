@@ -48,7 +48,7 @@ function mountPanel(id: string, color: number): void {
     <div class="card-heading"><div><span class="scene-id">SCENE ${id}</span><h2>${id === "A" ? "主场景" : "独立实例"}</h2></div><span class="state" data-testid="state">ready</span></div>
     <div class="stage"><div class="viewport" aria-label="场景 ${id}，拖动旋转，滚轮缩放"><div class="label-overlay"></div></div><span class="stage-hint">拖动旋转 · 滚轮缩放</span><p class="error" role="alert" hidden></p></div>
     <div class="metrics"><div><span>UPDATES</span><strong data-testid="frames">0</strong></div><div><span>VIEWPORT</span><strong data-testid="size">—</strong></div><div><span>DPR</span><strong data-testid="dpr">—</strong></div><div><span>DRAW CALLS</span><strong data-testid="draw-calls">0</strong></div></div>
-    <div class="actions"><button data-action="start" class="primary">运行</button><button data-action="stop">暂停</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建 ↻</button></div>
+    <div class="actions"><button data-action="start" class="primary">运行</button><button data-action="stop">暂停</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建 ↻</button></div>
     <div class="resize-actions"><button data-action="width" aria-pressed="false">收窄容器</button><button data-action="zero" aria-pressed="false">零高度</button><button data-action="labels" aria-pressed="true">显示标签</button><button data-action="fit">适配视角</button><button data-action="transition">平滑取景</button><button data-action="cancel-transition">取消过渡</button><button data-action="large-model" aria-pressed="false">大模型</button></div>
     <p class="camera-feedback" role="status">取景过渡：<span data-testid="transition-state">idle</span> · <span data-testid="transition-progress">0</span>%</p>
     <div class="model-actions"><button data-action="glb">加载 GLB</button><button data-action="gltf">加载 GLTF</button><button data-action="draco">加载 Draco</button><button data-action="meshopt">加载 Meshopt</button><button data-action="ktx2">加载 KTX2</button><button data-action="ktx2-glb">KTX2 GLB</button><button data-action="decoder-error">缺少解码器</button><button data-action="ktx2-error">缺少转码器</button><button data-action="cancel-model">取消加载</button><button data-action="remove-model">移除模型</button><button data-action="invalid-model">失败示例</button></div>
@@ -63,6 +63,7 @@ function mountPanel(id: string, color: number): void {
     card.querySelector<HTMLButtonElement>(`[data-action="${action}"]`)!;
   let app: ThreeApp | undefined;
   let frames = 0;
+  let draws = 0;
   let narrow = false;
   let zero = false;
   let placeholder: Mesh | undefined;
@@ -124,6 +125,8 @@ function mountPanel(id: string, color: number): void {
     button("stop").disabled = !app || state !== "running";
     button("dispose").disabled = !app || state === "disposed";
     button("fit").disabled = !app || state === "disposed" || !app.size.width || !app.size.height;
+    button("render").disabled = button("fit").disabled;
+    card.dataset.renderCount = String(draws);
     button("transition").disabled = button("fit").disabled;
     button("cancel-transition").disabled = transition?.state !== "running";
     card.dataset.transitionState = transition?.state ?? "idle";
@@ -269,6 +272,7 @@ function mountPanel(id: string, color: number): void {
       errorOutput.hidden = true;
       app = new ThreeApp(viewport, { camera: { position: [4, 3, 5] }, maxPixelRatio: 2 });
       frames = 0;
+      draws = 0;
       app.scene.background = new Color(0x11191b);
       const geometry = app.resources.track(
         id === "A" ? new BoxGeometry(1.6, 1.6, 1.6) : new IcosahedronGeometry(1.15, 0),
@@ -338,6 +342,9 @@ function mountPanel(id: string, color: number): void {
         if (model && !model.disposed && !animation) model.scene.rotation.y += delta * 0.35;
         frames++;
       });
+      app.onAfterRender(() => {
+        draws++;
+      });
       app.start();
     } catch (error) {
       try {
@@ -356,6 +363,7 @@ function mountPanel(id: string, color: number): void {
     try {
       if (action === "start") app?.start();
       if (action === "stop") app?.stop();
+      if (action === "render") app?.render();
       if (action === "dispose") {
         app?.dispose();
         clearModel();
@@ -395,7 +403,7 @@ function mountPanel(id: string, color: number): void {
           const frame = fitObject(app, target, { controls: orbit?.controls });
           fittedDistance = frame.distance;
           // The host stays stopped; the demo explicitly draws a single updated view when paused.
-          if (app.state !== "running") app.renderer.render(app.scene, app.camera);
+          if (app.state !== "running") app.render();
           labels?.update();
         }
       }

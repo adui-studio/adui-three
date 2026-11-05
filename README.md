@@ -61,6 +61,8 @@ window.addEventListener("pagehide", () => app.dispose(), { once: true });
 
 `scene`、`camera` 和 `renderer` 是原生对象，可直接配置。geometry、material、texture 需分别登记；只登记 Mesh 不会递归接管其资源。外部共享资源由其所有者管理。
 
+暂停状态可调用 `app.render()` 绘制一帧并更新标签；不推进动画或启动宿主。`app.setRenderPipeline(pipeline)` 可独占替换绘制阶段，契约见 [管线与单次绘制](packages/three/README.md#绘制管线与单次绘制)。
+
 ### 相机控制
 
 ```ts
@@ -158,7 +160,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 135 项主包单元测试和 27 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
+当前有 146 项主包单元测试和 28 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
 
 ## 项目结构
 

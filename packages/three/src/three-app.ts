@@ -26,6 +26,13 @@ export interface ViewportSize {
   readonly pixelRatio: number;
 }
 
+/** Borrowed rendering strategy. The caller owns its resources and disposal. */
+export interface RenderPipeline {
+  render(frame: FrameInfo): void;
+  /** CSS dimensions and the capped DPR, including zero-size notifications. */
+  resize(size: ViewportSize): void;
+}
+
 function positive(value: number, name: string): number {
   if (!Number.isFinite(value) || value <= 0)
     throw new RangeError(`${name} must be positive and finite`);
@@ -52,6 +59,9 @@ export class ThreeApp {
   #drawable = false;
   #maxPixelRatio: number;
   #media: MediaQueryList | null = null;
+  #pipeline: { value: RenderPipeline } | null = null;
+  #inFrame = false;
+  #elapsed = 0;
 
   constructor(container: HTMLElement, options: ThreeAppOptions = {}) {
     const view = container?.ownerDocument?.defaultView;
@@ -163,6 +173,50 @@ export class ThreeApp {
     };
   }
 
+  /** Exclusively attach a borrowed pipeline. Detach restores the default renderer. */
+  setRenderPipeline(pipeline: RenderPipeline): () => void {
+    this.#assertActive();
+    if (!pipeline || typeof pipeline.render !== "function" || typeof pipeline.resize !== "function")
+      throw new TypeError("A render and resize pipeline is required");
+    if (this.#pipeline) throw new Error("A render pipeline is already attached");
+    const lease = { value: pipeline };
+    this.#pipeline = lease;
+    const detach = (): void => {
+      if (this.#pipeline === lease) this.#pipeline = null;
+    };
+    try {
+      pipeline.resize(this.size);
+      this.#assertActive();
+      if (this.#pipeline !== lease) throw new Error("Render pipeline attachment was interrupted");
+      return detach;
+    } catch (error) {
+      detach();
+      throw error;
+    }
+  }
+
+  /** Draw once without updates, advancing time or scheduling another frame. */
+  render(): void {
+    this.#assertActive();
+    if (this.#inFrame) throw new Error("Cannot render reentrantly within a host frame");
+    const revision = this.#revision;
+    const valid = (): boolean =>
+      this.#state !== "disposed" &&
+      revision === this.#revision &&
+      this.#drawable &&
+      !this.#document.hidden;
+    if (!valid()) return;
+    this.#inFrame = true;
+    try {
+      this.#draw({ delta: 0, elapsed: this.#elapsed }, valid);
+    } catch (error) {
+      this.stop();
+      throw error;
+    } finally {
+      this.#inFrame = false;
+    }
+  }
+
   resize(): void {
     this.#assertActive();
     const width = this.#container.clientWidth;
@@ -171,6 +225,8 @@ export class ThreeApp {
     const previous = this.#size;
     this.#size = { width, height, pixelRatio };
     this.#drawable = width > 0 && height > 0;
+    const changed =
+      width !== previous.width || height !== previous.height || pixelRatio !== previous.pixelRatio;
     if (
       this.#drawable &&
       (width !== previous.width || height !== previous.height || pixelRatio !== previous.pixelRatio)
@@ -178,6 +234,14 @@ export class ThreeApp {
       this.camera.aspect = width / height;
       this.camera.updateProjectionMatrix();
       this.renderer.setDrawingBufferSize(width, height, pixelRatio);
+    }
+    if (changed && this.#pipeline) {
+      try {
+        this.#pipeline.value.resize(this.size);
+      } catch (error) {
+        this.stop();
+        throw error;
+      }
     }
     this.#syncLoop();
   }
@@ -198,6 +262,7 @@ export class ThreeApp {
     attempt(() => this.#abort.abort());
     this.#updates.clear();
     this.#afterRender.clear();
+    this.#pipeline = null;
     attempt(() => this.#platform.dispose());
     attempt(() => this.resources.dispose());
     attempt(() => this.scene.clear());
@@ -217,6 +282,9 @@ export class ThreeApp {
   }
 
   #update(frame: FrameInfo): void {
+    if (this.#inFrame) throw new Error("Cannot render reentrantly within a host frame");
+    this.#inFrame = true;
+    this.#elapsed = frame.elapsed;
     const revision = this.#revision;
     try {
       // Snapshot subscriptions so additions during an update start on the next frame.
@@ -225,16 +293,23 @@ export class ThreeApp {
         if (this.#updates.has(callback)) callback(frame);
         if (!this.#currentFrame(revision)) return;
       }
-      this.renderer.render(this.scene, this.camera);
-      if (!this.#currentFrame(revision)) return;
-      const afterRender = Array.from(this.#afterRender);
-      for (const callback of afterRender) {
-        if (this.#afterRender.has(callback)) callback(frame);
-        if (!this.#currentFrame(revision)) return;
-      }
+      this.#draw(frame, () => this.#currentFrame(revision));
     } catch (error) {
       this.stop();
       throw error;
+    } finally {
+      this.#inFrame = false;
+    }
+  }
+
+  #draw(frame: FrameInfo, valid: () => boolean): void {
+    if (this.#pipeline) this.#pipeline.value.render(frame);
+    else this.renderer.render(this.scene, this.camera);
+    if (!valid()) return;
+    const afterRender = Array.from(this.#afterRender);
+    for (const callback of afterRender) {
+      if (this.#afterRender.has(callback)) callback(frame);
+      if (!valid()) return;
     }
   }
 

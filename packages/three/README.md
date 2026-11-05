@@ -63,6 +63,28 @@ window.addEventListener(
 
 onAfterRender 在所有 onUpdate 完成并且 renderer.render 成功后执行，不依赖它与更新回调的注册先后。每个阶段开始时拍摄订阅快照；在该阶段内新增订阅下一帧执行，在更新阶段新增的渲染完成订阅可于本帧执行。stop/dispose/重启使本帧剩余回调失效；渲染失败跳过整个完成阶段，完成回调报错同样停止循环并抛出。手动调用 renderer.render 不会触发宿主订阅。
 
+## 绘制管线与单次绘制
+
+`app.render()` 显式绘制一次：ready/stopped/running 可用，不执行 onUpdate、不启动 RAF、不累计时间；成功后执行 onAfterRender，传入 delta=0 与上次有效 elapsed。隐藏/零尺寸时无操作，销毁后抛错；更新、绘制和完成回调中重入拒绝。绘制/完成错误仍使宿主停止并重新抛出。
+
+```ts
+import type { RenderPipeline } from "@adui/three";
+
+const pipeline: RenderPipeline = {
+  resize: ({ width, height, pixelRatio }) => {
+    // 同步自有管线的 CSS 尺寸和封顶 DPR；零尺寸时避免分配零大小渲染目标。
+  },
+  render: ({ delta }) => {
+    // 例如 composer.render(delta)，代替本帧默认绘制。
+  },
+};
+const detach = app.setRenderPipeline(pipeline);
+app.render();
+detach(); // 恢复原生绘制，不释放 pipeline；资源由其所有者管理。
+```
+
+同一宿主仅能挂接一个管线；重复挂接先拒绝。挂接立即调用 resize(app.size)，之后仅在尺寸/DPR 改变时调用，包括暂停和零尺寸。初始化失败释放槽位；resize 错误停止宿主并抛出。返回解除函数幂等，旧函数不影响后来的管线；app.dispose 解除引用，不调用借用管线的 dispose。通过 app.resources 显式登记自有清理句柄。不要为管线创建新 RAF 或覆盖 renderer.render；直接调用原生 renderer.render 仍绕过宿主管线和 onAfterRender。
+
 ## 资源与边界
 
 仅登记确实拥有的资源；借用或跨实例共享的 geometry/material/texture 不交给某个 app 独占管理。登记 Mesh 不自动登记 geometry/material/texture；纹理也不会随材质自动释放。多 app 共享资源时由外部所有者在最后一个使用者结束后统一释放。`ResourceScope` 可单独导入使用。

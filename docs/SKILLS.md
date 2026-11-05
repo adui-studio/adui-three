@@ -75,6 +75,8 @@
 
 用户安装技能并允许按任务使用，不代表自动创建远程 Issue/PR、发布版本或执行所有代码块；按当前请求确定动作范围。保留第三方原文与锁文件；Vite+ 格式化排除导入副本，文档校验仍检查其元数据和引用。规范改动优先写在 [贡献指南](../CONTRIBUTING.md) 与 AGENTS 中。
 
+持续封装阶段复用 threejs-postprocessing Skill，核验 r187 的 EffectComposer、WebGLRenderer 与 WebGLOutput 源码；基于宿主实际尺寸路径选择显式 RenderPipeline，保留单一 RAF，不照搬 Skill 的循环。后续按模块使用中文提交并本地验证，不做 CI。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。
