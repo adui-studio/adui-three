@@ -91,3 +91,75 @@ test("picking follows loaded model targets and removes old canvas listeners on r
   await page.screenshot({ path: "test-results/picking-playground.png", fullPage: true });
   expect(errors).toEqual([]);
 });
+
+test("picking tracks a skinned pose beyond its cached rest bounds while the host stays stopped", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  const panel = page.getByTestId("scene-A");
+  const other = page.getByTestId("scene-B");
+  await panel.getByRole("button", { name: "暂停", exact: true }).click();
+  await other.getByRole("button", { name: "暂停", exact: true }).click();
+  await panel.getByRole("button", { name: "加载骨骼样例", exact: true }).click();
+  await expect(panel).toHaveAttribute("data-model-state", "loaded");
+  const canvas = panel.locator("canvas");
+  const coloredPoint = async () => {
+    await canvas.scrollIntoViewIfNeeded();
+    return panel.evaluate((element) => {
+      element.querySelector<HTMLButtonElement>('[data-action="render"]')!.click();
+      const canvas = element.querySelector("canvas")!;
+      const gl = canvas.getContext("webgl2")!;
+      const data = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+      gl.readPixels(
+        0,
+        0,
+        gl.drawingBufferWidth,
+        gl.drawingBufferHeight,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        data,
+      );
+      let x = 0,
+        y = 0,
+        count = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i]! > 150 && data[i + 1]! > 120 && data[i]! > data[i + 2]! * 1.25) {
+          x += (i / 4) % gl.drawingBufferWidth;
+          y += Math.floor(i / 4 / gl.drawingBufferWidth);
+          count++;
+        }
+      }
+      if (count < 500) throw new Error("Expected the real skinned tetrahedron pixels");
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: rect.left + (x / count / gl.drawingBufferWidth) * rect.width,
+        y: rect.bottom - (y / count / gl.drawingBufferHeight) * rect.height,
+        error: gl.getError(),
+      };
+    });
+  };
+  // Drawing first establishes the native rest-pose bounding sphere.
+  const rest = await coloredPoint();
+  await panel.getByRole("button", { name: "播放动画", exact: true }).click();
+  await panel.getByRole("button", { name: "切换片段", exact: true }).click();
+  await panel.getByRole("button", { name: "切换片段", exact: true }).click();
+  await panel.getByRole("slider", { name: "动画定位" }).fill("50");
+  await expect(panel.getByTestId("animation-clip")).toHaveText("Reach");
+  const moved = await coloredPoint();
+  expect(Math.abs(moved.x - rest.x)).toBeGreaterThan(70);
+  expect(moved.error).toBe(0);
+  const frames = await panel.getByTestId("frames").textContent();
+  await page.mouse.move(moved.x, moved.y);
+  await expect(panel.getByTestId("hovered")).toHaveText("SkinMorphTetrahedron");
+  await page.mouse.click(moved.x, moved.y);
+  await expect(panel.getByTestId("selected")).toHaveText("SkinMorphTetrahedron");
+  await panel.getByRole("slider", { name: "动画定位" }).fill("0");
+  const returned = await coloredPoint();
+  await page.mouse.click(returned.x, returned.y);
+  await expect(panel.getByTestId("selected")).toHaveText("SkinMorphTetrahedron");
+  await expect(panel.getByTestId("frames")).toHaveText(frames!);
+  await expect(other.getByTestId("selected")).toHaveText("—");
+  expect(errors).toEqual([]);
+});

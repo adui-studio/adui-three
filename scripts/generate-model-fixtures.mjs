@@ -222,6 +222,7 @@ const skinRotations = skinAccessor(
   "VEC4",
 );
 const morphWeights = skinAccessor(floats([0, 1, 0]), 5126, 3, "SCALAR");
+const skinTranslations = skinAccessor(floats([0, 0, 0, 3, 0, 0, 0, 0, 0]), 5126, 3, "VEC3");
 writeGLB(
   "skin-morph.glb",
   {
@@ -258,6 +259,11 @@ writeGLB(
         name: "Morph",
         samplers: [{ input: skinTimes, output: morphWeights, interpolation: "LINEAR" }],
         channels: [{ sampler: 0, target: { node: 0, path: "weights" } }],
+      },
+      {
+        name: "Reach",
+        samplers: [{ input: skinTimes, output: skinTranslations, interpolation: "LINEAR" }],
+        channels: [{ sampler: 0, target: { node: 1, path: "translation" } }],
       },
     ],
   },

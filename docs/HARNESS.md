@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 275 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 282 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 58 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 59 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 蒙皮拾取阶段：两项先行失败数学用例复现旧 sphere/box 和兄弟骨骼/父变换漏选；修复后新增 7 项拾取测试通过，ready 累计 282 项单测、13 项文档检查器测试、124 文件格式与 71 源文件 Lint/类型检查，十入口/演示构建成功。验证 opt-out、递归/重叠根去重、未使用 box 不分配、错误恢复、同步失效与 pick 重入；原生 nullable box 的声明差异通过真实初始状态测试处理，无类型忽略。
+
+拾取专项 3/3 通过（约 8 秒），完整浏览器 59/59 通过（约 91.5 秒），零重试。Reach 根骨骼移动 3 单位后，从 GPU 黄色像素定位真实鼠标，验证旧边界外悬停/选中及返回；暂停帧数与其他实例不变。十入口 tarball 独立安装与四次严格声明/消费编译通过。扩展后的 skin-morph.glb SHA256 为 09c060d80be93f0d103d2b5d253c6246959de26762bf06eb8e9245fcdc811c17，再次禁止 fetch 重建十个资产均一致。刷新有顶点/骨骼 CPU 成本，可关闭；不等于维护渲染剔除或 shader 位移。无新依赖、CI 或发布。
 
 2026-11-05 骨骼/morph GPU 验收补充：ready 通过 13 项文档检查器测试、275 项主包单测（未改主包，命中缓存）、123 文件格式与 71 源文件 Lint/类型检查，主包及演示构建成功。模型实例专项 5/5 通过（约 10.5 秒），新增两项使用原创 skin-morph.glb 的实际 GPU 回归；全量 58/58 通过（约 89.8 秒），零重试，截图已目视检查。Bend/Morph 姿态变化、未命名骨骼 UUID 重绑、源/克隆隔离、源 renderer 结束后的稳定像素，以及三轮各自 bone texture / 共享 morph 纹理、图片、buffer 回基线均验证。
 

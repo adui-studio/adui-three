@@ -34,7 +34,7 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   if (clonedAnimations.clips.length) clonedAnimations.play(0);
   instance.resources.track({ dispose: () => console.log("实例结束") });
   instance.dispose();
-  const picking = attachPicking(app, { objects: () => [loaded.scene] });
+  const picking = attachPicking(app, { objects: () => [loaded.scene], updateSkinnedBounds: true });
   picking.on("click", ({ intersection }) => {
     intersection?.object.position.set(0, 0, 0);
   });

@@ -101,6 +101,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 骨骼 GPU 验收继续复用 threejs-animation/loaders，按 Khronos glTF 2.0 与 r187 SkinnedMesh/GLTFLoader 核验权重、inverse bind 和未命名节点轨道；新增原创小样例验证原生 skin/morph GPU 输出，不引入动画库或复制第三方模型。
 
+蒙皮拾取阶段复用 threejs-interaction，核验 r187 SkinnedMesh 的一次 sphere、可选 box 与 updateMatrixWorld/updateWorldMatrix 差异。以失败数学用例复现旧边界后按需刷新，不增加 RAF 或自动推进动画；保留 opt-out 并明确顶点计算成本。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

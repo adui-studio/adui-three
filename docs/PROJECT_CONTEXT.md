@@ -13,7 +13,7 @@
 - 核心 ThreeApp、ResourceScope：单 RAF、启停/隐藏/零尺寸、DPR、显式所有权、异步 signal、独占借用 RenderPipeline 与单次 render。原生缓冲/投影和管线尺寸失败分别保留待重试状态；尺寸处理中拒绝递归绘制/resize/重挂接。
 - controls：OrbitControls；TransformControls 负责 helper/初始 GPU 快照，借用模型与轨道控制，拖拽/取消按值恢复配置，无第二循环。
 - loaders：GLTF/GLB 逻辑取消、迟到清理、模型资源快照/扩展 scope，显式 Draco/Meshopt/KTX2。cloneGLTF 复制默认树与独立动画数据，共享资产租约到最后一个使用者结束。任务自有解码器，运输可能继续，运行资源本地托管。
-- interaction / labels：原生 Raycaster 点击/悬停、动态目标及事件清理；DOM 标签在完成阶段投影，明确元素和模型借用边界。
+- interaction / labels：原生 Raycaster 点击/悬停、动态目标及事件清理，默认按需刷新蒙皮边界/骨骼矩阵并防 pick 重入；DOM 标签在完成阶段投影，明确元素和模型借用边界。
 - animation：单 Mixer、片段播放/暂停/恢复/停止、原生事件队列和双范围清理，seek 按秒定位后暂停；crossFadeTo 根据当前权重渐变到目标，支持中断、暂停和清理。
 - camera：世界边界即时取景和宿主 delta 驱动过渡，校验视锥/控件限制，支持输入、替换、尺寸、移除等取消。
 - postprocessing：HalfFloat composer、基础/可选描边/可选泛光/输出链，借用 renderer，拥有 passes/targets，操作中释放延后清 GPU。
@@ -24,7 +24,7 @@
 
 ## 验证状态
 
-当前 ready 通过：13 项文档检查器测试、275 项主包单测、格式/Lint/类型及全部构建。test:package 的十入口 tarball 独立安装、无 DOM/禁止网络导入、development 解析和四次严格声明/消费编译已通过；本轮仅改演示/资产/验证，沿用该结果。本轮真实浏览器 58/58 通过，零重试，含双 joint/morph 的变形与实例隔离、骨骼和 morph 纹理释放；详细结果和边界见 [Harness](HARNESS.md)。
+当前 ready 通过：13 项文档检查器测试、282 项主包单测、格式/Lint/类型及全部构建。test:package 的十入口 tarball 独立安装、无 DOM/禁止网络导入、development 解析和四次严格声明/消费编译通过。本轮真实浏览器 59/59 通过，零重试，含双 joint/morph 的变形与实例隔离、骨骼/morph 纹理释放及旧边界外拾取；详细结果和边界见 [Harness](HARNESS.md)。
 
 浏览器环境是 Chromium/SwiftShader，单 worker、零自动重试；完整设备/格式/浏览器矩阵、长期 GPU 泄漏和性能基准尚未完成。保留 TypeScript 7 API 实验性和演示大 chunk 构建提示，不将本地通过称为远端 CI 通过。失败诊断、历史统计和阶段未提交记录统一保留在 Harness，不在接手入口复制过期状态。
 
@@ -46,7 +46,7 @@
 
 WebGL 上下文丢失会将 contextLost 设 true 并完整结束该宿主，业务通过 abort 更新状态并显式重建；不自动继续旧 GPU 图或替换 renderer。真实原型发现旧代 GPU 清理的 1282，证据与取舍见 ADR-0019。另一宿主的模型实例仍由其租约持有共享资产。
 
-先读 [AGENTS](../AGENTS.md)、需求、SDD、[架构](ARCHITECTURE.md)、[代码地图](CODEBASE_MAP.md) 和 [Harness](HARNESS.md)。修改范围对应需求编号；API/所有权边界见 ADR-0002 至 ADR-0019，ADR-0001 保留历史 Proposed 提案。Skills 按 [索引](SKILLS.md) 加载，不自动安装或扩大远程授权。
+先读 [AGENTS](../AGENTS.md)、需求、SDD、[架构](ARCHITECTURE.md)、[代码地图](CODEBASE_MAP.md) 和 [Harness](HARNESS.md)。修改范围对应需求编号；API/所有权边界见 ADR-0002 至 ADR-0020，ADR-0001 保留历史 Proposed 提案。Skills 按 [索引](SKILLS.md) 加载，不自动安装或扩大远程授权。
 
 下一步按真实需求选择更高层动画状态/重定向、正交相机或其他能力；这些仍未实现，不预建空包。共享解码器服务、浏览器范围、更多 Three.js minor、WebGPU/WebXR、框架适配和 npm 发布权限仍待专门评估。后续代码检查 ready，影响宿主/渲染/演示执行 test:browser，导出/打包变化执行 test:package，文档执行 docs:test/docs:check。
 

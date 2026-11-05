@@ -188,7 +188,9 @@ loadKTX2(app,url,LoadKTX2Options) 同样从 textures 导出，返回 KTX2Texture
 
 ## 对象拾取契约
 
-[interaction.ts](../packages/three/src/interaction.ts) 是独立子入口，导出 attachPicking、PickingOptions、PickingEvent 和 PickingHandle。`attachPicking(app, { objects, recursive?, dragThreshold? })` 使用必填目标 getter；recursive=true、dragThreshold=4 CSS 像素。句柄提供原生 raycaster、disposed、pick(clientX, clientY)、on("click" | "hover", callback) 与 dispose。
+[interaction.ts](../packages/three/src/interaction.ts) 是独立子入口，导出 attachPicking、PickingOptions、PickingEvent 和 PickingHandle。`attachPicking(app, { objects, recursive?, dragThreshold?, updateSkinnedBounds? })` 使用必填目标 getter；recursive=true、dragThreshold=4 CSS 像素。句柄提供原生 raycaster、disposed、pick(clientX, clientY)、on("click" | "hover", callback) 与 dispose。
+
+蒙皮拾取补充：PickingOptions.updateSkinnedBounds 默认 true；同步目标后按 recursive 范围去重更新骨骼世界矩阵、原生 attached bind inverse、sphere 及已有 box，不新建 box。每次有效拾取有顶点/骨骼 CPU 成本，应用已维护可关闭；不等于每帧渲染剔除或 shader 位移维护。pick 的 getter/矩阵/边界/raycast 期间禁止重入，原生操作后检查失效，错误仍释放保护，见 [ADR-0020](adr/0020-skinned-picking.md)。
 
 pick 每次读取目标快照，更新相机/目标世界矩阵，以画布矩形将 viewport CSS 坐标映射至 NDC；不使用 drawing buffer 尺寸或全局容器。零尺寸/越界/非有限坐标返回 null；最近交点保留原生实际子对象，过滤 visible=false 的节点/祖先。支持偏移、滚动、轴向缩放，不支持 CSS 旋转/倾斜；其余沿用原生 CPU raycast，不保证 GPU 像素级一致或把非目标作为遮挡物。
 
@@ -267,10 +269,9 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-029  | 模型动画契约                      | animation.ts、演示渐变切换                       | 真实混合/中断/清理单测、GLB 连续姿态/双实例回归   |
 | FR-030  | 模型实例契约                      | gltf-clone.ts、gltf-assets.ts、资源快照与演示    | 原生骨骼/morph/租约单测、GPU/跨宿主/包消费回归    |
 | FR-031  | 上下文丢失契约                    | three-app.ts、演示诊断与重建                     | 事件/异常/清理单测、真实上下文丢失及跨宿主回归    |
+| FR-032  | 对象拾取契约                      | interaction.ts、原生蒙皮边界与 Reach 样例        | 真实边界/失效/重入单测、GPU 像素定位鼠标回归      |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                      |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器               |
-
-骨骼/morph GPU 验证补充：原创 skin-morph.glb 含两个 joint、inverse bind、一个 POSITION morph 和两个片段；未命名骨骼触发原生 UUID 轨道。实例回归实际 readPixels 比较姿态隔离、源 renderer 销毁后的稳定输出，三轮验证各自 bone texture 与共享 morph/图片纹理回基线；仍不外推完整骨骼/资产/硬件矩阵。
 
 ## 维护
 

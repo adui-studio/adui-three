@@ -1,5 +1,17 @@
 import { expect, test, vi } from "vite-plus/test";
-import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Vector3 } from "three";
+import {
+  Bone,
+  BoxGeometry,
+  Float32BufferAttribute,
+  Group,
+  Mesh,
+  MeshBasicMaterial,
+  PerspectiveCamera,
+  Skeleton,
+  SkinnedMesh,
+  Uint16BufferAttribute,
+  Vector3,
+} from "three";
 import type { Object3D } from "three";
 import type { ThreeApp, ThreeAppState } from "../src/index.ts";
 import { ResourceScope } from "../src/resources.ts";
@@ -46,6 +58,136 @@ function fixture() {
   };
   return { app, state, mesh, targets, canvas, view, picker, send };
 }
+
+function skinFixture(externalBones = false, withBox = true) {
+  const env = fixture();
+  const geometry = new BoxGeometry();
+  const count = geometry.attributes.position!.count;
+  geometry.setAttribute("skinIndex", new Uint16BufferAttribute(new Uint16Array(count * 4), 4));
+  const weights = new Float32Array(count * 4);
+  for (let i = 0; i < count; i++) weights[i * 4] = 1;
+  geometry.setAttribute("skinWeight", new Float32BufferAttribute(weights, 4));
+  const bone = new Bone();
+  const skin = new SkinnedMesh(geometry, new MeshBasicMaterial());
+  const group = new Group();
+  group.add(skin);
+  if (externalBones) group.add(bone);
+  else skin.add(bone);
+  group.updateMatrixWorld(true);
+  skin.bind(new Skeleton([bone]));
+  if (withBox) skin.computeBoundingBox();
+  skin.computeBoundingSphere();
+  env.targets.splice(0, 1, skin);
+  const at = (x: number): [number, number] => {
+    env.state.camera.updateMatrixWorld();
+    const ndc = new Vector3(x, 0, 0).project(env.state.camera);
+    return [100 + (ndc.x + 1) * 200, 300];
+  };
+  return { ...env, skin, bone, group, at };
+}
+
+test("picking refreshes stale skinned spheres and existing boxes after pose changes without rendering", () => {
+  const env = skinFixture();
+  const originalCenter = env.skin.boundingSphere!.center.x;
+  env.bone.position.x = 2;
+  expect(env.picker.pick(...env.at(2))?.object).toBe(env.skin);
+  expect(env.skin.boundingSphere!.center.x).toBeCloseTo(originalCenter + 2);
+  expect(env.skin.boundingBox!.min.x).toBeCloseTo(1.5);
+  env.bone.position.x = -2;
+  expect(env.picker.pick(...env.at(-2))?.object).toBe(env.skin);
+  expect(env.picker.pick(...env.at(2))).toBeNull();
+});
+
+test("picking updates sibling bones and attached bind inverses before the first draw", () => {
+  const env = skinFixture(true);
+  env.group.position.x = 1;
+  env.bone.position.x = 2;
+  expect(env.picker.pick(...env.at(3))?.object).toBe(env.skin);
+  expect(env.skin.bindMatrixInverse.elements[12]).toBeCloseTo(-1);
+});
+
+test("skinned bound refresh is opt-out and does not allocate an unused bounding box", () => {
+  const env = skinFixture(false, false);
+  const native = attachPicking(env.app, { objects: () => [env.skin], updateSkinnedBounds: false });
+  env.bone.position.x = 2;
+  expect(native.pick(...env.at(2))).toBeNull();
+  expect(env.picker.pick(...env.at(2))?.object).toBe(env.skin);
+  expect(env.skin.boundingBox).toBeNull();
+  expect(native.pick(...env.at(2))?.object).toBe(env.skin);
+});
+
+test("recursive bounds prepare overlapping roots once and nonrecursive picks only prepare the target", () => {
+  const env = skinFixture();
+  const sphere = vi.spyOn(env.skin, "computeBoundingSphere");
+  const picker = attachPicking(env.app, { objects: () => [env.group, env.skin, env.group] });
+  expect(picker.pick(...env.at(0))?.object).toBe(env.skin);
+  expect(sphere).toHaveBeenCalledOnce();
+  sphere.mockClear();
+  const shallow = attachPicking(env.app, { objects: () => [env.group], recursive: false });
+  expect(shallow.pick(...env.at(0))).toBeNull();
+  expect(sphere).not.toHaveBeenCalled();
+});
+
+test("bounds failure releases the pick guard, and owner disposal stops before raycasting", () => {
+  const env = skinFixture();
+  const failure = new Error("bounds failed");
+  const sphere = vi.spyOn(env.skin, "computeBoundingSphere").mockImplementationOnce(() => {
+    throw failure;
+  });
+  expect(() => env.picker.pick(...env.at(0))).toThrow(failure);
+  expect(env.picker.pick(...env.at(0))?.object).toBe(env.skin);
+  const raycast = vi.spyOn(env.skin, "raycast");
+  raycast.mockClear();
+  const box = vi.spyOn(env.skin, "computeBoundingBox");
+  box.mockClear();
+  sphere.mockImplementationOnce(() => env.state.resources.dispose());
+  expect(() => env.picker.pick(...env.at(0))).toThrow("disposed");
+  expect(raycast).not.toHaveBeenCalled();
+  expect(box).not.toHaveBeenCalled();
+});
+
+test("recursive picks from getters or raycast cannot corrupt the outer ray, and remain usable afterwards", () => {
+  const env = fixture();
+  const picker = attachPicking(env.app, {
+    objects: () => {
+      expect(() => picker.pick(301, 300)).toThrow("reentrantly");
+      return [env.mesh];
+    },
+  });
+  const native = env.mesh.raycast.bind(env.mesh);
+  vi.spyOn(env.mesh, "raycast").mockImplementation((ray, hits) => {
+    expect(() => picker.pick(100, 200)).toThrow("reentrantly");
+    native(ray, hits);
+  });
+  expect(picker.pick(300, 300)?.object).toBe(env.mesh);
+  expect(picker.pick(300, 300)?.point.z).toBeCloseTo(0.5);
+});
+
+test("bounds flags validate before listeners attach and world/raycast disposal cannot return a live hit", () => {
+  const env = fixture();
+  const listener = vi.spyOn(env.canvas, "addEventListener");
+  for (const flag of [0, "true", null]) {
+    expect(() =>
+      attachPicking(env.app, {
+        objects: () => [],
+        updateSkinnedBounds: flag as unknown as boolean,
+      }),
+    ).toThrow(TypeError);
+    expect(() =>
+      attachPicking(env.app, { objects: () => [], recursive: flag as unknown as boolean }),
+    ).toThrow(TypeError);
+  }
+  expect(listener).not.toHaveBeenCalled();
+  vi.spyOn(env.mesh, "raycast").mockImplementation(() => env.state.resources.dispose());
+  expect(() => env.picker.pick(300, 300)).toThrow("disposed");
+  const second = fixture();
+  const raycast = vi.spyOn(second.mesh, "raycast");
+  vi.spyOn(second.mesh, "updateWorldMatrix").mockImplementation(() =>
+    second.state.resources.dispose(),
+  );
+  expect(() => second.picker.pick(300, 300)).toThrow("disposed");
+  expect(raycast).not.toHaveBeenCalled();
+});
 
 test("uses offset CSS bounds, updates matrices before rendering, and returns native hit data", () => {
   const { picker, mesh, state, canvas } = fixture();

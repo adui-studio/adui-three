@@ -75,6 +75,10 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 模型实例由 [gltf-clone.ts](../packages/three/src/gltf-clone.ts) 复制树/片段、重绑 UUID 并管理局部清理；[gltf-assets.ts](../packages/three/src/gltf-assets.ts) 保存内部弱引用登记和共享资产租约。loaders 公开导出，animation 接受实例。[原生实例测试](../packages/three/tests/gltf-clone.test.ts) 覆盖骨骼/morph/错误/所有权，[浏览器实例回归](../tests/browser/gltf-clone.spec.ts) 验证实际 GPU、跨宿主和反复释放。
 
+## 蒙皮拾取
+
+蒙皮动态拾取在 interaction.ts 内按需准备，interaction.test.ts 验证真实 sphere/box、兄弟骨骼/绑定矩阵和重入；interaction.spec.ts 对 Reach 样例的实际像素执行鼠标查询。
+
 ## 上下文丢失
 
 上下文丢失在 three-app.ts 复用完整 dispose，通过 contextLost 诊断；[真实上下文回归](../tests/browser/context.spec.ts) 使用 WEBGL_lose_context 验证旧 canvas 失效、跨宿主实例、HDR/图片/泛光重建及迟到模型。核心事件/清理用例在 three-app.test.ts。

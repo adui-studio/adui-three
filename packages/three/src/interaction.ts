@@ -1,5 +1,5 @@
 import { Raycaster, Vector2 } from "three";
-import type { Intersection, Object3D } from "three";
+import type { Intersection, Object3D, SkinnedMesh } from "three";
 import type { ThreeApp } from "./three-app.ts";
 
 export interface PickingOptions {
@@ -7,6 +7,8 @@ export interface PickingOptions {
   objects: () => readonly Object3D[];
   /** Include target descendants. Default true. */
   recursive?: boolean;
+  /** Recompute skinned spheres and already-present boxes before CPU raycasting. Default true. */
+  updateSkinnedBounds?: boolean;
   /** Maximum movement from pointerdown in CSS pixels. Default 4. */
   dragThreshold?: number;
 }
@@ -39,7 +41,9 @@ function visible(object: Object3D): boolean {
 export function attachPicking(app: ThreeApp, options: PickingOptions): PickingHandle {
   if (app.state === "disposed") throw new Error("ThreeApp has been disposed");
   if (app.resources.disposed) throw new Error("ThreeApp resource scope has been disposed");
-  const { objects, recursive = true, dragThreshold = 4 } = options;
+  const { objects, recursive = true, updateSkinnedBounds = true, dragThreshold = 4 } = options;
+  if (typeof recursive !== "boolean" || typeof updateSkinnedBounds !== "boolean")
+    throw new TypeError("recursive and updateSkinnedBounds must be boolean");
   if (!Number.isFinite(dragThreshold) || dragThreshold < 0)
     throw new RangeError("dragThreshold must be non-negative and finite");
   const canvas = app.renderer.domElement;
@@ -50,6 +54,7 @@ export function attachPicking(app: ThreeApp, options: PickingOptions): PickingHa
     hover: new Set<(event: PickingEvent) => void>(),
   };
   let disposed = false;
+  let picking = false;
   let hovered: Object3D | null = null;
   let press: { id: number; x: number; y: number; object: Object3D | null } | null = null;
 
@@ -73,18 +78,56 @@ export function attachPicking(app: ThreeApp, options: PickingOptions): PickingHa
   };
   const pick = (x: number, y: number): Intersection | null => {
     active();
-    if (!inside(x, y)) return null;
-    const rect = canvas.getBoundingClientRect();
-    const targets = [...new Set(objects())];
-    active();
-    pointer.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1);
-    // Picking also works before the first render and while the host is stopped.
-    app.camera.updateWorldMatrix(true, false);
-    for (const target of targets) target.updateWorldMatrix(true, true);
-    raycaster.setFromCamera(pointer, app.camera);
-    return (
-      raycaster.intersectObjects(targets, recursive).find((hit) => visible(hit.object)) ?? null
-    );
+    if (picking) throw new Error("Cannot pick reentrantly");
+    picking = true;
+    try {
+      if (!inside(x, y)) return null;
+      const rect = canvas.getBoundingClientRect();
+      const targets = [...new Set(objects())];
+      active();
+      pointer.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1);
+      // Picking also works before the first render and while the host is stopped.
+      app.camera.updateWorldMatrix(true, false);
+      active();
+      for (const target of targets) {
+        target.updateWorldMatrix(true, true);
+        active();
+      }
+      if (updateSkinnedBounds) {
+        const prepared = new Set<Object3D>();
+        const prepare = (object: Object3D): void => {
+          if (prepared.has(object)) return;
+          prepared.add(object);
+          if (!("isSkinnedMesh" in object) || object.isSkinnedMesh !== true) return;
+          const mesh = object as SkinnedMesh;
+          // Sibling bones need not be descendants of a directly targeted mesh.
+          for (const bone of mesh.skeleton.bones) {
+            bone.updateWorldMatrix(true, false);
+            active();
+          }
+          // The native override also refreshes attached bindMatrixInverse (updateWorldMatrix doesn't).
+          mesh.updateMatrixWorld(true);
+          active();
+          mesh.computeBoundingSphere();
+          active();
+          if (mesh.boundingBox !== null) {
+            mesh.computeBoundingBox();
+            active();
+          }
+        };
+        for (const target of targets) {
+          if (recursive) target.traverse(prepare);
+          else prepare(target);
+          active();
+        }
+      }
+      raycaster.setFromCamera(pointer, app.camera);
+      const hits = raycaster.intersectObjects(targets, recursive);
+      active();
+      return hits.find((hit) => visible(hit.object)) ?? null;
+    } finally {
+      picking = false;
+    }
   };
   const emit = (type: "click" | "hover", event: PickingEvent): void => {
     const subscriptions = Array.from(listeners[type]);

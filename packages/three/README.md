@@ -299,6 +299,7 @@ const picking = attachPicking(app, {
   objects: () => [cube], // 每次拾取重新读取，可返回当前 model.scene。
   recursive: true,
   dragThreshold: 4,
+  updateSkinnedBounds: true,
 });
 const off = picking.on("click", ({ intersection, originalEvent }) => {
   console.log(intersection?.object ?? null, originalEvent.pointerType);
@@ -312,6 +313,10 @@ const nearest = picking.pick(100, 200); // 与 PointerEvent.clientX/clientY 相�
 ```
 
 `PickingOptions` 必填 objects getter；recursive 默认 true；dragThreshold 默认 4，必须为非负有限数，单位为 CSS 像素。返回 `PickingHandle`：raycaster、disposed、pick、on、dispose。只报告最近交点，保留原生 Intersection（包括实际子对象和 instanceId）；不把命中改成注册的根对象，不提供冒泡/阻止传播协议。
+
+updateSkinnedBounds 默认 true：在有效拾取时同步递归目标内的骨骼世界矩阵（含兄弟骨骼）、attached bind inverse，并按 mesh 去重刷新蒙皮 sphere 和已有 box。动画改变后或暂停/未先绘制也可查询实际位置。每次会计算参与的蒙皮顶点/骨骼；已自行维护边界或使用碰撞代理时设 false。不会创建未使用的 box，不替代每帧渲染剔除边界维护或推断任意 shader/GPU 位移。
+
+同一句柄在 getter、矩阵/边界或原生 raycast 内同步重入 pick 会抛错；所有者中途结束不会返回失效交点，错误后可再次有效调用。原生矩阵和边界的已写结果不回滚。
 
 按画布 getBoundingClientRect 换算 NDC，不乘 DPR；支持页面偏移、滚动和轴向 CSS 缩放，不支持 CSS 旋转/倾斜。零尺寸、非有限坐标、画布外返回 null。拾取前更新相机与目标世界矩阵；ready/stopped 状态也可使用。目标或祖先 visible=false 的交点会被过滤，其余沿用原生 CPU raycast、材质面朝向和 raycaster layers 规则；不等同 GPU 可见像素，不解析透明贴图、遮挡的非目标对象或 shader 顶点位移。
 

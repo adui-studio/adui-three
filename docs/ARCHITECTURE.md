@@ -61,6 +61,8 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 ## 关键取舍
 
+拾取入口在 CPU 查询时可刷新蒙皮边界和骨骼矩阵，保持原生 Raycaster、显式借用目标及无额外调度；应用可关闭刷新以使用自有边界策略，见 [ADR-0020](adr/0020-skinned-picking.md)。
+
 上下文丢失时结束该宿主，使用既有 abort 和所有权清理通知应用显式重建；不透明替换 renderer 或清借用资产，也不自动恢复旧 GPU 图。跨宿主实例继续保留其租约，见 [ADR-0019](adr/0019-context-loss.md)。
 
 loaders 的 cloneGLTF 显式创建默认场景实例；内部将局部节点/骨骼与共享资产快照分离，源模型/实例各持租约，最后一个使用者才清共享 GPU 和图像。动画入口仅按类型接受模型或实例；不导入 loader 实现、不创建 URL 缓存或自动播放，见 [ADR-0018](adr/0018-gltf-instances.md)。
