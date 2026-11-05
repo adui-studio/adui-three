@@ -231,6 +231,131 @@ test("pipeline resize errors stop scheduling and retry the same size before anot
   expect(vi.spyOn(app.renderer, "render")).toHaveBeenCalledOnce();
 });
 
+test("native drawing-buffer failures stop the host and retry unchanged dimensions before drawing", () => {
+  const env = fixture();
+  const app = env.create();
+  const resize = vi.spyOn(app.renderer, "setDrawingBufferSize");
+  resize.mockClear();
+  resize.mockImplementationOnce(() => {
+    throw new Error("native buffer size");
+  });
+  app.start();
+  env.container.clientWidth = 320;
+  expect(() => app.resize()).toThrow("native buffer size");
+  expect(app.state).toBe("stopped");
+  expect(env.frames.size).toBe(0);
+  app.render();
+  expect(resize).toHaveBeenCalledTimes(2);
+  expect(resize).toHaveBeenLastCalledWith(320, 360, 2);
+  expect(vi.spyOn(app.renderer, "render")).toHaveBeenCalledOnce();
+});
+
+test("a native size failure preserves pending pipeline dimensions until the buffer retry succeeds", () => {
+  const env = fixture();
+  const app = env.create();
+  const order: string[] = [];
+  const size = vi.fn(() => order.push("pipeline-size"));
+  const draw = vi.fn(() => order.push("pipeline-draw"));
+  app.setRenderPipeline({ render: draw, resize: size });
+  order.length = 0;
+  const resize = vi.spyOn(app.renderer, "setDrawingBufferSize").mockImplementationOnce(() => {
+    throw new Error("native");
+  });
+  env.container.clientWidth = 321;
+  expect(() => app.resize()).toThrow("native");
+  expect(size).toHaveBeenCalledOnce();
+  resize.mockImplementation(() => {
+    order.push("buffer");
+  });
+  app.render();
+  expect(order).toEqual(["buffer", "pipeline-size", "pipeline-draw"]);
+  expect(size).toHaveBeenLastCalledWith({ width: 321, height: 360, pixelRatio: 2 });
+});
+
+test("recursive pipeline resize is rejected without corrupting its retry lease", () => {
+  const env = fixture();
+  const app = env.create();
+  let recurse = false;
+  let nested = false;
+  app.setRenderPipeline({
+    render: vi.fn(),
+    resize(): void {
+      if (recurse && !nested) {
+        nested = true;
+        try {
+          app.resize();
+        } finally {
+          nested = false;
+        }
+      }
+    },
+  });
+  recurse = true;
+  env.container.clientWidth = 321;
+  expect(() => app.resize()).toThrow("reentrantly");
+  recurse = false;
+  app.render();
+  expect(app.state).toBe("stopped");
+});
+
+test("pipeline initialization cannot render a partially resized chain and releases its slot on reentry", () => {
+  const env = fixture();
+  const app = env.create();
+  const draw = vi.fn();
+  expect(() =>
+    app.setRenderPipeline({
+      render: draw,
+      resize(): void {
+        app.render();
+      },
+    }),
+  ).toThrow("reentrantly");
+  expect(draw).not.toHaveBeenCalled();
+  app.render();
+  expect(vi.spyOn(app.renderer, "render")).toHaveBeenCalledOnce();
+  expect(() => app.setRenderPipeline({ render: vi.fn(), resize: vi.fn() })).not.toThrow();
+});
+
+test("zero-size suspension does not lose a pending native buffer retry", () => {
+  const env = fixture();
+  const app = env.create();
+  const resize = vi.spyOn(app.renderer, "setDrawingBufferSize");
+  resize.mockClear();
+  resize.mockImplementationOnce(() => {
+    throw new Error("buffer");
+  });
+  env.container.clientWidth = 321;
+  expect(() => app.resize()).toThrow("buffer");
+  env.container.clientHeight = 0;
+  app.resize();
+  app.render();
+  expect(resize).toHaveBeenCalledOnce();
+  env.container.clientHeight = 360;
+  app.resize();
+  app.render();
+  expect(resize).toHaveBeenCalledTimes(2);
+  expect(resize).toHaveBeenLastCalledWith(321, 360, 2);
+  expect(vi.spyOn(app.renderer, "render")).toHaveBeenCalledOnce();
+});
+
+test("projection update failures stop scheduling and retry before touching the native buffer", () => {
+  const env = fixture();
+  const app = env.create();
+  const resize = vi.spyOn(app.renderer, "setDrawingBufferSize");
+  resize.mockClear();
+  vi.spyOn(app.camera, "updateProjectionMatrix").mockImplementationOnce(() => {
+    throw new Error("projection");
+  });
+  app.start();
+  env.container.clientWidth = 321;
+  expect(() => app.resize()).toThrow("projection");
+  expect(app.state).toBe("stopped");
+  expect(resize).not.toHaveBeenCalled();
+  app.render();
+  expect(resize).toHaveBeenCalledExactlyOnceWith(321, 360, 2);
+  expect(app.camera.aspect).toBeCloseTo(321 / 360);
+});
+
 test("one-shot rendering is idle, emits delta zero and does not advance updates or elapsed time", () => {
   const env = fixture();
   const app = env.create();

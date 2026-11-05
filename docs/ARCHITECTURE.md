@@ -2,7 +2,7 @@
 
 ## 当前架构
 
-当前是 pnpm 工作区，根包 `adui-three` 为 private，只包含 `packages/three` 主库和 `apps/website` 原生 TS 双实例演示。未使用的 utils 模板包与 tools/* 占位声明已清理。主库基于 Three.js 0.187.0 / WebGL 2；没有框架适配、数据库、后端认证、共享资产缓存或后端服务。
+当前是 pnpm 工作区，根包 `adui-three` 为 private，只包含 `packages/three` 主库和 `apps/website` 原生 TS 双实例演示。未使用的 utils 模板包与 tools/* 占位声明已清理。主库基于 Three.js 0.187.0 / WebGL 2；没有框架适配、数据库、后端认证、自建共享资产缓存或后端服务。
 
 已存在工具链：Vite+ 1.4.0，TypeScript 声明 ^7.0.2，Node 要求 >=22.18.0，包管理器声明 pnpm 12.16.1。版本事实来自配置与锁文件，不代表新库兼容范围。[代码地图](CODEBASE_MAP.md) 定位现有文件。
 
@@ -22,26 +22,17 @@ KTX2 的能力检测、缓冲复制、在途转码与纹理移交见 [ADR-0006](
 
 ```mermaid
 flowchart TD
-  App[应用 / website 演示] --> Core[主包 @adui/three]
-  App --> Models[可选 loaders 子入口]
-  Models --> Core
-  Models --> Three
-  App --> Picking[可选 interaction 子入口]
-  Picking --> Core
-  Picking --> Three
-  App --> Labels[可选 labels 子入口]
-  Labels --> Core
-  Labels --> Three
-  App --> Animation[可选 animation 子入口]
-  Animation --> Core
-  Animation --> Three
-  App --> Framing[可选 camera 取景]
-  Framing --> Core
-  Framing --> Three
-  Adapter[未来 Vue / React 适配] --> Core
-  Feature[未来可选功能模块] --> Core
-  Core --> Three[Three.js 与按需 addons]
-  App --> Assets[应用持有的模型与资产服务]
+  App[应用 / website] --> Core[主包核心 ThreeApp / ResourceScope]
+  App --> Native[可选 controls / loaders / postprocessing / environment]
+  App --> Modules[可选 interaction / labels / animation / camera / textures]
+  Native -. 借用宿主 .-> Core
+  Modules -. 借用宿主 .-> Core
+  Core --> Three[Three.js 核心]
+  Native --> Three
+  Native --> Addons[Three.js 按需 addons]
+  Modules --> Three
+  Adapter[未来 Vue / React 适配] -.-> Core
+  App --> Assets[应用持有的资产和 DOM]
 ```
 
 单主包用内部模块组合宿主、调度、尺寸与资源归属；宿主暴露原生 Three.js 对象，演示依赖公开入口。OrbitControls 从 controls、GLTF/GLB 从 loaders、拾取从 interaction、DOM 标签从 labels、模型动画从 animation 子入口接入；核心默认入口不依赖这些可选模块。标签在渲染完成阶段同步投影；动画在统一更新阶段驱动 Mixer，绑定宿主与模型扩展 scope，均无第二循环。animation 对 GLTFModel 仅有类型引用，loader 不导入动画或自动播放。可选 postprocessing 使用宿主独占管线，固定基础渲染、可选描边/泛光和输出转换，不创建新调度；其余效果留后续。Vue/Pinia、业务解密和场景路径不进入核心。
@@ -61,6 +52,8 @@ controls 的变换手柄复用原生 TransformControls，仅拥有 helper/监听
 textures 是可选独立图片入口，FileLoader 合并不可变字节，浏览器 createImageBitmap 逐任务解码；TextureAsset 显式拥有纹理和位图，材质/场景由消费者借用。无共享位图缓存、自动材质修改或默认核心反向导入，见 [ADR-0014](adr/0014-image-textures.md)。
 
 animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场景绘制分离，保持单一调度及模型/宿主所有权，见 [ADR-0015](adr/0015-animation-seek.md)。
+
+宿主尺寸错误恢复分别维护原生缓冲和管线的待同步状态，绘制前完成重试，并保护尺寸操作中的递归调用；不改变资源所有权或增加调度，补充 ADR-0009 的失败契约。
 
 ## 关键取舍
 

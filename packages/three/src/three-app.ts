@@ -60,6 +60,8 @@ export class ThreeApp {
   #maxPixelRatio: number;
   #media: MediaQueryList | null = null;
   #pipeline: { value: RenderPipeline; sizeDirty: boolean } | null = null;
+  #bufferDirty = false;
+  #resizing = false;
   #inFrame = false;
   #elapsed = 0;
 
@@ -176,6 +178,7 @@ export class ThreeApp {
   /** Exclusively attach a borrowed pipeline. Detach restores the default renderer. */
   setRenderPipeline(pipeline: RenderPipeline): () => void {
     this.#assertActive();
+    if (this.#resizing) throw new Error("Cannot attach a pipeline reentrantly during resize");
     if (!pipeline || typeof pipeline.render !== "function" || typeof pipeline.resize !== "function")
       throw new TypeError("A render and resize pipeline is required");
     if (this.#pipeline) throw new Error("A render pipeline is already attached");
@@ -184,6 +187,7 @@ export class ThreeApp {
     const detach = (): void => {
       if (this.#pipeline === lease) this.#pipeline = null;
     };
+    this.#resizing = true;
     try {
       pipeline.resize(this.size);
       this.#assertActive();
@@ -192,13 +196,16 @@ export class ThreeApp {
     } catch (error) {
       detach();
       throw error;
+    } finally {
+      this.#resizing = false;
     }
   }
 
   /** Draw once without updates, advancing time or scheduling another frame. */
   render(): void {
     this.#assertActive();
-    if (this.#inFrame) throw new Error("Cannot render reentrantly within a host frame");
+    if (this.#inFrame || this.#resizing)
+      throw new Error("Cannot render reentrantly within a host frame or resize");
     const revision = this.#revision;
     const valid = (): boolean =>
       this.#state !== "disposed" &&
@@ -219,34 +226,42 @@ export class ThreeApp {
 
   resize(): void {
     this.#assertActive();
-    const width = this.#container.clientWidth;
-    const height = this.#container.clientHeight;
-    const pixelRatio = Math.min(this.#view.devicePixelRatio || 1, this.#maxPixelRatio);
-    const previous = this.#size;
-    this.#size = { width, height, pixelRatio };
-    this.#drawable = width > 0 && height > 0;
-    const changed =
-      width !== previous.width || height !== previous.height || pixelRatio !== previous.pixelRatio;
-    if (
-      this.#drawable &&
-      (width !== previous.width || height !== previous.height || pixelRatio !== previous.pixelRatio)
-    ) {
-      this.camera.aspect = width / height;
-      this.camera.updateProjectionMatrix();
-      this.renderer.setDrawingBufferSize(width, height, pixelRatio);
-    }
-    if (this.#pipeline && (changed || this.#pipeline.sizeDirty)) {
-      const lease = this.#pipeline;
-      lease.sizeDirty = true;
-      try {
+    if (this.#resizing) throw new Error("Cannot resize reentrantly");
+    this.#resizing = true;
+    try {
+      const width = this.#container.clientWidth;
+      const height = this.#container.clientHeight;
+      const pixelRatio = Math.min(this.#view.devicePixelRatio || 1, this.#maxPixelRatio);
+      const previous = this.#size;
+      this.#size = { width, height, pixelRatio };
+      this.#drawable = width > 0 && height > 0;
+      const changed =
+        width !== previous.width ||
+        height !== previous.height ||
+        pixelRatio !== previous.pixelRatio;
+      if (changed) {
+        this.#bufferDirty = true;
+        // Preserve both operations even when native sizing fails before the pipeline is notified.
+        if (this.#pipeline) this.#pipeline.sizeDirty = true;
+      }
+      if (this.#drawable && this.#bufferDirty) {
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setDrawingBufferSize(width, height, pixelRatio);
+        this.#bufferDirty = false;
+      }
+      if (this.#pipeline?.sizeDirty) {
+        const lease = this.#pipeline;
         lease.value.resize(this.size);
         lease.sizeDirty = false;
-      } catch (error) {
-        this.stop();
-        throw error;
       }
+      this.#syncLoop();
+    } catch (error) {
+      this.stop();
+      throw error;
+    } finally {
+      this.#resizing = false;
     }
-    this.#syncLoop();
   }
 
   dispose(): void {
@@ -306,8 +321,8 @@ export class ThreeApp {
   }
 
   #draw(frame: FrameInfo, valid: () => boolean): void {
-    // A resize which threw must finish before a partially sized pipeline can draw again.
-    if (this.#pipeline?.sizeDirty) {
+    // Failed native-buffer and pipeline sizing must complete before another draw.
+    if (this.#bufferDirty || this.#pipeline?.sizeDirty) {
       this.resize();
       if (!valid()) return;
     }

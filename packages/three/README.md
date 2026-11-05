@@ -83,7 +83,9 @@ app.render();
 detach(); // 恢复原生绘制，不释放 pipeline；资源由其所有者管理。
 ```
 
-同一宿主仅能挂接一个管线；重复挂接先拒绝。挂接立即调用 resize(app.size)，之后仅在尺寸/DPR 改变时调用，包括暂停和零尺寸。初始化失败释放槽位；resize 错误停止宿主并抛出。返回解除函数幂等，旧函数不影响后来的管线；app.dispose 解除引用，不调用借用管线的 dispose。通过 app.resources 显式登记自有清理句柄。不要为管线创建新 RAF 或覆盖 renderer.render；直接调用原生 renderer.render 仍绕过宿主管线和 onAfterRender。
+同一宿主仅能挂接一个管线；重复挂接先拒绝。挂接立即调用 resize(app.size)，之后在尺寸/DPR 改变或失败待重试时调用，包括暂停和零尺寸。初始化失败释放槽位；resize 错误停止宿主并抛出。返回解除函数幂等，旧函数不影响后来的管线；app.dispose 解除引用，不调用借用管线的 dispose。通过 app.resources 显式登记自有清理句柄。不要为管线创建新 RAF 或覆盖 renderer.render；直接调用原生 renderer.render 仍绕过宿主管线和 onAfterRender。
+
+原生投影/绘制缓冲或管线 resize 失败均停止宿主，分别保留待同步状态；再次同尺寸 resize 或 app.render 前先重试缓冲、再同步管线。零尺寸保留待恢复状态；不回滚已写原生副作用。尺寸处理中（含初次管线通知）禁止递归 resize、render 或重挂接管线，需等待回调结束再显式绘制。
 
 ## 资源与边界
 
@@ -178,7 +180,7 @@ fitObject 使用当前 app.camera 和尺寸立即应用；支持宿主 ready/sto
 
 传入 `FitObjectOptions.controls` 时必须属于当前相机。遵守 minDistance，maxDistance 或 cursor/目标半径约束无法容纳时写入前拒绝；不修改这些限制。控件角度限制仍生效，返回 position 反映最终位置。通过公开 update(0) 先消耗残余惯性，再同步相机/target；临时关闭的 damping/autoRotate 标志始终恢复。原生 change 回调会执行，回调中销毁宿主阻止后续取景写入；同相机重入拒绝。消费者回调抛错时，不承诺回滚原生更新已产生的变动。
 
-两个函数不创建循环、资源句柄、订阅或自动播放/启动，也不直接 render。暂停时应用若希望立即显示，可显式 render 一次并更新标签；演示使用这一方式。旋转、动画、resize 或模型替换后，按需重新调用取景。相机过渡、正交/父级/偏轴相机留后续，详见 [ADR-0007](../../docs/adr/0007-camera-framing.md)。
+两个函数不创建循环、资源句柄、订阅或自动播放/启动，也不直接 render。暂停时应用若希望立即显示，可显式 render 一次并更新标签；演示使用这一方式。旋转、动画、resize 或模型替换后，按需重新调用取景。相机过渡见下节；正交/父级/偏轴相机留后续，详见 [ADR-0007](https://github.com/adui-studio/adui-three/blob/main/docs/adr/0007-camera-framing.md)。
 
 ## KTX2 纹理模型
 
@@ -205,7 +207,7 @@ const model = await loadGLTF(app, "/models/ktx2.gltf", {
 
 任务拥有 KTX2Loader；取消/宿主销毁后，等原生加载及已开始转码结束再清理 Worker/Blob URL，迟到模型不挂载。解析输入会复制，防止同 URL 合并/缓存请求在不同任务间共享纹理或转移原缓冲；有相应 CPU/内存成本。正常纹理交给模型快照，失败且未移交的 KTX2 纹理由适配层释放；不改全局 Cache。多个并行实例可能保留原生性能提示，当前没有共享转码池。
 
-KTX2 文件/解析失败会拒绝并清理结果，避免原生吞掉纹理错误后返回缺贴图模型；清理错误仍通过 onCleanupError 报告。已开始的原生请求/Worker 永不完成时，不能保证按时结束清理。具体契约见 [ADR-0006](../../docs/adr/0006-ktx2-lifecycle.md)。实测 ETC1S/BasisLZ 的 GLTF/GLB、真实压缩上传及禁用压缩扩展时的 RGBA 回退；独立 KTX2 纹理 API、UASTC/HDR/数组/立方纹理和完整 GPU 格式矩阵仍留后续。
+KTX2 文件/解析失败会拒绝并清理结果，避免原生吞掉纹理错误后返回缺贴图模型；清理错误仍通过 onCleanupError 报告。已开始的原生请求/Worker 永不完成时，不能保证按时结束清理。具体契约见 [ADR-0006](https://github.com/adui-studio/adui-three/blob/main/docs/adr/0006-ktx2-lifecycle.md)。实测 ETC1S/BasisLZ 的 GLTF/GLB、真实压缩上传及禁用压缩扩展时的 RGBA 回退；独立 KTX2 纹理 API、UASTC/HDR/数组/立方纹理和完整 GPU 格式矩阵仍留后续。
 
 ## 模型动画
 

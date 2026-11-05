@@ -142,6 +142,8 @@ OutlineOptions：selectedObjects=[]（借用对象数组快照）、edgeStrength
 
 描边启用且有选择时保存 scene.background/overrideMaterial 和场景/选择对象的 visible 快照，仅绘制失败恢复。resize/render 不允许操作中重入，操作内销毁等原生调用返回再清理。失败尺寸保留 dirty 状态，同尺寸通知及下次绘制前可以重试，模块仅在原生设置成功后记录尺寸快照。其余尺寸、DPR、借用 renderer 状态、独占租约与资源契约保持，细节见 [ADR-0011](adr/0011-effect-composition.md)。
 
+尺寸恢复补充：原生投影/绘制缓冲与管线分别保存待同步状态，失败停止调度且同尺寸重试，draw 前先完成原生缓冲、再管线通知。零尺寸不分配也不遗忘 dirty；尺寸处理中（含挂接首次通知）拒绝递归 resize、render 或重挂接管线，错误返回后释放操作保护。见 ADR-0009。
+
 ## 对象变换契约
 
 controls 入口的 attachTransformControls(app, TransformControlsOptions) 允许 object、orbitControls、mode=translate、space=world、size=1。模式为 translate/rotate/scale，空间 world/local，尺寸正有限；目标借用本场景后代，拒绝 scene/外部目标/自有 helper。原生 OrbitControls 须匹配宿主相机/画布。单宿主独占，返回原生 controls、helper、disposed、attach/detach 和幂等 dispose。

@@ -89,6 +89,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 动画定位阶段复用 threejs-animation，核验 r187 Action.reset/time 与零 delta、Mixer 全局时间/缩放语义。使用既有 sample(0) 而非 Mixer.setTime，保持动作时间与宿主调度分离；原生事件队列重新校验实际选择，浏览器验证真实节点姿态。
 
+尺寸失败恢复阶段按 FR-007/FR-021 做定向审查，先以四项失败单测复现，再补原生 buffer 与管线独立重试、尺寸重入保护。利用真实 canvas.width setter 故障注入验证实际 WebGL/泛光恢复，不用 fake renderer 单测替代 GPU 集成验收；流程继续仅本地执行。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。
