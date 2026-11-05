@@ -27,6 +27,11 @@
       "development": "./src/loaders.ts",
       "import": "./dist/loaders.mjs"
     },
+    "./interaction": {
+      "types": "./dist/interaction.d.mts",
+      "development": "./src/interaction.ts",
+      "import": "./dist/interaction.mjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
