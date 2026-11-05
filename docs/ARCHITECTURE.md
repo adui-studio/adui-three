@@ -57,6 +57,8 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 独立 KTX2 从 textures 导出，内部与模型加载共享 TaskKTX2Loader 的隔离/在途清理适配层，不依赖 GLTFLoader 或模型句柄；原生压缩资产和图片位图资产分开拥有，见 [ADR-0016](adr/0016-standalone-ktx2.md)。
 
+动画渐变仍只在宿主更新中对原生 action 权重采样；中断用有效权重快照，原生 Mixer 返回后才退役旧动作，保持模型/宿主双范围所有权，见 [ADR-0017](adr/0017-animation-crossfade.md)。
+
 ## 关键取舍
 
 environment 是独立可选入口，下载/解码后的 HDR 资产由宿主拥有，场景绑定借用资产并同时登记两方清理。加载不改变场景；应用决定请求版本及绑定/绘制时机。复用 renderer 自动环境转换，不反向导入 website 或重复生成 PMREM，见 [ADR-0012](adr/0012-hdr-environment.md)。

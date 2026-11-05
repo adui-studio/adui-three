@@ -37,6 +37,10 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   animations.play(0, { loop: "once" });
   animations.seek(0);
   animations.resume();
+  animations.crossFadeTo(0, { duration: 0.3, loop: "repeat" });
+  const blendProgress: number = animations.blendProgress;
+  const blending: boolean = animations.blending;
+  void blendProgress; void blending;
   computeObjectFrame(app.camera, object, { direction: [1, 1, 1] });
   fitObject(app, object, { controls });
   const motion = transitionToObject(app, object, { controls, duration: 1, signal: app.signal });

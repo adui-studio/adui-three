@@ -68,8 +68,8 @@ function mountPanel(id: string, color: number): void {
     <p class="camera-feedback" role="status">占位物体纹理：<span data-testid="texture-state">idle</span> · 原创方向图 / 棋盘图</p>
     <div class="model-actions"><button data-action="glb">加载 GLB</button><button data-action="gltf">加载 GLTF</button><button data-action="draco">加载 Draco</button><button data-action="meshopt">加载 Meshopt</button><button data-action="ktx2">加载 KTX2</button><button data-action="ktx2-glb">KTX2 GLB</button><button data-action="decoder-error">缺少解码器</button><button data-action="ktx2-error">缺少转码器</button><button data-action="cancel-model">取消加载</button><button data-action="remove-model">移除模型</button><button data-action="invalid-model">失败示例</button></div>
     <p class="model-feedback" role="status">模型未加载 · 使用项目原创的内嵌纹理样例</p>
-    <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-once">单次播放</button><button data-action="animation-stop">停止动画</button></div>
-    <p class="animation-feedback" role="status">动画：<span data-testid="animation-state">idle</span> · <span data-testid="animation-clip">—</span> · <span data-testid="animation-time">0.000</span> s</p>
+    <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-fade">渐变切换</button><button data-action="animation-once">单次播放</button><button data-action="animation-stop">停止动画</button></div>
+    <p class="animation-feedback" role="status">动画：<span data-testid="animation-state">idle</span> · <span data-testid="animation-clip">—</span> · <span data-testid="animation-time">0.000</span> s · 渐变 <span data-testid="animation-blend-progress">0</span>%</p>
     <label class="animation-timeline">定位<input type="range" min="0" max="100" step="1" value="0" data-action="animation-seek" aria-label="动画定位"><span data-testid="animation-progress">0</span>%</label>
     <p class="picking-feedback" role="status">悬停：<span data-testid="hovered">—</span> · 选中：<span data-testid="selected">—</span><span class="picking-hint">点击物体选中 · 点击空白清除</span></p>`;
   document.querySelector(".workspace")!.appendChild(card);
@@ -273,10 +273,15 @@ function mountPanel(id: string, color: number): void {
     card.querySelector('[data-testid="animation-time"]')!.textContent = (
       animation?.action?.time ?? 0
     ).toFixed(3);
+    card.dataset.animationBlending = String(animation?.blending ?? false);
+    card.dataset.animationBlendProgress = (animation?.blendProgress ?? 0).toFixed(3);
+    card.querySelector('[data-testid="animation-blend-progress"]')!.textContent = String(
+      Math.round((animation?.blendProgress ?? 0) * 100),
+    );
     const canAnimate =
       !!animation && !animation.disposed && animation.clips.length > 0 && !hasTransform;
     button("animated-model").disabled = !app || state === "disposed";
-    for (const action of ["animation-play", "animation-next", "animation-once"])
+    for (const action of ["animation-play", "animation-next", "animation-once", "animation-fade"])
       button(action).disabled = !canAnimate;
     button("animation-pause").disabled = !canAnimate || animationState !== "playing";
     button("animation-resume").disabled = !canAnimate || animationState !== "paused";
@@ -707,6 +712,11 @@ function mountPanel(id: string, color: number): void {
       if (action === "animation-next" && animation?.clips.length) {
         animationIndex = (animationIndex + 1) % animation.clips.length;
         animation.play(animationIndex);
+      }
+      if (action === "animation-fade" && animation?.clips.length) {
+        animationIndex = (animationIndex + 1) % animation.clips.length;
+        animation.crossFadeTo(animationIndex, { duration: 2 });
+        if (app?.state !== "running") app?.render();
       }
       if (action === "animation-once") animation?.play(animationIndex, { loop: "once" });
       if (action === "animation-stop") animation?.stop();

@@ -224,17 +224,32 @@ animations.play("Lift", { loop: "repeat", timeScale: 1 });
 // animations.dispose(); // 只清理动画，模型仍可使用。
 ```
 
-返回 `GLTFAnimationsHandle`，包含 mixer、clips、action、state、disposed 和 play/seek/pause/resume/stop/dispose。构造时不自动播放或启动宿主；clips 是原生片段引用的只读数组快照，空列表也可创建。play 按非负整数索引或唯一完整名称选择，未知/歧义名称、越界、非正有限 duration、无效 tracks 拒绝并保留原播放；原生 clip.validate 可能输出诊断。播放期间不要修改片段数据。
+返回 `GLTFAnimationsHandle`，包含 mixer、clips、action、state、disposed 和 play/crossFadeTo/seek/pause/resume/stop/dispose。构造时不自动播放或启动宿主；clips 是原生片段引用的只读数组快照，空列表也可创建。play 按非负整数索引或唯一完整名称选择，未知/歧义名称、越界、非正有限 duration、无效 tracks 拒绝并保留原播放；原生 clip.validate 可能输出诊断。播放期间不要修改片段数据。
 
-play 选项：loop="repeat"（默认）或 "once"；clampWhenFinished=true（默认）；timeScale=1（正有限倍速）。重复播放同一片段也从零开始；切换立即停止旧 action，不做淡入淡出。调用时采样首帧，后续由宿主 onUpdate(delta) 驱动；宿主停止/隐藏/零尺寸期间不前进，恢复首帧 delta=0。pause/resume 保持姿态、时间和配置的速度，不改变宿主或 mixer.timeScale；idle/finished 时无操作。
+play 选项：loop="repeat"（默认）或 "once"；clampWhenFinished=true（默认）；timeScale=1（正有限倍速）。重复播放同一片段也从零开始；play 切换立即停止旧 action；需要渐变时使用 crossFadeTo。调用时采样首帧，后续由宿主 onUpdate(delta) 驱动；宿主停止/隐藏/零尺寸期间不前进，恢复首帧 delta=0。pause/resume 保持姿态、时间和配置的速度，不改变宿主或 mixer.timeScale；idle/finished 时无操作。
 
 state 为 idle/playing/paused/finished/disposed，描述控制器状态；once 结束进入 finished，clamp=true 保留末姿态，false 按原生 binding 规则恢复未被其他 action 使用的属性。stop 恢复绑定属性、清空 action 和 Mixer 时间；停止、暂停时可再次 play。销毁后 play/seek/pause/resume 抛错，stop/dispose 幂等。
 
-seek(seconds) 仅接受已有选择的 [0,clip.duration] 有限秒数，零 delta 采样后进入 paused，保持 mixer.time、loop/clamp/weight/timeScale，不启动宿主或绘制。可检查已完成动作，精确端点保持到 resume 后依循环规则推进；定位重置过去循环次数及原生淡变/warp。暂停画面需要应用 app.render。原生事件内的定位依序执行，并在执行前按实际片段重新校验；队列更早的切换/stop 可能使请求失效并抛错。
+seek(seconds) 仅接受已有选择的 [0,clip.duration] 有限秒数，零 delta 采样后进入 paused，保持 mixer.time、loop/clamp/weight/timeScale，不启动宿主或绘制。可检查已完成动作，精确端点保持到 resume 后依循环规则推进；定位重置过去循环次数及原生淡变/warp。若正在 crossFadeTo，定位会停止其他贡献并以全权重检查当前目标。暂停画面需要应用 app.render。原生事件内的定位依序执行，并在执行前按实际片段重新校验；队列更早的切换/stop 可能使请求失效并抛错。
 
 句柄同时登记 app.resources 与 model.resources，任意所有者结束都会取消订阅、停止 action 并 uncacheRoot，不释放模型资产。原句柄缓存清理完成前，同一根对象不能再创建句柄。原生 loop/finished 事件中调用控制方法会在本次 Mixer 更新返回后执行；dispose 先失效并丢弃排队命令，延后清缓存。若事件中移除模型，GPU 资产可能先释放，CPU 采样结束后再完成缓存清理；不会重新挂载模型。
 
-mixer/action 可查询及配置参数；采样、action 调度和缓存由句柄管理，不要再手动 update/play/stop/uncache 或为同一属性添加竞争写入者。业务注册的原生事件监听自行移除；持有句柄/mixer 引用仍可保留 CPU 模型。本入口不引入 GLTFLoader 运行时代码，不提供反向、混合、骨骼重定向或状态机。浏览器原创样例只验证节点动画，骨骼/morph 与复杂资产仍需专门验证。
+mixer/action 可查询及配置参数；采样、action 调度和缓存由句柄管理，不要再手动 update/play/stop/uncache 或为同一属性添加竞争写入者。业务注册的原生事件监听自行移除；持有句柄/mixer 引用仍可保留 CPU 模型。本入口不引入 GLTFLoader 运行时代码，不提供反向、任意混合图、骨骼重定向或状态机。浏览器原创样例只验证节点动画，骨骼/morph 与复杂资产仍需专门验证。
+
+### 渐变切换
+
+```ts
+animations.play("Lift");
+animations.crossFadeTo("Slide", { duration: 0.4, loop: "repeat", timeScale: 1 });
+// animations.blending / animations.blendProgress（0..1）
+// animations.pause(); animations.resume(); // 冻结/继续整个交接。
+```
+
+CrossFadeOptions 的 duration 默认 0.3，正有限 Mixer 秒，其他选项同 play。目标从当前有效权重渐变到 1，其他动作从各自当前权重降到 0；中断重新拍快照，保持瞬时复合姿态。已活动目标保留片段时间，同一当前目标无操作，重播用 play；没有旧动作时正常播放，不从空姿态淡入。结束进度为 1，旧动作在原生采样返回后停止，当前目标保持运行。每片段最多一个 native action，结束只留目标，缓存仍按既有 Mixer 生命周期清理。
+
+暂停/停止宿主均冻结交接，无独立时钟。duration 受 mixer.timeScale 缩放，允许 0 暂停，须非负有限；action timeScale 只改变片段速度。当前只支持普通 blend mode 和 [0,1] 有效权重，不提供 additive、warp 或自定义权重曲线。目标 once 提前结束时继续交接，渐变结束后 state 才为 finished；clamp 行为沿用原生规则。
+
+play/stop 取消渐变，seek 取消其他贡献并定位目标；blendProgress 初始/取消为 0，完成为 1。控制方法仍按原生事件队列依序执行，dispose 立即失效、原生返回后释放全部缓存。不要同时手动控制 native 淡变、action 调度或 Mixer 采样。异常沿用宿主停止/抛出，不承诺回滚已采样姿态；骨骼/morph 等复杂资产仍待验证。
 
 ## 对象拾取
 

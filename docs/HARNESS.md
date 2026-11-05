@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 240 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 254 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 48 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 50 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 动画渐变阶段：ready 通过 13 项文档检查器测试、254 项主包单测、116 文件格式与 66 源文件 Lint/类型检查，十入口和演示构建成功。新增 14 项真实 Mixer 测试覆盖线性姿态/权重、中断切回、暂停/时钟、短一次播放、非法输入、事件队列、清理失败继续及 30 次快速改选后的有界动作集合。十入口 tarball 独立安装、无 DOM 导入与四次严格声明/消费编译通过。
+
+两项新增浏览器回归单独 2/2 通过（约 9.5 秒），完整 50/50 通过（约 77.7 秒），零重试；使用既有原创 GLB 验证标签投影连续、暂停/恢复、定位/停止、移除/重建和双实例，截图已目视检查。没有新增 RAF、渲染调用、依赖或资产。当前是普通权重渐变，不覆盖任意混合图、重定向或完整骨骼/morph 验收；不做 CI，不发布 npm。
 
 2026-11-05 独立 KTX2 阶段：ready 通过 13 项文档检查器测试、240 项主包单测、114 文件格式及 65 源文件 Lint/类型检查，十入口和演示构建成功。新增 10 项运输/原生纹理测试，保留 TaskKTX2Loader 的输入复制/移交/清理，验证配置、能力、取消/迟到、原始/数组格式拒绝、错误与清理。首次静态检查的数组纹理构造缺少 format 参数已按锁定声明修正，无忽略类型检查。
 

@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import {
   AnimationClip,
+  AdditiveAnimationBlendMode,
   BoxGeometry,
   Group,
   Mesh,
@@ -82,6 +83,261 @@ test("attachment is idle, snapshots clip references and does not start the host"
   expect(env.animation.action).toBeNull();
   expect(env.state.state).toBe("ready");
   expect(env.callbacks.size).toBe(1);
+});
+
+function blendClips() {
+  return [0, 10, 20].map(
+    (value, index) =>
+      new AnimationClip("Pose" + index, 2, [
+        new NumberKeyframeTrack(".position[x]", [0, 2], [value, value]),
+      ]),
+  );
+}
+
+test("crossfade samples linear native weights and stops outgoing actions only after the final sample", async () => {
+  const env = await fixture(blendClips());
+  env.state.state = "running";
+  env.animation.play(0);
+  const outgoing = env.animation.action!;
+  env.animation.crossFadeTo(1, { duration: 1 });
+  expect(env.scene.position.x).toBe(0);
+  expect(env.animation.blending).toBe(true);
+  env.tick(0.25);
+  expect(env.scene.position.x).toBeCloseTo(2.5);
+  expect(outgoing.getEffectiveWeight()).toBeCloseTo(0.75);
+  expect(env.animation.action!.getEffectiveWeight()).toBeCloseTo(0.25);
+  expect(env.animation.blendProgress).toBe(0.25);
+  env.tick(0.75);
+  expect(env.scene.position.x).toBeCloseTo(10);
+  expect(outgoing.isScheduled()).toBe(false);
+  expect(env.animation.blending).toBe(false);
+  expect(env.animation.blendProgress).toBe(1);
+  expect(env.animation.mixer.stats.actions.inUse).toBe(1);
+});
+
+test("interrupting a fade starts from its current composite pose rather than resetting outgoing weights", async () => {
+  const env = await fixture(blendClips());
+  env.state.state = "running";
+  env.animation.play(0);
+  env.animation.crossFadeTo(1, { duration: 1 });
+  env.tick(0.5);
+  expect(env.scene.position.x).toBeCloseTo(5);
+  env.animation.crossFadeTo(2, { duration: 1 });
+  expect(env.scene.position.x).toBeCloseTo(5);
+  env.tick(0.5);
+  expect(env.scene.position.x).toBeCloseTo(12.5);
+  env.tick(0.5);
+  expect(env.scene.position.x).toBeCloseTo(20);
+  expect(env.animation.mixer.stats.actions.inUse).toBe(1);
+});
+
+test("fading back to an active outgoing clip retains its phase and repeated selection is a no-op", async () => {
+  const env = await fixture(blendClips());
+  env.state.state = "running";
+  env.animation.play(0);
+  const original = env.animation.action!;
+  env.animation.crossFadeTo(1, { duration: 1 });
+  env.tick(0.4);
+  const time = original.time;
+  const pose = env.scene.position.x;
+  env.animation.crossFadeTo(0, { duration: 1 });
+  expect(env.animation.action).toBe(original);
+  expect(original.time).toBe(time);
+  expect(env.scene.position.x).toBeCloseTo(pose);
+  env.tick(0.2);
+  const progress = env.animation.blendProgress;
+  env.animation.crossFadeTo(0, { duration: 0.1 });
+  expect(env.animation.blendProgress).toBe(progress);
+  expect(original.time).toBeCloseTo(time + 0.2);
+});
+
+test("crossfade from idle starts normally and host/controller pause freezes the transition", async () => {
+  const env = await fixture(blendClips());
+  env.animation.crossFadeTo(0);
+  expect(env.animation.blending).toBe(false);
+  expect(env.animation.state).toBe("playing");
+  env.animation.crossFadeTo(1, { duration: 1 });
+  env.tick(0.5);
+  expect(env.animation.blendProgress).toBe(0);
+  expect(env.state.state).toBe("ready");
+  env.state.state = "running";
+  env.tick(0.25);
+  env.animation.pause();
+  env.tick(1);
+  expect(env.animation.blendProgress).toBe(0.25);
+  expect(env.scene.position.x).toBeCloseTo(2.5);
+  env.animation.resume();
+  env.tick(0.75);
+  expect(env.scene.position.x).toBeCloseTo(10);
+  expect(env.animation.blending).toBe(false);
+});
+
+test("mixer timeScale controls fade duration while action timeScale controls clip speed", async () => {
+  const env = await fixture(blendClips());
+  env.state.state = "running";
+  env.animation.play(0);
+  env.animation.crossFadeTo(1, { duration: 1, timeScale: 2 });
+  env.animation.mixer.timeScale = 0;
+  env.tick(0.5);
+  expect(env.animation.blendProgress).toBe(0);
+  env.animation.mixer.timeScale = 2;
+  env.tick(0.25);
+  expect(env.animation.blendProgress).toBeCloseTo(0.5);
+  expect(env.animation.action!.time).toBeCloseTo(1);
+  expect(env.scene.position.x).toBeCloseTo(5);
+});
+
+test("invalid fade inputs, additive modes and invalid mixer scaling preserve the current selection", async () => {
+  const clips = blendClips();
+  clips[2]!.blendMode = AdditiveAnimationBlendMode;
+  const env = await fixture(clips);
+  env.animation.play(0);
+  const original = env.animation.action;
+  for (const duration of [0, -1, Infinity, NaN])
+    expect(() => env.animation.crossFadeTo(1, { duration })).toThrow("duration");
+  expect(() => env.animation.crossFadeTo(99)).toThrow(RangeError);
+  expect(() => env.animation.crossFadeTo(2)).toThrow("normal");
+  env.animation.mixer.timeScale = -1;
+  expect(() => env.animation.crossFadeTo(1)).toThrow("timeScale");
+  expect(env.animation.action).toBe(original);
+  expect(env.animation.blending).toBe(false);
+  expect(env.animation.mixer.stats.actions.inUse).toBe(1);
+});
+
+test("one-shot completion during a fade settles after the fade and respects clamp behavior", async () => {
+  for (const clampWhenFinished of [true, false]) {
+    const clips = blendClips();
+    clips[1]!.duration = 0.1;
+    const env = await fixture(clips);
+    env.state.state = "running";
+    env.animation.play(0);
+    env.animation.crossFadeTo(1, { duration: 1, loop: "once", clampWhenFinished });
+    env.tick(0.25);
+    expect(env.animation.state).toBe("playing");
+    expect(env.animation.blending).toBe(true);
+    env.tick(0.75);
+    expect(env.animation.state).toBe("finished");
+    expect(env.scene.position.x).toBeCloseTo(clampWhenFinished ? 10 : 0);
+    expect(env.animation.mixer.stats.actions.inUse).toBe(1);
+  }
+});
+
+test("seek cancels outgoing contributions while preserving weight when no fade is active", async () => {
+  const env = await fixture(blendClips());
+  env.state.state = "running";
+  env.animation.play(0);
+  env.animation.crossFadeTo(1, { duration: 1 });
+  env.tick(0.25);
+  env.animation.seek(0.5);
+  expect(env.animation.blending).toBe(false);
+  expect(env.animation.blendProgress).toBe(0);
+  expect(env.scene.position.x).toBeCloseTo(10);
+  expect(env.animation.state).toBe("paused");
+  expect(env.animation.mixer.stats.actions.inUse).toBe(1);
+  env.animation.action!.setEffectiveWeight(0.4);
+  env.animation.seek(0.5);
+  expect(env.animation.action!.weight).toBeCloseTo(0.4);
+  expect(env.scene.position.x).toBeCloseTo(4);
+});
+
+test("immediate play and stop cancel all outgoing actions and restore the original bindings", async () => {
+  const env = await fixture(blendClips());
+  env.state.state = "running";
+  env.animation.play(0);
+  env.animation.crossFadeTo(1, { duration: 1 });
+  env.tick(0.25);
+  env.animation.play(2);
+  expect(env.scene.position.x).toBe(20);
+  expect(env.animation.blending).toBe(false);
+  expect(env.animation.mixer.stats.actions.inUse).toBe(1);
+  env.animation.crossFadeTo(1, { duration: 1 });
+  env.animation.stop();
+  expect(env.scene.position.x).toBe(0);
+  expect(env.animation.mixer.stats.actions.inUse).toBe(0);
+  expect(env.animation.blendProgress).toBe(0);
+  expect(env.animation.state).toBe("idle");
+});
+
+test("native finished events queue a fade without changing the mixer active array during iteration", async () => {
+  const env = await fixture(blendClips());
+  env.state.state = "running";
+  env.animation.play(0, { loop: "once" });
+  env.animation.mixer.addEventListener("finished", () =>
+    env.animation.crossFadeTo(1, { duration: 1 }),
+  );
+  env.tick(2.1);
+  expect(env.animation.blending).toBe(true);
+  expect(env.animation.action!.getClip().name).toBe("Pose1");
+  env.tick(0.5);
+  expect(env.scene.position.x).toBeCloseTo(5);
+});
+
+test("disposal from a native finish during blending defers cache release and cannot revive transition state", async () => {
+  const clips = blendClips();
+  clips[1]!.duration = 0.1;
+  const env = await fixture(clips);
+  env.state.state = "running";
+  env.animation.play(0);
+  env.animation.crossFadeTo(1, { duration: 1, loop: "once" });
+  env.animation.mixer.addEventListener("finished", () => env.model.dispose());
+  env.tick(0.25);
+  expect(env.animation.state).toBe("disposed");
+  expect(env.animation.blending).toBe(false);
+  expect(env.callbacks.size).toBe(0);
+  expect(env.animation.mixer.stats.actions.inUse).toBe(0);
+  expect(() => env.animation.crossFadeTo(0)).toThrow("disposed");
+});
+
+test("outgoing cleanup attempts all other actions even when one native stop fails", async () => {
+  const env = await fixture(blendClips());
+  env.state.state = "running";
+  env.animation.play(0);
+  const first = env.animation.action!;
+  env.animation.crossFadeTo(1, { duration: 1 });
+  env.tick(0.5);
+  const second = env.animation.action!;
+  env.animation.crossFadeTo(2, { duration: 1 });
+  vi.spyOn(first, "stop").mockImplementation(() => {
+    throw new Error("native stop");
+  });
+  const stopSecond = vi.spyOn(second, "stop");
+  expect(() => env.tick(1)).toThrow(AggregateError);
+  expect(stopSecond).toHaveBeenCalledOnce();
+  expect(() => env.animation.dispose()).toThrow(AggregateError);
+  expect(env.animation.mixer.stats.actions.inUse).toBe(0);
+});
+
+test("many interrupted transitions keep at most one native action per clip and settle to one action", async () => {
+  const env = await fixture(blendClips());
+  env.state.state = "running";
+  env.animation.play(0);
+  for (let index = 0; index < 30; index++) {
+    const before = env.scene.position.x;
+    env.animation.crossFadeTo((index + 1) % 3, { duration: 1 });
+    expect(env.scene.position.x).toBeCloseTo(before);
+    env.tick(0.05);
+    expect(env.animation.mixer.stats.actions.inUse).toBeLessThanOrEqual(3);
+  }
+  env.tick(1);
+  expect(env.animation.mixer.stats.actions.inUse).toBe(1);
+  expect(env.animation.mixer.stats.actions.total).toBe(3);
+});
+
+test("blending a model does not change another model's action weights or controller state", async () => {
+  const a = await fixture(blendClips());
+  const b = await fixture(blendClips());
+  a.state.state = "running";
+  b.state.state = "running";
+  a.animation.play(0);
+  b.animation.play(1);
+  a.animation.crossFadeTo(2, { duration: 1 });
+  a.tick(0.5);
+  b.tick(0.5);
+  expect(a.scene.position.x).toBeCloseTo(10);
+  expect(b.scene.position.x).toBeCloseTo(10);
+  expect(b.animation.action!.getEffectiveWeight()).toBe(1);
+  expect(b.animation.blending).toBe(false);
+  expect(b.animation.state).toBe("playing");
 });
 
 test("seek samples an exact selected clip pose and pauses without starting the host or advancing mixer time", async () => {

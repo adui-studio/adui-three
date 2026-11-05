@@ -93,6 +93,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 独立 KTX2 阶段继续复用 threejs-loaders/threejs-textures，核验 r187 KTX2Loader.load/parse/_createTexture 的实际类型与异步初始化。显式限定二维 Basis，不把原生类型声明中的 CompressedTexture 误当全部 KTX2 结果；模型/独立任务复用适配层及真实 Worker/GPU 探针，无默认 CDN 或强制终止在途任务。
 
+动画渐变阶段继续复用 threejs-animation，核验 r187 setEffectiveWeight、原生动作停用/绑定恢复及 Mixer 活动数组。对可中断交接使用当前权重快照，不重启既有目标相位；所有 action 停用等 native update 返回，复用同一宿主时钟与延期清理，不创建第二循环。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

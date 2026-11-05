@@ -1,4 +1,4 @@
-import { AnimationMixer, LoopOnce, LoopRepeat } from "three";
+import { AnimationMixer, LoopOnce, LoopRepeat, NormalAnimationBlendMode } from "three";
 import type { AnimationAction, AnimationClip, Object3D } from "three";
 import type { GLTFModel } from "./loaders.ts";
 import type { ThreeApp } from "./three-app.ts";
@@ -14,6 +14,11 @@ export interface PlayAnimationOptions {
   timeScale?: number;
 }
 
+export interface CrossFadeOptions extends PlayAnimationOptions {
+  /** Positive finite mixer seconds. Default 0.3. */
+  duration?: number;
+}
+
 export interface GLTFAnimationsHandle {
   readonly mixer: AnimationMixer;
   /** Snapshot of clip references; clips remain borrowed and must not be mutated while playing. */
@@ -21,8 +26,13 @@ export interface GLTFAnimationsHandle {
   readonly action: AnimationAction | null;
   readonly state: AnimationState;
   readonly disposed: boolean;
+  readonly blending: boolean;
+  /** 0 initially/cancelled, 1 after a completed transition. */
+  readonly blendProgress: number;
   /** Select by array index or unique exact name. Always restarts the clip; switching is immediate. */
   play(clip: number | string, options?: PlayAnimationOptions): void;
+  /** Blend from current weights; an already active destination retains its clip time. */
+  crossFadeTo(clip: number | string, options?: CrossFadeOptions): void;
   /** Sample selected clip time in [0, duration] seconds, then pause. Does not advance mixer time. */
   seek(seconds: number): void;
   pause(): void;
@@ -52,6 +62,11 @@ export function attachGLTFAnimations(app: ThreeApp, model: GLTFModel): GLTFAnima
   let updating = false;
   let released = false;
   let unsubscribe = (): void => {};
+  const actions = new Set<AnimationAction>();
+  let blend: { duration: number; elapsed: number; weights: Map<AnimationAction, number> } | null =
+    null;
+  let blendProgress = 0;
+  let targetFinished = false;
   const pending: Array<() => void> = [];
   const active = (): void => {
     if (disposed) throw new Error("GLTF animations have been disposed");
@@ -72,13 +87,32 @@ export function attachGLTFAnimations(app: ThreeApp, model: GLTFModel): GLTFAnima
       errors.push(error);
     }
     roots.delete(root);
+    actions.clear();
+    blend = null;
     if (errors.length) throw new AggregateError(errors, "GLTF animation cleanup failed");
   };
   const sample = (delta: number): void => {
     updating = true;
     const errors: unknown[] = [];
     try {
+      if (blend) {
+        const elapsed = delta * mixer.timeScale;
+        if (!Number.isFinite(elapsed) || elapsed < 0)
+          throw new RangeError("Crossfade requires a finite nonnegative mixer timeScale");
+        blend.elapsed = Math.min(blend.duration, blend.elapsed + elapsed);
+        blendProgress = blend.elapsed / blend.duration;
+        for (const [entry, weight] of blend.weights)
+          entry.setEffectiveWeight(
+            weight * (1 - blendProgress) + (entry === action ? blendProgress : 0),
+          );
+      }
       mixer.update(delta);
+      // Never deactivate native actions while AnimationMixer is iterating its active array.
+      if (!disposed && blend && blendProgress === 1) {
+        blend = null;
+        stopOthers(action!);
+        if (!disposed && targetFinished) state = "finished";
+      }
     } catch (error) {
       errors.push(error);
     }
@@ -107,7 +141,62 @@ export function attachGLTFAnimations(app: ThreeApp, model: GLTFModel): GLTFAnima
     else command();
   };
   const finished = (event: { action: AnimationAction }): void => {
-    if (!disposed && event.action === action) state = "finished";
+    if (!disposed && event.action === action) {
+      targetFinished = true;
+      if (!blend) state = "finished";
+    }
+  };
+  const stopOthers = (keep: AnimationAction): void => {
+    const errors: unknown[] = [];
+    for (const entry of Array.from(actions)) {
+      if (disposed) break;
+      if (entry === keep) continue;
+      actions.delete(entry);
+      try {
+        entry.stop();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length) throw new AggregateError(errors, "Outgoing animation cleanup failed");
+  };
+  const selection = (
+    selector: number | string,
+    options: PlayAnimationOptions,
+  ): {
+    clip: AnimationClip;
+    settings: Required<PlayAnimationOptions>;
+  } => {
+    const matches =
+      typeof selector === "string" ? clips.filter((clip) => clip.name === selector) : [];
+    const clip =
+      typeof selector === "number" && Number.isInteger(selector)
+        ? clips[selector]
+        : matches.length === 1
+          ? matches[0]
+          : undefined;
+    if (!clip) throw new RangeError("Select an existing clip index or a unique exact name");
+    const { loop = "repeat", clampWhenFinished = true, timeScale = 1 } = options;
+    if ((loop !== "repeat" && loop !== "once") || !Number.isFinite(timeScale) || timeScale <= 0)
+      throw new RangeError(
+        "Animation loop must be repeat/once and timeScale must be positive and finite",
+      );
+    if (typeof clampWhenFinished !== "boolean")
+      throw new TypeError("clampWhenFinished must be boolean");
+    if (!Number.isFinite(clip.duration) || clip.duration <= 0 || !clip.validate())
+      throw new RangeError("Animation clip must have a positive finite duration and valid tracks");
+    return { clip, settings: { loop, clampWhenFinished, timeScale } };
+  };
+  const configure = (entry: AnimationAction, settings: Required<PlayAnimationOptions>): void => {
+    entry.paused = false;
+    entry.enabled = true;
+    entry
+      .setEffectiveTimeScale(settings.timeScale)
+      .setLoop(
+        settings.loop === "once" ? LoopOnce : LoopRepeat,
+        settings.loop === "once" ? 1 : Infinity,
+      );
+    entry.clampWhenFinished = settings.clampWhenFinished;
   };
   const handle: GLTFAnimationsHandle = {
     mixer,
@@ -121,37 +210,66 @@ export function attachGLTFAnimations(app: ThreeApp, model: GLTFModel): GLTFAnima
     get disposed(): boolean {
       return disposed;
     },
+    get blending(): boolean {
+      return blend !== null;
+    },
+    get blendProgress(): number {
+      return blendProgress;
+    },
     play(selector, options = {}): void {
       active();
-      const matches =
-        typeof selector === "string" ? clips.filter((clip) => clip.name === selector) : [];
-      const clip =
-        typeof selector === "number" && Number.isInteger(selector)
-          ? clips[selector]
-          : matches.length === 1
-            ? matches[0]
-            : undefined;
-      if (!clip) throw new RangeError("Select an existing clip index or a unique exact name");
-      const { loop = "repeat", clampWhenFinished = true, timeScale = 1 } = options;
-      if ((loop !== "repeat" && loop !== "once") || !Number.isFinite(timeScale) || timeScale <= 0)
-        throw new RangeError(
-          "Animation loop must be repeat/once and timeScale must be positive and finite",
-        );
-      if (!Number.isFinite(clip.duration) || clip.duration <= 0 || !clip.validate())
-        throw new RangeError(
-          "Animation clip must have a positive finite duration and valid tracks",
-        );
+      const { clip, settings } = selection(selector, options);
       execute(() => {
+        blend = null;
+        blendProgress = 0;
+        targetFinished = false;
         mixer.stopAllAction();
+        actions.clear();
         action = mixer.clipAction(clip);
-        action
-          .reset()
-          .setEffectiveWeight(1)
-          .setEffectiveTimeScale(timeScale)
-          .setLoop(loop === "once" ? LoopOnce : LoopRepeat, loop === "once" ? 1 : Infinity);
-        action.clampWhenFinished = clampWhenFinished;
+        action.reset().setEffectiveWeight(1);
+        configure(action, settings);
         state = "playing";
         action.play();
+        actions.add(action);
+        sample(0);
+      });
+    },
+    crossFadeTo(selector, options = {}): void {
+      active();
+      const { clip, settings } = selection(selector, options);
+      const duration = options.duration ?? 0.3;
+      if (!Number.isFinite(duration) || duration <= 0)
+        throw new RangeError("Crossfade duration must be positive and finite");
+      if (clip.blendMode !== NormalAnimationBlendMode)
+        throw new RangeError("Crossfade only supports normal animation blend mode");
+      execute(() => {
+        if (!Number.isFinite(mixer.timeScale) || mixer.timeScale < 0)
+          throw new RangeError("Crossfade requires a finite nonnegative mixer timeScale");
+        if (action?.getClip() === clip) return;
+        const weights = new Map<AnimationAction, number>();
+        for (const entry of actions) {
+          const weight = entry.getEffectiveWeight();
+          if (
+            entry.getClip().blendMode !== NormalAnimationBlendMode ||
+            !Number.isFinite(weight) ||
+            weight < 0 ||
+            weight > 1
+          )
+            throw new RangeError("Crossfade requires normal actions with weights in [0, 1]");
+          weights.set(entry, weight);
+        }
+        const next = mixer.clipAction(clip);
+        const reused = actions.has(next);
+        if (!reused) next.reset();
+        configure(next, settings);
+        next.setEffectiveWeight(weights.get(next) ?? (actions.size ? 0 : 1)).play();
+        actions.add(next);
+        weights.set(next, next.getEffectiveWeight());
+        action = next;
+        targetFinished = false;
+        blendProgress = 0;
+        blend = weights.size > 1 ? { duration, elapsed: 0, weights } : null;
+        state = "playing";
         sample(0);
       });
     },
@@ -171,7 +289,12 @@ export function attachGLTFAnimations(app: ThreeApp, model: GLTFModel): GLTFAnima
       selected(); // Validate before queueing; recheck if an earlier queued command changes selection.
       execute(() => {
         const target = selected();
-        target.reset().setEffectiveWeight(target.weight);
+        const weight = blend ? 1 : target.weight;
+        blend = null;
+        blendProgress = 0;
+        targetFinished = false;
+        stopOthers(target);
+        target.reset().setEffectiveWeight(weight);
         target.time = seconds;
         state = "paused";
         sample(0);
@@ -185,7 +308,11 @@ export function attachGLTFAnimations(app: ThreeApp, model: GLTFModel): GLTFAnima
     stop(): void {
       if (disposed) return;
       execute(() => {
+        blend = null;
+        blendProgress = 0;
+        targetFinished = false;
         mixer.stopAllAction();
+        actions.clear();
         mixer.time = 0;
         action = null;
         state = "idle";
@@ -196,6 +323,8 @@ export function attachGLTFAnimations(app: ThreeApp, model: GLTFModel): GLTFAnima
       disposed = true;
       state = "disposed";
       action = null;
+      blend = null;
+      blendProgress = 0;
       pending.length = 0;
       unsubscribe();
       mixer.removeEventListener("finished", finished);
