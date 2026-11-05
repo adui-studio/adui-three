@@ -10,6 +10,7 @@ export default defineConfig({
       labels: "src/labels.ts",
       animation: "src/animation.ts",
       camera: "src/camera.ts",
+      postprocessing: "src/postprocessing.ts",
     },
     format: "esm",
     target: "es2022",

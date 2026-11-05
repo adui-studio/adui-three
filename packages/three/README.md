@@ -93,7 +93,7 @@ detach(); // 恢复原生绘制，不释放 pipeline；资源由其所有者管�
 
 要求现代浏览器、WebGL 2、ResizeObserver、matchMedia；仅构造实例时访问 DOM，Node 下可安全导入包，SSR 不能构造 renderer。容器建议不设 padding；尺寸基于 clientWidth/clientHeight，CSS transform 不改变绘制分辨率。运行中的 DPR 变化通过媒体查询和 window resize 检测。自有 canvas 的样式和生命周期由宿主管理，不接管外部 canvas。
 
-`development` 条件导出指向随包包含的 src，便于 Vite 开发时 HMR；默认 import 导出指向 dist，类型来自 dist 声明。不提供 CJS、WebXR、WebGPU、composer、共享模型缓存或框架适配。
+`development` 条件导出指向随包包含的 src，便于 Vite 开发时 HMR；默认 import 导出指向 dist，类型来自 dist 声明。不提供 CJS、WebXR、WebGPU、共享模型缓存或框架适配。
 
 ## GLTF / GLB 加载
 
@@ -324,6 +324,27 @@ if (result.status === "failed") console.error(result.error);
 无 controls 时插值位置及 quaternion；有 controls 时插值 target、轨道距离和最短方向旋转，原生角度限制继续生效。过渡期间 enabled、enableDamping、autoRotate 临时设 false，公开 update(0) 清惯性；结束仅恢复仍为 false 的属性，外部已改为 true 的值保留。不要同时安排其他相机写入者；在原生同步 change 事件中重入 fitObject/transitionToObject 会拒绝，可安全取消或销毁。
 
 同相机新过渡或有效 fitObject 会取消旧过渡。有 controls 时画布 pointerdown/wheel 捕获阶段取消，不阻止同一事件交给恢复后的控件。外部尺寸、投影、姿态、控件约束或可观察配置变化，在下一次有效更新取消；暂停期间不轮询。取消保留当前姿态；adjustClipping=true 会先扩展裁剪面，只有完成才收紧，取消保留扩展范围。false 保留原裁剪面并检查终点可见范围。路径不避障、不保证中途完整可见；不提供独立暂停、正交/父级相机或自定义缓动。
+
+## 泛光后处理
+
+```ts
+import { ACESFilmicToneMapping } from "three";
+import { attachBloom } from "@adui/three/postprocessing";
+
+app.renderer.toneMapping = ACESFilmicToneMapping; // 由应用决定颜色策略。
+const bloom = attachBloom(app, { strength: 1, radius: 0.4, threshold: 0.85 });
+// bloom.pass.strength = 2; bloom.pass.enabled = false;
+// 暂停时修改参数后可调用 app.render()；不会推进动画。
+// bloom.dispose(); // 释放整个效果链；宿主恢复默认绘制。
+```
+
+BloomOptions 的默认值如上，另有 enabled=true。初始 strength、threshold 为非负有限数（HDR 阈值可大于 1），radius 范围 [0,1]，无效值在分配前拒绝。BloomHandle 提供原生 UnrealBloomPass pass、disposed 和幂等 dispose；可直接配置原生参数和 enabled，直接属性修改由应用保证有效。不要手动 dispose 自有 pass 或为它创建循环。
+
+固定 RenderPass → UnrealBloomPass → OutputPass，由宿主独占 RenderPipeline 绘制；不额外 render、RAF 或自动启停。不改 renderer.toneMapping、exposure 或 outputColorSpace；亮度和发光材质由应用配置。单次 app.render 也经过效果链并更新标签。尺寸/DPR 跟随宿主，零尺寸保留已有目标，恢复同步。
+
+内部持有 HalfFloat 目标、composer 和 passes，句柄登记 app.resources；手动或宿主/scope 释放解除管线并清理全部自有对象，不释放场景资产或 renderer。重复挂接失败回收新分配，不覆盖当前管线。渲染回调中 dispose 会立即禁用后续 passes，并延迟到当前原生调用返回后释放 GPU 资源；不会重新挂接。绘制错误恢复借用 renderer 的 target/autoClear/toneMapping/清屏状态并抛出，清理失败继续处理剩余资源并聚合错误。
+
+pass.enabled=false 仅旁路泛光，保留基础/输出 pass 及 GPU 资源，完全卸载需 dispose。需要支持对应浮点颜色目标的设备，不自动降级；离屏目标未启用 MSAA，原生 renderer.antialias 不会自动传递。当前为全屏亮度阈值泛光，不提供选择性泛光、描边、自由 pass 编排或 GPU 性能承诺。
 
 ## 开发与验证
 

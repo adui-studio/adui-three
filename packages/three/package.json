@@ -47,6 +47,11 @@
       "development": "./src/camera.ts",
       "import": "./dist/camera.mjs"
     },
+    "./postprocessing": {
+      "types": "./dist/postprocessing.d.mts",
+      "development": "./src/postprocessing.ts",
+      "import": "./dist/postprocessing.mjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

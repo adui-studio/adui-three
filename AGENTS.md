@@ -2,7 +2,7 @@
 
 ## 项目事实与导航
 
-目标：重新封装 Three.js，主 npm 包名为 `@adui/three`。主包核心 MVP、普通/Draco/Meshopt/KTX2 模型加载与动画、拾取、DOM 标签及相机取景已实现，website 为双实例演示，尚未发布 npm。以代码说明实现，以需求说明目标，不把建议写成已完成。
+目标：重新封装 Three.js，主 npm 包名为 `@adui/three`。主包核心 MVP、普通/Draco/Meshopt/KTX2 模型加载与动画、拾取、DOM 标签、相机取景、渲染管线及可选泛光已实现，website 为双实例演示，尚未发布 npm。以代码说明实现，以需求说明目标，不把建议写成已完成。
 
 - [需求与验收](docs/REQUIREMENTS.md)：已确认范围、建议 MVP、待决策事项。
 - [架构](docs/ARCHITECTURE.md) / [详细设计](docs/SDD.md)：当前结构与建议方案。
@@ -18,6 +18,7 @@
 - [KTX2 生命周期决策](docs/adr/0006-ktx2-lifecycle.md)：能力检测、输入隔离、在途转码与纹理清理。
 - [相机取景决策](docs/adr/0007-camera-framing.md)：世界边界、透视视锥、控件约束与即时应用。
 - [渲染管线决策](docs/adr/0009-render-pipeline.md)：独占绘制替换、尺寸通知与单次绘制。
+- [泛光生命周期决策](docs/adr/0010-bloom-lifecycle.md)：可选效果链、自有目标与渲染期销毁。
 - [贡献指南](CONTRIBUTING.md)：Issue/PR 模板及 emoji 提交规范。
 
 ## 工作流程与约束

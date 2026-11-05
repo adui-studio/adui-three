@@ -77,6 +77,8 @@
 
 持续封装阶段复用 threejs-postprocessing Skill，核验 r187 的 EffectComposer、WebGLRenderer 与 WebGLOutput 源码；基于宿主实际尺寸路径选择显式 RenderPipeline，保留单一 RAF，不照搬 Skill 的循环。后续按模块使用中文提交并本地验证，不做 CI。
 
+泛光阶段继续复用 threejs-postprocessing，固定 r187 原生三 pass 管线，不使用不匹配宿主尺寸路径的 setEffects。实际 GPU 像素/释放回归和八入口包消费在本地执行；不新增依赖或 CI。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

@@ -17,6 +17,7 @@ const expected = {
   "@adui/three/labels": ["attachDOMLabels"],
   "@adui/three/animation": ["attachGLTFAnimations"],
   "@adui/three/camera": ["computeObjectFrame", "fitObject", "transitionToObject"],
+  "@adui/three/postprocessing": ["attachBloom"],
 };
 const development = process.argv.includes("--resolve-only");
 for (const [specifier, names] of Object.entries(expected)) {
@@ -51,10 +52,14 @@ if (!development) {
     code: "ERR_PACKAGE_PATH_NOT_EXPORTED",
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");
-  assert.ok(!/GLTFLoader|OrbitControls|transitionToObject|computeObjectFrame/.test(core));
+  assert.ok(
+    !/GLTFLoader|OrbitControls|transitionToObject|computeObjectFrame|EffectComposer|attachBloom/.test(
+      core,
+    ),
+  );
 }
 console.log(
   development
-    ? "7 development exports resolve to packaged source (resolution only)"
-    : "7 ESM exports, DOM-free imports, native math, resources and private-path boundaries passed",
+    ? `${Object.keys(expected).length} development exports resolve to packaged source (resolution only)`
+    : `${Object.keys(expected).length} ESM exports, DOM-free imports, native math, resources and private-path boundaries passed`,
 );

@@ -4,6 +4,8 @@ import { attachOrbitControls } from "@adui/three/controls";
 import type { OrbitControlsHandle } from "@adui/three/controls";
 import { fitObject, transitionToObject } from "@adui/three/camera";
 import type { CameraTransitionHandle } from "@adui/three/camera";
+import { attachBloom } from "@adui/three/postprocessing";
+import type { BloomHandle } from "@adui/three/postprocessing";
 import { attachGLTFAnimations } from "@adui/three/animation";
 import type { GLTFAnimationsHandle } from "@adui/three/animation";
 import { attachPicking } from "@adui/three/interaction";
@@ -24,7 +26,9 @@ import {
   GridHelper,
   IcosahedronGeometry,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
+  SphereGeometry,
 } from "three";
 import type { Object3D } from "three";
 
@@ -51,6 +55,7 @@ function mountPanel(id: string, color: number): void {
     <div class="actions"><button data-action="start" class="primary">运行</button><button data-action="stop">暂停</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建 ↻</button></div>
     <div class="resize-actions"><button data-action="width" aria-pressed="false">收窄容器</button><button data-action="zero" aria-pressed="false">零高度</button><button data-action="labels" aria-pressed="true">显示标签</button><button data-action="fit">适配视角</button><button data-action="transition">平滑取景</button><button data-action="cancel-transition">取消过渡</button><button data-action="large-model" aria-pressed="false">大模型</button></div>
     <p class="camera-feedback" role="status">取景过渡：<span data-testid="transition-state">idle</span> · <span data-testid="transition-progress">0</span>%</p>
+    <div class="effect-actions"><button data-action="bloom" aria-pressed="false">泛光</button><button data-action="bloom-strength" aria-pressed="false">增强泛光</button><button data-action="remove-bloom">释放后处理</button><span data-testid="bloom-state">idle</span></div>
     <div class="model-actions"><button data-action="glb">加载 GLB</button><button data-action="gltf">加载 GLTF</button><button data-action="draco">加载 Draco</button><button data-action="meshopt">加载 Meshopt</button><button data-action="ktx2">加载 KTX2</button><button data-action="ktx2-glb">KTX2 GLB</button><button data-action="decoder-error">缺少解码器</button><button data-action="ktx2-error">缺少转码器</button><button data-action="cancel-model">取消加载</button><button data-action="remove-model">移除模型</button><button data-action="invalid-model">失败示例</button></div>
     <p class="model-feedback" role="status">模型未加载 · 使用项目原创的内嵌纹理样例</p>
     <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-once">单次播放</button><button data-action="animation-stop">停止动画</button></div>
@@ -83,6 +88,9 @@ function mountPanel(id: string, color: number): void {
   let largeModel = false;
   let fittedDistance: number | undefined;
   let transition: CameraTransitionHandle | undefined;
+  let bloom: BloomHandle | undefined;
+  let glow: Mesh | undefined;
+  let strongBloom = false;
 
   function addLabel(
     object: Object3D,
@@ -129,6 +137,20 @@ function mountPanel(id: string, color: number): void {
     card.dataset.renderCount = String(draws);
     button("transition").disabled = button("fit").disabled;
     button("cancel-transition").disabled = transition?.state !== "running";
+    const bloomState = !bloom
+      ? "idle"
+      : bloom.disposed
+        ? "disposed"
+        : bloom.pass.enabled
+          ? "enabled"
+          : "disabled";
+    card.dataset.bloomState = bloomState;
+    card.querySelector('[data-testid="bloom-state"]')!.textContent = bloomState;
+    button("bloom").disabled = !app || state === "disposed";
+    button("bloom").setAttribute("aria-pressed", String(bloomState === "enabled"));
+    button("bloom-strength").disabled = !bloom || bloom.disposed;
+    button("bloom-strength").setAttribute("aria-pressed", String(strongBloom));
+    button("remove-bloom").disabled = !bloom || bloom.disposed;
     card.dataset.transitionState = transition?.state ?? "idle";
     card.querySelector('[data-testid="transition-state"]')!.textContent =
       card.dataset.transitionState;
@@ -268,6 +290,9 @@ function mountPanel(id: string, color: number): void {
     try {
       app?.dispose();
       orbit = undefined;
+      bloom = undefined;
+      glow = undefined;
+      strongBloom = false;
       clearModel();
       errorOutput.hidden = true;
       app = new ThreeApp(viewport, { camera: { position: [4, 3, 5] }, maxPixelRatio: 2 });
@@ -285,6 +310,13 @@ function mountPanel(id: string, color: number): void {
       placeholder = mesh;
       mesh.position.y = 1.1;
       app.scene.add(mesh, new AmbientLight(0xffffff, 1.7));
+      glow = new Mesh(
+        app.resources.track(new SphereGeometry(0.18, 16, 12)),
+        app.resources.track(new MeshBasicMaterial({ color: new Color(4, 2, 0.5) })),
+      );
+      glow.position.set(1.9, 1.8, 0);
+      glow.visible = false;
+      app.scene.add(glow);
       const light = new DirectionalLight(0xffffff, 3.2);
       light.position.set(3, 6, 4);
       app.scene.add(light);
@@ -390,6 +422,25 @@ function mountPanel(id: string, color: number): void {
       }
       if (action === "animation-once") animation?.play(animationIndex, { loop: "once" });
       if (action === "animation-stop") animation?.stop();
+      if (action === "bloom" && app) {
+        if (!bloom || bloom.disposed) {
+          bloom = attachBloom(app, { strength: strongBloom ? 2.5 : 1, threshold: 0.9 });
+        } else bloom.pass.enabled = !bloom.pass.enabled;
+        // Keep the bright source visible when bypassing bloom so the halo can be compared.
+        if (glow) glow.visible = true;
+        if (app.state !== "running") app.render();
+      }
+      if (action === "bloom-strength" && bloom && !bloom.disposed) {
+        strongBloom = !strongBloom;
+        bloom.pass.strength = strongBloom ? 2.5 : 1;
+        if (app?.state !== "running") app?.render();
+      }
+      if (action === "remove-bloom") {
+        bloom?.dispose();
+        bloom = undefined;
+        if (glow) glow.visible = false;
+        if (app?.state !== "running") app?.render();
+      }
       if (action === "large-model" && model) {
         transition?.cancel();
         model.scene.scale.multiplyScalar(largeModel ? 1 / 20 : 20);

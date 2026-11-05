@@ -5,6 +5,7 @@ import type { GLTFModel, LoadGLTFOptions } from "@adui/three/loaders";
 import { attachPicking } from "@adui/three/interaction";
 import { attachDOMLabels } from "@adui/three/labels";
 import { attachGLTFAnimations } from "@adui/three/animation";
+import { attachBloom } from "@adui/three/postprocessing";
 import { computeObjectFrame, fitObject, transitionToObject } from "@adui/three/camera";
 import type { CameraTransitionResult } from "@adui/three/camera";
 import { BoxGeometry, Mesh, MeshBasicMaterial } from "three";
@@ -46,6 +47,9 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
     resize: ({ width, height, pixelRatio }) => { console.log(width, height, pixelRatio); },
   });
   detachPipeline();
+  const bloom = attachBloom(app, { strength: 1, radius: 0.4, threshold: 0.9 });
+  bloom.pass.enabled = false;
+  bloom.dispose();
   app.dispose();
   scope.dispose();
 }

@@ -2,7 +2,7 @@
 
 ## 目标与当前阶段
 
-更新日期：2026-11-05。前序成果七个提交及相机取景已交付；中文提交 c04b342（取景）和 b6ab6c6（中文协作规范）已推送至 origin/main，远端核对到 b6ab6c6。平滑取景以中文提交 08628a2 交付并推送，远端已核对。独立包消费验证已由 0588b21 交付。本轮修复输入打断浏览器用例的自动化准备竞争，完整回归 27/27 通过。运行解码资源本地托管，尚未发布 npm。
+更新日期：2026-11-05。前序成果七个提交及相机取景已交付；中文提交 c04b342（取景）和 b6ab6c6（中文协作规范）已推送至 origin/main，远端核对到 b6ab6c6。平滑取景以中文提交 08628a2 交付并推送，远端已核对。独立包消费验证已由 0588b21 交付。输入打断浏览器用例的准备竞争已修复。用户继续授权持续封装，渲染管线已以 42df84c 交付，当前推进可选泛光及后续能力；详细验证见 Harness。运行解码资源本地托管，尚未发布 npm。
 
 工作流程偏好：用户明确“不做任何 CI”。不新增或启用 CI 工作流，不调整 GitHub Actions 的组织/仓库设置，验证仅在本地运行。先前 f6aab16 中的 CI 配置通过后续提交移除，输入回归修复保留，不改写历史。
 
@@ -46,11 +46,11 @@ KTX2 阶段新增 11 项单测与 4 项浏览器用例，累计 105 项主包单
 
 ## 已确认与建议
 
-已确认并实施：单一主包起步，宿主加内部组合模块；controls、loaders、interaction、labels、animation、camera 为按需子入口。原始提案见 [ADR-0001](adr/0001-package-boundaries.md)，核心见 [ADR-0002](adr/0002-core-mvp.md)，模型见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画见 [ADR-0004](adr/0004-animation-lifecycle.md)，KTX2 见 [ADR-0006](adr/0006-ktx2-lifecycle.md)，取景见 [ADR-0007](adr/0007-camera-framing.md)。截图中的扩展包名仍为未来参考。
+已确认并实施：单一主包起步，宿主加内部组合模块；controls、loaders、interaction、labels、animation、camera、postprocessing 为按需子入口。原始提案见 [ADR-0001](adr/0001-package-boundaries.md)，核心见 [ADR-0002](adr/0002-core-mvp.md)，模型见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画见 [ADR-0004](adr/0004-animation-lifecycle.md)，KTX2 见 [ADR-0006](adr/0006-ktx2-lifecycle.md)，取景见 [ADR-0007](adr/0007-camera-framing.md)。截图中的扩展包名仍为未来参考。
 
 包消费阶段新增 test:package：实际 tarball 安装至系统临时项目，验证七个运行时入口、development 源码解析、私有深路径边界及严格类型消费。库声明可使用随包类型依赖；应用直接导入 three 需自行声明 @types/three，README 已补充。未修改库 API、生产依赖或版本，尚未发布 npm；真实验证见 Harness。
 
-持续封装阶段（FR-021）：新增独占借用 RenderPipeline 和 app.render 单次绘制，核心仍不引用后处理 addon，不增加 RAF。新增 11 项宿主单测及 1 项浏览器回归，累计 146/28。作为后处理基础先完成契约与本地验证，之后继续泛光模块。
+持续封装阶段（FR-021）：新增独占借用 RenderPipeline 和 app.render 单次绘制，核心仍不引用后处理 addon，不增加 RAF。新增 11 项宿主单测及 1 项浏览器回归，累计 146/28。作为后处理基础先完成契约与本地验证，基础已以 42df84c 提交推送；随后实现 FR-022 可选泛光，新增 16 项单测和 3 项浏览器回归，累计 162/31。
 
 ## 下一阶段与风险
 

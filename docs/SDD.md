@@ -2,9 +2,9 @@
 
 ## 当前实现
 
-核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera 分别提供控制器、模型加载、拾取、DOM 标签、动画和取景。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
+核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing 分别提供控制器、模型加载、拾取、DOM 标签、动画、取景和泛光。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
 
-核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画扩展见 [ADR-0004](adr/0004-animation-lifecycle.md)。完整选项、默认值和示例以 [主包 README](../packages/three/README.md) 与导出类型为准；尚无 composer、寻路、框架适配或 WebGPU 实现。
+核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画扩展见 [ADR-0004](adr/0004-animation-lifecycle.md)。完整选项、默认值和示例以 [主包 README](../packages/three/README.md) 与导出类型为准；已通过可选泛光模块接入自有 composer；尚无寻路、框架适配或 WebGPU 实现。
 
 ## 核心 API
 
@@ -124,6 +124,14 @@ options 扩展 FitObjectOptions，duration 默认 0.8 秒且必须正有限，si
 
 沿用即时取景的相机/边界限制，不跟踪对象和目标删除，不接管模型。演示在模型移除/缩放时主动取消。暂停、隐藏、零尺寸保留进度，不补墙钟时间；没有独立暂停 API。路径不避障、不保证中途目标完整可见，细节见 [ADR-0008](adr/0008-camera-transition.md)。
 
+## 泛光契约
+
+可选 postprocessing 入口提供 attachBloom(app, options?)，返回 BloomHandle（pass:UnrealBloomPass、disposed、幂等 dispose），选项 BloomOptions（strength=1、radius=0.4、threshold=0.85、enabled=true）。初始强度/阈值为非负有限数，radius 位于 [0,1]，enabled 为 boolean。原生 pass 可调整参数和 enabled，不再对直接属性写入做包装校验；不手动销毁 pass 或改写管线。
+
+内部固定 RenderPass → UnrealBloomPass → OutputPass，使用自有 HalfFloat 目标和独占 RenderPipeline。模块 scope 拥有 composer 与 passes，句柄登记 app.resources，任意挂接失败逆序清理；不改写 renderer.render 或 tone mapping，不创建 RAF/observer。disabled 仅旁路 bloom，保留目标与基础/输出 pass；dispose 解除租约并释放资源，默认绘制恢复。
+
+resize 去重并同步 CSS 尺寸与 DPR，零尺寸保留上次目标；单次 app.render 也经过效果链。渲染期 dispose 立即失效并禁用后续 passes，当前原生执行返回后清理 GPU 资源；错误继续清理并聚合。保存并恢复借用 renderer 的 target、autoClear、toneMapping、清屏色和 alpha，宿主结束则不再写原生对象。详见 [ADR-0010](adr/0010-bloom-lifecycle.md)。
+
 ## 对象拾取契约
 
 [interaction.ts](../packages/three/src/interaction.ts) 是独立子入口，导出 attachPicking、PickingOptions、PickingEvent 和 PickingHandle。`attachPicking(app, { objects, recursive?, dragThreshold? })` 使用必填目标 getter；recursive=true、dragThreshold=4 CSS 像素。句柄提供原生 raycaster、disposed、pick(clientX, clientY)、on("click" | "hover", callback) 与 dispose。
@@ -195,6 +203,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-019  | 相机取景契约                      | camera.ts、演示模型尺寸与显式取景                | 真实数学/控件单测、浏览器取景与交互回归     |
 | FR-020  | 相机过渡契约                      | camera-transition.ts、演示平滑取景与取消         | 过渡单测、浏览器中断与生命周期回归          |
 | FR-021  | 核心 API                          | three-app.ts、演示单次绘制                       | 宿主管线/单次绘制单测、render 浏览器回归    |
+| FR-022  | 泛光契约                          | postprocessing.ts、演示泛光/强度/释放            | 原生资源单测、像素和 GPU 释放浏览器回归     |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器         |
 
