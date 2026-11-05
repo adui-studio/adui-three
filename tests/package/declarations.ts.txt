@@ -8,3 +8,4 @@ export * from "@adui/three/animation";
 export * from "@adui/three/camera";
 export * from "@adui/three/postprocessing";
 export * from "@adui/three/environment";
+export * from "@adui/three/textures";

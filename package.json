@@ -11,7 +11,8 @@
     "test:browser": "playwright test",
     "test:package": "vp run @adui/three#build && node scripts/check-package.mjs",
     "fixtures:models": "node scripts/generate-model-fixtures.mjs && vp fmt apps/website/public/models",
-    "fixtures:environment": "node scripts/generate-environment-fixture.mjs"
+    "fixtures:environment": "node scripts/generate-environment-fixture.mjs",
+    "fixtures:textures": "node scripts/generate-texture-fixture.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

@@ -85,6 +85,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 对象变换阶段复用 threejs-interaction，核验 r187 TransformControls 的独立 helper、公开 pointerUp/disconnect 与原生属性事件；不复制 Skill 中第二循环或无条件覆盖 orbit.enabled 的做法。以初始 helper 资源快照去重清理，保留外部资源和可观察的配置修改，真实鼠标与 GPU buffer/program 回归在本地执行。
 
+图片纹理阶段复用 threejs-textures 和 threejs-loaders，核验 r187 Texture/ImageBitmapLoader/WebGLTextures 与 createImageBitmap/close 官方 API。位图方向在解码时处理，不误用 Texture.flipY；保持浏览器不做颜色转换、由 Texture 标记颜色空间。为避免原生 URL 位图缓存混用选项与 close 所有权，独立下载共享字节后逐任务解码。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

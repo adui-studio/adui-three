@@ -44,6 +44,8 @@
 
 - [变换手柄](../packages/three/src/transform-controls.ts) / [原生单测](../packages/three/tests/transform-controls.test.ts) / [浏览器交互](../tests/browser/transform.spec.ts)：controls 入口导出，原生拖拽、轨道控制协调和 helper 资源快照清理。
 
+- [textures.ts](../packages/three/src/textures.ts) / [单测](../packages/three/tests/textures.test.ts) / [真实纹理回归](../tests/browser/textures.spec.ts)：颜色/翻转、独立解码、取消与 GPU/位图清理；[PNG 生成器](../scripts/generate-texture-fixture.mjs) / [原创资产](../apps/website/public/textures/README.md)。
+
 ## 调用链与定位
 
 - [environment.ts](../packages/three/src/environment.ts) / [单测](../packages/three/tests/environment.test.ts) / [浏览器回归](../tests/browser/environment.spec.ts)：HDR 加载、逻辑取消、独占场景绑定和预热 GPU 清理。

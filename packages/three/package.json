@@ -57,6 +57,11 @@
       "types": "./dist/environment.d.mts",
       "development": "./src/environment.ts",
       "import": "./dist/environment.mjs"
+    },
+    "./textures": {
+      "types": "./dist/textures.d.mts",
+      "development": "./src/textures.ts",
+      "import": "./dist/textures.mjs"
     }
   },
   "scripts": {

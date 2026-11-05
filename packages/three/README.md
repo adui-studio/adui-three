@@ -397,6 +397,39 @@ TransformControlsHandle 提供原生 controls、helper、disposed、attach、det
 
 库不自动 render/start/RAF。消费者根据 change 决定暂停绘制，并在模型删除前 detach。释放从场景移除 helper、断开事件、去重清理全部初始 GPU 资源，借用模型/控件保持存活；错误继续处理后聚合，touchAction 按值恢复。原生参数与额外事件由应用管理，完整契约见仓库设计文档。
 
+## 独立图片纹理
+
+```ts
+import { NoColorSpace } from "three";
+import { loadTexture } from "@adui/three/textures";
+
+const controller = new AbortController();
+const image = await loadTexture(app, "/image.png", {
+  signal: controller.signal,
+  flipY: true, // 解码时翻转；glTF 的 UV 通常需要 false。
+  // colorSpace: NoColorSpace, // 法线/标量图；颜色图默认 SRGBColorSpace。
+});
+const previous = material.map;
+material.map = image.texture;
+material.needsUpdate = true;
+image.resources.track({
+  dispose() {
+    if (material.map === image.texture) {
+      material.map = previous;
+      material.needsUpdate = true;
+    }
+  },
+});
+if (app.state !== "running") app.render();
+// image.dispose(); // 先解除材质引用，再清 GPU 和原始位图；宿主也会释放。
+```
+
+loadTexture 返回 TextureAsset，提供原生 texture、前置 resources、disposed 和幂等 dispose，不自动修改材质/场景或绘制。colorSpace 默认 SRGBColorSpace，另接受 LinearSRGBColorSpace、NoColorSpace；不会猜测贴图用途。options 另有 onProgress({ loaded,total,ratio }) 和 onCleanupError，未知 total/ratio 为 null。signal/宿主/scope 取消立即拒绝 AbortError，不中止共享运输；迟到字节跳过解码，迟到位图关闭。
+
+每任务独立拥有 ImageBitmap，即使 URL 和下载字节相同也不共享位图；需要画布所属 Window 的 createImageBitmap，具体图片格式沿用浏览器支持。翻转烘焙在 imageOrientation，浏览器不做额外预乘或颜色转换，Texture.flipY=false；后来修改 flipY 无效，需要重新加载。过滤/mip/wrap 等用原生 API 配置。
+
+资产释放按顺序尝试前置钩子、texture.dispose、原始 bitmap.close，错误聚合，重复释放不重试；不关闭后来替换的外部 image。不要单独 dispose/close 原生对象，也不要在资产结束后保留其他材质/场景的借用引用。此入口不处理 KTX2、HDR、视频或画布；HDR 使用 environment，KTX2 模型使用 loaders。
+
 ## HDR 环境
 
 ```ts

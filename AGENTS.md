@@ -22,6 +22,7 @@
 - [组合效果决策](docs/adr/0011-effect-composition.md)：选择描边、固定顺序与场景异常恢复。
 - [HDR 环境决策](docs/adr/0012-hdr-environment.md)：加载与绑定分离、取消及原生环境缓存清理。
 - [变换手柄决策](docs/adr/0013-transform-controls.md)：模型借用、轨道输入协调与 helper 快照清理。
+- [图片纹理决策](docs/adr/0014-image-textures.md)：颜色/方向、逻辑取消与独立位图所有权。
 - [贡献指南](CONTRIBUTING.md)：Issue/PR 模板及 emoji 提交规范。
 
 ## 工作流程与约束

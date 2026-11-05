@@ -2,7 +2,7 @@
 
 ## 目标与当前阶段
 
-更新日期：2026-11-05。前序成果七个提交及相机取景已交付；中文提交 c04b342（取景）和 b6ab6c6（中文协作规范）已推送至 origin/main，远端核对到 b6ab6c6。平滑取景以中文提交 08628a2 交付并推送，远端已核对。独立包消费验证已由 0588b21 交付。输入打断浏览器用例的准备竞争已修复。用户继续授权持续封装，渲染管线已以 42df84c 交付，泛光已以 1ab95c0、组合描边已以 a1e282b 推送；HDR 环境已以 b12714d 推送；当前继续对象变换控制；详细验证见 Harness。运行解码资源本地托管，尚未发布 npm。
+更新日期：2026-11-05。前序成果七个提交及相机取景已交付；中文提交 c04b342（取景）和 b6ab6c6（中文协作规范）已推送至 origin/main，远端核对到 b6ab6c6。平滑取景以中文提交 08628a2 交付并推送，远端已核对。独立包消费验证已由 0588b21 交付。输入打断浏览器用例的准备竞争已修复。用户继续授权持续封装，渲染管线已以 42df84c 交付，泛光已以 1ab95c0、组合描边已以 a1e282b 推送；HDR 环境已以 b12714d 推送；对象变换已以 0ccd828 推送；当前继续独立图片纹理；详细验证见 Harness。运行解码资源本地托管，尚未发布 npm。
 
 工作流程偏好：用户明确“不做任何 CI”。不新增或启用 CI 工作流，不调整 GitHub Actions 的组织/仓库设置，验证仅在本地运行。先前 f6aab16 中的 CI 配置通过后续提交移除，输入回归修复保留，不改写历史。
 
@@ -46,7 +46,7 @@ KTX2 阶段新增 11 项单测与 4 项浏览器用例，累计 105 项主包单
 
 ## 已确认与建议
 
-已确认并实施：单一主包起步，宿主加内部组合模块；controls、loaders、interaction、labels、animation、camera、postprocessing、environment 为按需子入口。原始提案见 [ADR-0001](adr/0001-package-boundaries.md)，核心见 [ADR-0002](adr/0002-core-mvp.md)，模型见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画见 [ADR-0004](adr/0004-animation-lifecycle.md)，KTX2 见 [ADR-0006](adr/0006-ktx2-lifecycle.md)，取景见 [ADR-0007](adr/0007-camera-framing.md)。截图中的扩展包名仍为未来参考。
+已确认并实施：单一主包起步，宿主加内部组合模块；controls、loaders、interaction、labels、animation、camera、postprocessing、environment、textures 为按需子入口。原始提案见 [ADR-0001](adr/0001-package-boundaries.md)，核心见 [ADR-0002](adr/0002-core-mvp.md)，模型见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画见 [ADR-0004](adr/0004-animation-lifecycle.md)，KTX2 见 [ADR-0006](adr/0006-ktx2-lifecycle.md)，取景见 [ADR-0007](adr/0007-camera-framing.md)。截图中的扩展包名仍为未来参考。
 
 包消费阶段新增 test:package：实际 tarball 安装至系统临时项目，验证七个运行时入口、development 源码解析、私有深路径边界及严格类型消费。库声明可使用随包类型依赖；应用直接导入 three 需自行声明 @types/three，README 已补充。未修改库 API、生产依赖或版本，尚未发布 npm；真实验证见 Harness。
 
@@ -55,6 +55,8 @@ KTX2 阶段新增 11 项单测与 4 项浏览器用例，累计 105 项主包单
 HDR 环境阶段（FR-024）：新增独立 environment 入口，加载与绑定分离，原生自动预过滤；新增 12 项单测和 3 项浏览器回归，累计 184/36。无新增依赖或 CI，原创 RGBE 渐变离线生成，尚未发布；验证见 Harness。
 
 对象变换阶段（FR-025）：controls 入口增加 TransformControls 封装，借用模型和可选 OrbitControls，拥有 helper 与资源快照；不提供编辑器状态或额外循环。新增 17 项原生单测、3 项浏览器回归，累计 201/39，详细验证见 Harness。
+
+独立纹理阶段（FR-026）：新增 textures 入口，下载字节与 ImageBitmap 解码/所有权分离；初始颜色空间和翻转显式，消费者自行接入材质和前置解除钩子。新增 14 项单测、3 项浏览器回归，累计 215/42，十入口真实打包消费，结果以 Harness 为准；无新依赖、CI 或发布。
 
 ## 下一阶段与风险
 

@@ -1,3 +1,4 @@
+import { loadTexture } from "@adui/three/textures";
 import { loadHDR, attachEnvironment } from "@adui/three/environment";
 import { ResourceScope, ThreeApp } from "@adui/three";
 import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
@@ -63,6 +64,11 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   const environmentBinding = attachEnvironment(app, environment, { background: true, intensity: 1.5 });
   environmentBinding.dispose();
   environment.dispose();
+  const textureAsset = await loadTexture(app, "/image.png", { colorSpace: "srgb", flipY: true, signal: app.signal });
+  textureAsset.texture.repeat.set(2, 2);
+  textureAsset.resources.track({ dispose: () => { object.material.map = null; } });
+  object.material.map = textureAsset.texture;
+  textureAsset.dispose();
   app.dispose();
   scope.dispose();
 }

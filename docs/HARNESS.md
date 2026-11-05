@@ -18,17 +18,18 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 201 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 215 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 39 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 42 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
+| `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
 | `pnpm run fixtures:models`      | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
 
 首次浏览器回归需执行 `pnpm exec playwright install chromium`。测试使用 Playwright 1.64.1 / Chromium / SwiftShader，DPR=3 验证宿主上限 2；preview 使用 127.0.0.1:4173，端口需空闲，测试结束自动收尾。截图和失败 trace 位于忽略提交的 test-results。
 
-test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装真实 tarball、固定开发基准 three 和当前锁定的 TypeScript；不修改工作区依赖或锁文件。先以库声明消费方式编译，再为直接 import three 的应用添加匹配 @types/three，执行 NodeNext、Bundler、Bundler+development 三种类型解析，均使用 strict 与 skipLibCheck=false。两个 .ts.txt 仅是输入样例，复制到临时项目后才编译；Node 检查另覆盖九个默认入口、禁止 fetch、数学/资源操作、私有路径拒绝和 development 源码文件存在性。development 仅检查解析，不尝试在 Node 执行 node_modules 内的 TS。
+test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装真实 tarball、固定开发基准 three 和当前锁定的 TypeScript；不修改工作区依赖或锁文件。先以库声明消费方式编译，再为直接 import three 的应用添加匹配 @types/three，执行 NodeNext、Bundler、Bundler+development 三种类型解析，均使用 strict 与 skipLibCheck=false。两个 .ts.txt 仅是输入样例，复制到临时项目后才编译；Node 检查另覆盖十个默认入口、禁止 fetch、数学/资源操作、私有路径拒绝和 development 源码文件存在性。development 仅检查解析，不尝试在 Node 执行 node_modules 内的 TS。
 
 该命令独立于 ready，安装可能访问 registry、复用本地 store；不表示离线可用、发布权限已确认或包已发布。成功时核验临时绝对路径后仅删除本次项目；失败打印并保留诊断目录。依据见 [pnpm pack](https://pnpm.io/cli/pack)、[pnpm install](https://pnpm.io/cli/install)、[Node 条件导出](https://nodejs.org/api/packages.html#conditional-exports) 与 [skipLibCheck](https://www.typescriptlang.org/tsconfig/skipLibCheck.html)。
 
@@ -59,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 独立图片纹理阶段：ready 通过 13 项文档检查器测试、215 项主包单测、107 文件格式与 60 源文件 Lint/类型检查，十入口及演示构建成功；测试位图的 unbound-method 提示改为显式 mock/原型方法调用，最终静态检查无警告。14 项新增单测控制运输和位图 Promise，验证选项快照、颜色/方向、独立所有权、取消/迟到/解码错误、进度及清理继续执行。十入口 tarball 安装、无 DOM 导入和四次严格消费编译通过。
+
+三项新增浏览器回归 3/3 通过（约 7.4 秒），随后全量 42/42 通过（约 2.6 分钟），零重试；实际 PNG/烘焙翻转/暂停/恢复像素、同 URL 单次运输两次真实位图解码、取消/销毁时延后交付并关闭位图、三轮纹理与位图计数回基线均验证，截图已目视检查。原创四象限 PNG 两次本机离线生成 SHA256 相同（15580f230dc9cbf10a30245b50900d0788a35c671d6b9b86faf80070e757e7bb），不外推其他 zlib 版本压缩字节一致。无新依赖、CI 或 npm 发布，ImageBitmap/图片格式完整兼容矩阵仍待确认。
 
 2026-11-05 变换手柄阶段：ready 通过 13 项文档检查器测试、201 项主包单测、101 文件格式及 56 源文件 Lint/类型检查，九入口和演示构建成功。新增 17 项真实原生控件/资源单测，覆盖目标/独占、前置配置、借用 GPU 资源、外部 touch-action/轨道配置、取消/捕获/输入中途禁用、同步销毁和失败继续清理。连接失败首测暴露未连接时 disconnect 访问空 DOM，改为按实际 domElement 清理，保留原始失败；演示一次可空类型错误改为活动句柄局部快照，无忽略类型检查。
 

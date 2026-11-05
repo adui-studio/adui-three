@@ -129,6 +129,10 @@ KTX2 纹理模型通过 `ktx2: { transcoderPath: { js, wasm } }` 接入，按当
 
 从 `@adui/three/controls` 导入 `attachTransformControls`，为场景对象挂接原生平移/旋转/缩放手柄，可借用同一宿主的 OrbitControls 协调拖拽。句柄负责自有 helper、事件和 GPU 资源，目标模型保持借用，见 [对象变换 API](packages/three/README.md#对象变换手柄)。
 
+### 独立图片纹理
+
+`@adui/three/textures` 的 `loadTexture` 返回拥有原生 Texture/ImageBitmap 的资产，支持颜色空间、解码时翻转、逻辑取消与迟到位图关闭。加载不自动修改材质，演示在占位物体上验证方向图，见 [纹理 API](packages/three/README.md#独立图片纹理)。
+
 ### HDR 环境
 
 从 `@adui/three/environment` 导入 `loadHDR` 与 `attachEnvironment`，先加载资产，再按应用的请求版本绑定环境照明/可选背景。资产或宿主释放时先解绑，保留外部场景变更；演示提供加载、背景切换、取消和失败恢复，见 [HDR API](packages/three/README.md#hdr-环境)。
@@ -177,7 +181,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 201 项主包单元测试和 39 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
+当前有 215 项主包单元测试和 42 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
 
 ## 项目结构
 

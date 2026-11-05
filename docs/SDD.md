@@ -156,6 +156,12 @@ environment 可选入口提供 loadHDR、HDREnvironment、LoadHDROptions、Envir
 
 r187 renderer 自动生成背景立方图/PMREM，并在源纹理 dispose 时清理对应目标；库不手工重复生成。共享生成器 scratch 留到 renderer.dispose，GPU 回归先预热。应用负责请求版本、目标选择和暂停绘制，无新增 RAF；只覆盖 Radiance 等距柱状 HDR，不提供跨宿主共享所有权。原生 texture 不单独 dispose，应用解除额外借用引用后再释放资产。
 
+## 独立图片纹理契约
+
+textures 入口的 loadTexture(app, url, LoadTextureOptions) 返回 TextureAsset。options 支持 signal、colorSpace=SRGBColorSpace（另支持 LinearSRGBColorSpace/NoColorSpace）、flipY=true、onProgress({loaded,total,ratio})、onCleanupError，未知总量为 null。配置快照和宿主 Window.createImageBitmap 能力在运输前校验；不修改场景/材质或增加调度。
+
+FileLoader 只共享 ArrayBuffer，不中止运输；每任务从 Blob 单独解码。位图 premultiplyAlpha/colorSpaceConversion 均 none，imageOrientation 按初始 flipY 烘焙，Texture.flipY=false 并 needsUpdate；颜色意图通过 Texture.colorSpace 交给 renderer。取消立即拒绝 AbortError，迟到字节跳过解码，在途位图关闭；迟到失败被消费，清理错误报告。句柄登记宿主，resources 前置解除引用后清纹理/原始位图，全部尝试并聚合异常，后换 image 为借用。应用负责材质 needsUpdate 和额外借用引用；详见 [ADR-0014](adr/0014-image-textures.md)。
+
 ## 对象拾取契约
 
 [interaction.ts](../packages/three/src/interaction.ts) 是独立子入口，导出 attachPicking、PickingOptions、PickingEvent 和 PickingHandle。`attachPicking(app, { objects, recursive?, dragThreshold? })` 使用必填目标 getter；recursive=true、dragThreshold=4 CSS 像素。句柄提供原生 raycaster、disposed、pick(clientX, clientY)、on("click" | "hover", callback) 与 dispose。
@@ -198,7 +204,7 @@ add 接收 object、独占挂载的 detached element、局部 offset=[0,0,0]、a
 
 ## 需求追踪
 
-NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后的 tarball 执行：临时项目位于工作区外，经 pnpm pack 转换 catalog、独立安装后，检查九个运行时入口、禁止网络的 Node 导入、development 源码解析和私有深路径拒绝。先不添加应用级 @types/three 验证库声明，再按应用直接组合 Three.js 的方式安装该类型包，以 skipLibCheck=false 验证 NodeNext、Bundler 和 development 条件下的声明解析。后者仍优先使用 types 导出，不表示 Node 可执行 node_modules 内的原始 TS，也不代替浏览器验收。命令独立于 ready，安装可能需要网络；临时项目成功清理、失败保留供诊断。
+NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后的 tarball 执行：临时项目位于工作区外，经 pnpm pack 转换 catalog、独立安装后，检查十个运行时入口、禁止网络的 Node 导入、development 源码解析和私有深路径拒绝。先不添加应用级 @types/three 验证库声明，再按应用直接组合 Three.js 的方式安装该类型包，以 skipLibCheck=false 验证 NodeNext、Bundler 和 development 条件下的声明解析。后者仍优先使用 types 导出，不表示 Node 可执行 node_modules 内的原始 TS，也不代替浏览器验收。命令独立于 ready，安装可能需要网络；临时项目成功清理、失败保留供诊断。
 
 动画验证见 [真实 Mixer 单测](../packages/three/tests/animation.test.ts)、[加载器扩展 scope 测试](../packages/three/tests/loaders.test.ts) 与 [浏览器动画回归](../tests/browser/animation.spec.ts)。[原创资产生成器](../scripts/generate-model-fixtures.mjs) 按 glTF FLOAT 对齐生成两段节点平移动画，来源见模型 README；没有私有或第三方模型。
 
@@ -231,6 +237,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-023  | 组合效果与选择描边契约            | postprocessing.ts、演示选择/模型联动             | 参数/场景恢复/清理单测、像素/拾取与组合释放回归   |
 | FR-024  | HDR 环境契约                      | environment.ts、原创 HDR 生成器及演示            | 原生解码单测、像素/取消/GPU 回归、九入口打包      |
 | FR-025  | 对象变换契约                      | controls.ts、transform-controls.ts、演示手柄     | 原生资源/输入单测、实际拖拽和 buffer/program 回归 |
+| FR-026  | 独立图片纹理契约                  | textures.ts、PNG 生成器及演示                    | 颜色/异步/清理单测、像素/位图和 GPU 回归          |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                      |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器               |
 
