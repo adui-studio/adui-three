@@ -19,6 +19,7 @@
 - [相机取景决策](docs/adr/0007-camera-framing.md)：世界边界、透视视锥、控件约束与即时应用。
 - [渲染管线决策](docs/adr/0009-render-pipeline.md)：独占绘制替换、尺寸通知与单次绘制。
 - [泛光生命周期决策](docs/adr/0010-bloom-lifecycle.md)：可选效果链、自有目标与渲染期销毁。
+- [组合效果决策](docs/adr/0011-effect-composition.md)：选择描边、固定顺序与场景异常恢复。
 - [贡献指南](CONTRIBUTING.md)：Issue/PR 模板及 emoji 提交规范。
 
 ## 工作流程与约束

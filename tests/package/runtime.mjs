@@ -17,7 +17,7 @@ const expected = {
   "@adui/three/labels": ["attachDOMLabels"],
   "@adui/three/animation": ["attachGLTFAnimations"],
   "@adui/three/camera": ["computeObjectFrame", "fitObject", "transitionToObject"],
-  "@adui/three/postprocessing": ["attachBloom"],
+  "@adui/three/postprocessing": ["attachBloom", "attachPostprocessing"],
 };
 const development = process.argv.includes("--resolve-only");
 for (const [specifier, names] of Object.entries(expected)) {
@@ -53,7 +53,7 @@ if (!development) {
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");
   assert.ok(
-    !/GLTFLoader|OrbitControls|transitionToObject|computeObjectFrame|EffectComposer|attachBloom/.test(
+    !/GLTFLoader|OrbitControls|transitionToObject|computeObjectFrame|EffectComposer|attachBloom|OutlinePass|attachPostprocessing/.test(
       core,
     ),
   );

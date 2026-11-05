@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`        | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`       | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`        | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`  | 主包的 162 项单元测试                                              |
+| `pnpm exec vp run -r test`  | 主包的 172 项单元测试                                              |
 | `pnpm exec vp run -r build` | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`            | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`     | 构建演示并执行 31 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`     | 构建演示并执行 33 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`     | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:models`  | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
 
@@ -58,6 +58,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 组合描边阶段：ready 通过 13 项文档检查器测试、172 项主包单测、91 文件格式及 49 源文件 Lint/类型检查，八入口构建与演示构建成功。新增 10 项单测验证组合顺序、原生参数、选择快照/借用所有权、场景异常恢复、尺寸重入和清理。尺寸失败回归最初暴露目标仍为 600px 而重试应为 800px；修复仅在成功后记录快照，并由宿主保留 dirty 标记、下次绘制前重试。55 项宿主/后处理定向用例和最终 ready 均通过。全量浏览器 33/33 通过（约 2.3 分钟），零重试；实际黄色边缘、真实拾取/空白选择、模型替换/移除和三轮组合资源释放均验证，截图已目视检查。test:package 的八入口真实安装、无 DOM 导入及四次严格编译通过。
 
 2026-11-05 泛光阶段：ready 通过 13 项文档测试、162 项主包单测、90 文件格式与 49 源文件 Lint/类型检查，八入口 ESM/声明及演示构建成功。16 项新增单测保留原生 pass/material/target，覆盖配置、尺寸/DPR、独占回滚、渲染期销毁、异常恢复和清理继续执行。最初静态检查的原生探针方法绑定与 canvas 类型问题已修正，无忽略类型检查。三项新增浏览器回归 3/3 通过（约 9.3 秒），随后全量 31/31 通过（约 1.9 分钟），零重试。
 

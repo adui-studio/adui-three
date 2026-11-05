@@ -132,6 +132,14 @@ options 扩展 FitObjectOptions，duration 默认 0.8 秒且必须正有限，si
 
 resize 去重并同步 CSS 尺寸与 DPR，零尺寸保留上次目标；单次 app.render 也经过效果链。渲染期 dispose 立即失效并禁用后续 passes，当前原生执行返回后清理 GPU 资源；错误继续清理并聚合。保存并恢复借用 renderer 的 target、autoClear、toneMapping、清屏色和 alpha，宿主结束则不再写原生对象。详见 [ADR-0010](adr/0010-bloom-lifecycle.md)。
 
+## 组合效果与选择描边契约
+
+attachPostprocessing(app, PostprocessingOptions) 至少提供 bloom 或 outline；PostprocessingHandle 提供可选原生 bloom/outline、disposed、dispose。attachBloom 是兼容包装，委托同一模块。固定顺序为基础 RenderPass、可选 OutlinePass、可选 UnrealBloomPass、末尾 OutputPass；不做任意编排或独立句柄隐式合并。
+
+OutlineOptions：selectedObjects=[]（借用对象数组快照）、edgeStrength=3、edgeThickness=1（范围 [1,4]）、edgeGlow=0、enabled=true；强度/光晕非负有限。visibleEdgeColor/hiddenEdgeColor 可选 0..0xffffff 整数，否则原生默认。对象必须为 Object3D；直接更新原生参数由应用保证有效。消费者负责与拾取/模型生命周期同步，dispose 清空选择，不释放模型资产。
+
+描边启用且有选择时保存 scene.background/overrideMaterial 和场景/选择对象的 visible 快照，仅绘制失败恢复。resize/render 不允许操作中重入，操作内销毁等原生调用返回再清理。失败尺寸保留 dirty 状态，同尺寸通知及下次绘制前可以重试，模块仅在原生设置成功后记录尺寸快照。其余尺寸、DPR、借用 renderer 状态、独占租约与资源契约保持，细节见 [ADR-0011](adr/0011-effect-composition.md)。
+
 ## 对象拾取契约
 
 [interaction.ts](../packages/three/src/interaction.ts) 是独立子入口，导出 attachPicking、PickingOptions、PickingEvent 和 PickingHandle。`attachPicking(app, { objects, recursive?, dragThreshold? })` 使用必填目标 getter；recursive=true、dragThreshold=4 CSS 像素。句柄提供原生 raycaster、disposed、pick(clientX, clientY)、on("click" | "hover", callback) 与 dispose。
@@ -180,32 +188,33 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 
 标签验证见 [单测](../packages/three/tests/labels.test.ts) 与 [浏览器回归](../tests/browser/labels.spec.ts)，包括真实投影数学、可见性、资源清理和实际 DOM 布局/交互。渲染完成阶段的顺序、订阅竞争、异常与销毁在宿主单测中覆盖。
 
-| 需求    | 设计位置                          | 实现                                             | 测试/验收                                   |
-| ------- | --------------------------------- | ------------------------------------------------ | ------------------------------------------- |
-| FR-001  | 当前实现                          | AGENTS、docs、scripts                            | docs:test / docs:check                      |
-| FR-002  | 核心 API、模块与关键流程          | packages/three                                   | 主包单测、浏览器演示                        |
-| FR-003  | 核心 API                          | 主包 package.json、website 依赖                  | ESM/声明构建、公开入口                      |
-| FR-004  | 当前实现                          | CONTRIBUTING、Skills、.github                    | 文档检查、格式检查                          |
-| FR-005  | 模块与关键流程                    | ThreeApp 构造                                    | 宿主单测、浏览器                            |
-| FR-006  | 模块与关键流程                    | FrameLoop、onUpdate                              | 帧/宿主单测、独立暂停                       |
-| FR-007  | 模块与关键流程                    | resize、平台监听                                 | 宿主单测、浏览器尺寸操作                    |
-| FR-008  | 释放与边界                        | ResourceScope、dispose、signal                   | 资源/宿主单测、反复重建                     |
-| FR-009  | 核心 API、验证设计                | controls、website                                | 控制器单测、浏览器                          |
-| FR-010  | GLTF / GLB 异步契约               | loaders.ts、公开子入口                           | 模型单测、生产浏览器 GLTF/GLB               |
-| FR-011  | GLTF / GLB 异步契约               | loaders.ts、gltf-resources.ts                    | 竞争/快照单测、同 URL 和图像清理浏览器回归  |
-| FR-012  | 验证设计                          | 原创模型、生成器、演示                           | fixtures:models、浏览器模型回归             |
-| FR-013  | 工程清理                          | 根 README、工作区、模板文件与引用                | 文档校验、主包测试、构建及浏览器回归        |
-| FR-014  | 对象拾取契约                      | interaction.ts、演示拾取反馈                     | 拾取单测、生产浏览器交互回归                |
-| FR-015  | DOM 标签契约、模块与关键流程      | labels.ts、onAfterRender、演示                   | 标签/宿主单测、生产浏览器标签回归           |
-| FR-016  | 模型动画契约、GLTF / GLB 异步契约 | animation.ts、模型 resources、原创动画 GLB       | 动画/加载器单测、生产浏览器动画回归         |
-| FR-017  | 压缩解码契约                      | loaders.ts、原创建模与压缩生成、演示本地 decoder | 解码器单测、原生 Worker/迟到清理浏览器回归  |
-| FR-018  | KTX2 模型契约                     | loaders.ts、ktx2-task.ts、原创纹理与模型         | KTX2/加载器单测、Worker/上传/回退浏览器回归 |
-| FR-019  | 相机取景契约                      | camera.ts、演示模型尺寸与显式取景                | 真实数学/控件单测、浏览器取景与交互回归     |
-| FR-020  | 相机过渡契约                      | camera-transition.ts、演示平滑取景与取消         | 过渡单测、浏览器中断与生命周期回归          |
-| FR-021  | 核心 API                          | three-app.ts、演示单次绘制                       | 宿主管线/单次绘制单测、render 浏览器回归    |
-| FR-022  | 泛光契约                          | postprocessing.ts、演示泛光/强度/释放            | 原生资源单测、像素和 GPU 释放浏览器回归     |
-| NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                |
-| NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器         |
+| 需求    | 设计位置                          | 实现                                             | 测试/验收                                       |
+| ------- | --------------------------------- | ------------------------------------------------ | ----------------------------------------------- |
+| FR-001  | 当前实现                          | AGENTS、docs、scripts                            | docs:test / docs:check                          |
+| FR-002  | 核心 API、模块与关键流程          | packages/three                                   | 主包单测、浏览器演示                            |
+| FR-003  | 核心 API                          | 主包 package.json、website 依赖                  | ESM/声明构建、公开入口                          |
+| FR-004  | 当前实现                          | CONTRIBUTING、Skills、.github                    | 文档检查、格式检查                              |
+| FR-005  | 模块与关键流程                    | ThreeApp 构造                                    | 宿主单测、浏览器                                |
+| FR-006  | 模块与关键流程                    | FrameLoop、onUpdate                              | 帧/宿主单测、独立暂停                           |
+| FR-007  | 模块与关键流程                    | resize、平台监听                                 | 宿主单测、浏览器尺寸操作                        |
+| FR-008  | 释放与边界                        | ResourceScope、dispose、signal                   | 资源/宿主单测、反复重建                         |
+| FR-009  | 核心 API、验证设计                | controls、website                                | 控制器单测、浏览器                              |
+| FR-010  | GLTF / GLB 异步契约               | loaders.ts、公开子入口                           | 模型单测、生产浏览器 GLTF/GLB                   |
+| FR-011  | GLTF / GLB 异步契约               | loaders.ts、gltf-resources.ts                    | 竞争/快照单测、同 URL 和图像清理浏览器回归      |
+| FR-012  | 验证设计                          | 原创模型、生成器、演示                           | fixtures:models、浏览器模型回归                 |
+| FR-013  | 工程清理                          | 根 README、工作区、模板文件与引用                | 文档校验、主包测试、构建及浏览器回归            |
+| FR-014  | 对象拾取契约                      | interaction.ts、演示拾取反馈                     | 拾取单测、生产浏览器交互回归                    |
+| FR-015  | DOM 标签契约、模块与关键流程      | labels.ts、onAfterRender、演示                   | 标签/宿主单测、生产浏览器标签回归               |
+| FR-016  | 模型动画契约、GLTF / GLB 异步契约 | animation.ts、模型 resources、原创动画 GLB       | 动画/加载器单测、生产浏览器动画回归             |
+| FR-017  | 压缩解码契约                      | loaders.ts、原创建模与压缩生成、演示本地 decoder | 解码器单测、原生 Worker/迟到清理浏览器回归      |
+| FR-018  | KTX2 模型契约                     | loaders.ts、ktx2-task.ts、原创纹理与模型         | KTX2/加载器单测、Worker/上传/回退浏览器回归     |
+| FR-019  | 相机取景契约                      | camera.ts、演示模型尺寸与显式取景                | 真实数学/控件单测、浏览器取景与交互回归         |
+| FR-020  | 相机过渡契约                      | camera-transition.ts、演示平滑取景与取消         | 过渡单测、浏览器中断与生命周期回归              |
+| FR-021  | 核心 API                          | three-app.ts、演示单次绘制                       | 宿主管线/单次绘制单测、render 浏览器回归        |
+| FR-022  | 泛光契约                          | postprocessing.ts、演示泛光/强度/释放            | 原生资源单测、像素和 GPU 释放浏览器回归         |
+| FR-023  | 组合效果与选择描边契约            | postprocessing.ts、演示选择/模型联动             | 参数/场景恢复/清理单测、像素/拾取与组合释放回归 |
+| NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                    |
+| NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器             |
 
 ## 维护
 

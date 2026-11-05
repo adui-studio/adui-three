@@ -209,7 +209,7 @@ test("pipeline render errors stop the host and suppress completion observers", (
   expect(after).not.toHaveBeenCalled();
 });
 
-test("pipeline resize errors stop scheduling and keep detachment available", () => {
+test("pipeline resize errors stop scheduling and retry the same size before another draw", () => {
   const env = fixture();
   const app = env.create();
   const resize = vi.fn();
@@ -222,6 +222,10 @@ test("pipeline resize errors stop scheduling and keep detachment available", () 
   expect(() => app.resize()).toThrow("resize");
   expect(app.state).toBe("stopped");
   expect(env.frames.size).toBe(0);
+  resize.mockImplementation(() => {});
+  app.render();
+  expect(resize).toHaveBeenCalledTimes(3);
+  expect(resize).toHaveBeenLastCalledWith({ width: 321, height: 360, pixelRatio: 2 });
   off();
   app.render();
   expect(vi.spyOn(app.renderer, "render")).toHaveBeenCalledOnce();

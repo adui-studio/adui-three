@@ -27,7 +27,7 @@
 
 ## 测试入口
 
-- [泛光实现](../packages/three/src/postprocessing.ts) / [单测](../packages/three/tests/postprocessing.test.ts) / [浏览器回归](../tests/browser/postprocessing.spec.ts)：HDR 像素、原生 passes/目标清理、尺寸与帧内销毁。
+- [泛光实现](../packages/three/src/postprocessing.ts) / [单测](../packages/three/tests/postprocessing.test.ts) / [浏览器回归](../tests/browser/postprocessing.spec.ts)：HDR/描边像素、组合顺序、原生目标清理、场景异常恢复及尺寸与帧内销毁。
 
 - [宿主管线和单次绘制](../packages/three/tests/three-app.test.ts) / [浏览器单次绘制](../tests/browser/render.spec.ts)：独占、尺寸、暂停、错误、重入与完成阶段。
 

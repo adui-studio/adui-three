@@ -59,7 +59,7 @@ export class ThreeApp {
   #drawable = false;
   #maxPixelRatio: number;
   #media: MediaQueryList | null = null;
-  #pipeline: { value: RenderPipeline } | null = null;
+  #pipeline: { value: RenderPipeline; sizeDirty: boolean } | null = null;
   #inFrame = false;
   #elapsed = 0;
 
@@ -179,7 +179,7 @@ export class ThreeApp {
     if (!pipeline || typeof pipeline.render !== "function" || typeof pipeline.resize !== "function")
       throw new TypeError("A render and resize pipeline is required");
     if (this.#pipeline) throw new Error("A render pipeline is already attached");
-    const lease = { value: pipeline };
+    const lease = { value: pipeline, sizeDirty: false };
     this.#pipeline = lease;
     const detach = (): void => {
       if (this.#pipeline === lease) this.#pipeline = null;
@@ -235,9 +235,12 @@ export class ThreeApp {
       this.camera.updateProjectionMatrix();
       this.renderer.setDrawingBufferSize(width, height, pixelRatio);
     }
-    if (changed && this.#pipeline) {
+    if (this.#pipeline && (changed || this.#pipeline.sizeDirty)) {
+      const lease = this.#pipeline;
+      lease.sizeDirty = true;
       try {
-        this.#pipeline.value.resize(this.size);
+        lease.value.resize(this.size);
+        lease.sizeDirty = false;
       } catch (error) {
         this.stop();
         throw error;
@@ -303,6 +306,11 @@ export class ThreeApp {
   }
 
   #draw(frame: FrameInfo, valid: () => boolean): void {
+    // A resize which threw must finish before a partially sized pipeline can draw again.
+    if (this.#pipeline?.sizeDirty) {
+      this.resize();
+      if (!valid()) return;
+    }
     if (this.#pipeline) this.#pipeline.value.render(frame);
     else this.renderer.render(this.scene, this.camera);
     if (!valid()) return;

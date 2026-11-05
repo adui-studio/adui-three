@@ -25,10 +25,15 @@ async function pixels(panel: Locator, action: string) {
       data,
     );
     let bright = 0;
-    for (let index = 0; index < data.length; index += 4)
+    let yellow = 0;
+    for (let index = 0; index < data.length; index += 4) {
       if (data[index]! + data[index + 1]! + data[index + 2]! > 450) bright++;
+      if (data[index]! > 150 && data[index + 1]! > 120 && data[index]! > data[index + 2]! * 1.25)
+        yellow++;
+    }
     return {
       bright,
+      yellow,
       width: gl.drawingBufferWidth,
       height: gl.drawingBufferHeight,
       error: gl.getError(),
@@ -139,6 +144,7 @@ test("real render-target textures and framebuffers return to baseline after repe
   const baseline = await counts();
   for (let index = 0; index < 3; index++) {
     await panel.getByRole("button", { name: "泛光", exact: true }).click();
+    await panel.getByRole("button", { name: "选择描边", exact: true }).click();
     expect((await counts()).textures).toBeGreaterThan(baseline.textures);
     expect((await counts()).frames).toBeGreaterThan(baseline.frames);
     await panel.getByRole("button", { name: "释放后处理", exact: true }).click();
@@ -151,6 +157,71 @@ test("real render-target textures and framebuffers return to baseline after repe
   await panel.getByRole("button", { name: "重建 ↻", exact: true }).click();
   await expect(panel).toHaveAttribute("data-bloom-state", "idle");
   await expect(panel.locator("canvas")).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
+test("native outlines change pixels and follow real picking and empty selection while paused", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.goto("/");
+  await pause(page);
+  const panel = page.getByTestId("scene-A");
+  const enabled = await pixels(panel, "outline");
+  await expect(panel).toHaveAttribute("data-outline-state", "enabled");
+  await expect(panel).toHaveAttribute("data-outline-selection", "1");
+  const disabled = await pixels(panel, "outline");
+  expect(enabled.yellow).toBeGreaterThan(disabled.yellow + 20);
+  expect(enabled.error).toBe(0);
+  expect(disabled.error).toBe(0);
+  await pixels(panel, "outline");
+  const canvas = panel.locator("canvas");
+  await canvas.click({ position: { x: 8, y: 8 } });
+  await expect(panel).toHaveAttribute("data-outline-selection", "0");
+  const empty = await pixels(panel, "render");
+  expect(empty.yellow).toBe(disabled.yellow);
+  const bounds = (await canvas.boundingBox())!;
+  await canvas.click({ position: { x: bounds.width / 2, y: bounds.height / 2 } });
+  await expect(panel).toHaveAttribute("data-outline-selection", "1");
+  expect((await pixels(panel, "render")).yellow).toBeGreaterThan(empty.yellow + 20);
+  await page.screenshot({
+    path: "test-results/postprocessing-outline.png",
+    fullPage: true,
+    scale: "css",
+  });
+  expect(errors).toEqual([]);
+});
+
+test("outline selection clears on model replacement/removal and teardown stays local to one host", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await pause(page);
+  const a = page.getByTestId("scene-A");
+  const b = page.getByTestId("scene-B");
+  await a.getByRole("button", { name: "加载 GLB", exact: true }).click();
+  await expect(a).toHaveAttribute("data-model-state", "loaded");
+  await pixels(a, "outline");
+  await pixels(b, "outline");
+  await expect(a).toHaveAttribute("data-outline-selection", "1");
+  await a.getByRole("button", { name: "加载 GLTF", exact: true }).click();
+  await expect(a).toHaveAttribute("data-model-state", "loaded");
+  await expect(a).toHaveAttribute("data-outline-selection", "0");
+  await a.getByRole("button", { name: "移除模型", exact: true }).click();
+  await expect(a).toHaveAttribute("data-outline-selection", "0");
+  await a.getByRole("button", { name: "销毁", exact: true }).click();
+  await expect(a).toHaveAttribute("data-outline-state", "disposed");
+  await expect(b).toHaveAttribute("data-outline-state", "enabled");
+  expect((await pixels(b, "render")).yellow).toBeGreaterThan(20);
+  await a.getByRole("button", { name: "重建 ↻", exact: true }).click();
+  await expect(a).toHaveAttribute("data-outline-state", "idle");
+  await expect(a.locator("canvas")).toHaveCount(1);
   expect(errors).toEqual([]);
 });
 

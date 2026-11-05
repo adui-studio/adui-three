@@ -44,7 +44,7 @@ flowchart TD
   App --> Assets[应用持有的模型与资产服务]
 ```
 
-单主包用内部模块组合宿主、调度、尺寸与资源归属；宿主暴露原生 Three.js 对象，演示依赖公开入口。OrbitControls 从 controls、GLTF/GLB 从 loaders、拾取从 interaction、DOM 标签从 labels、模型动画从 animation 子入口接入；核心默认入口不依赖这些可选模块。标签在渲染完成阶段同步投影；动画在统一更新阶段驱动 Mixer，绑定宿主与模型扩展 scope，均无第二循环。animation 对 GLTFModel 仅有类型引用，loader 不导入动画或自动播放。可选 postprocessing 使用宿主独占管线，固定基础渲染、泛光和输出转换，不创建新调度；其余效果留后续。Vue/Pinia、业务解密和场景路径不进入核心。
+单主包用内部模块组合宿主、调度、尺寸与资源归属；宿主暴露原生 Three.js 对象，演示依赖公开入口。OrbitControls 从 controls、GLTF/GLB 从 loaders、拾取从 interaction、DOM 标签从 labels、模型动画从 animation 子入口接入；核心默认入口不依赖这些可选模块。标签在渲染完成阶段同步投影；动画在统一更新阶段驱动 Mixer，绑定宿主与模型扩展 scope，均无第二循环。animation 对 GLTFModel 仅有类型引用，loader 不导入动画或自动播放。可选 postprocessing 使用宿主独占管线，固定基础渲染、可选描边/泛光和输出转换，不创建新调度；其余效果留后续。Vue/Pinia、业务解密和场景路径不进入核心。
 
 截图中 `@adui/three-utils`、`@adui/three-effects`、`@adui/three-controls`、`@adui/three-gis`、`@adui/three-editor`、`@adui/three-vue`、`@adui/three-react` 仅记录为未来可能命名，不视为已批准拆包。
 
@@ -53,6 +53,8 @@ camera 提供即时规划/应用以及可取消平滑过渡，仅按类型借用
 核心绘制阶段允许借用一个 RenderPipeline，统一同步尺寸/DPR 并替代默认渲染；单次 render 也复用管线与完成阶段。核心不导入后处理 addon，资源由模块的 scope 持有，见 [ADR-0009](adr/0009-render-pipeline.md)。
 
 泛光资源和渲染期销毁见 [ADR-0010](adr/0010-bloom-lifecycle.md)。HalfFloat composer 目标由模块拥有，renderer/场景借用；可选入口保持 addon 外部化，核心不反向依赖效果。
+
+组合效果与场景异常恢复见 [ADR-0011](adr/0011-effect-composition.md)，attachBloom 继续兼容，未指定效果不分配；选择状态与模型存活仍由消费者管理。
 
 ## 关键取舍
 

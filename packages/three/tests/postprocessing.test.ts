@@ -1,11 +1,19 @@
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
-import { ACESFilmicToneMapping, Color, PerspectiveCamera, Scene } from "three";
+import {
+  ACESFilmicToneMapping,
+  BoxGeometry,
+  Color,
+  Mesh,
+  MeshBasicMaterial,
+  PerspectiveCamera,
+  Scene,
+} from "three";
 import type { WebGLRenderTarget } from "three";
 import type { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import type { Pass } from "three/addons/postprocessing/Pass.js";
 import type { RenderPipeline, ThreeApp, ThreeAppState } from "../src/index.ts";
 import { ResourceScope } from "../src/resources.ts";
-import { attachBloom } from "../src/postprocessing.ts";
+import { attachBloom, attachPostprocessing } from "../src/postprocessing.ts";
 
 const state = vi.hoisted(() => ({
   instances: [] as EffectComposer[],
@@ -346,4 +354,185 @@ test("different hosts keep independent modules, settings and resource lifetimes"
   expect(second.disposed).toBe(false);
   expect(second.pass.strength).toBe(2);
   expect(b.pipeline).not.toBeNull();
+});
+
+test("generic attachment requires at least one effect and validates selection before allocating", () => {
+  const env = fixture();
+  expect(() => attachPostprocessing(env.app, {})).toThrow("At least one");
+  expect(() => attachPostprocessing(env.app, { outline: true as never })).toThrow(TypeError);
+  expect(() =>
+    attachPostprocessing(env.app, { outline: { selectedObjects: [{} as never] } }),
+  ).toThrow(TypeError);
+  expect(state.instances).toHaveLength(0);
+});
+
+test("outline scalar and hex-color bounds reject invalid input before occupying the slot", () => {
+  const env = fixture();
+  for (const outline of [
+    { edgeStrength: -1 },
+    { edgeStrength: NaN },
+    { edgeThickness: 0 },
+    { edgeThickness: 4.1 },
+    { edgeGlow: Infinity },
+    { edgeGlow: -1 },
+    { visibleEdgeColor: 0x1000000 },
+    { hiddenEdgeColor: -1 },
+    { visibleEdgeColor: 1.5 },
+    { enabled: 1 as unknown as boolean },
+  ])
+    expect(() => attachPostprocessing(env.app, { outline })).toThrow(RangeError);
+  expect(state.instances).toHaveLength(0);
+  expect(env.pipeline).toBeNull();
+});
+
+test("outline-only chains use native defaults and snapshot the borrowed selection array", () => {
+  const env = fixture();
+  const object = new Mesh();
+  const selection = [object];
+  const handle = attachPostprocessing(env.app, { outline: { selectedObjects: selection } });
+  selection.length = 0;
+  expect(composer().passes.map((pass) => pass.constructor.name)).toEqual([
+    "RenderPass",
+    "OutlinePass",
+    "OutputPass",
+  ]);
+  expect(handle.bloom).toBeUndefined();
+  expect(handle.outline!.selectedObjects).toEqual([object]);
+  expect(handle.outline).toMatchObject({
+    edgeStrength: 3,
+    edgeThickness: 1,
+    edgeGlow: 0,
+    enabled: true,
+    pulsePeriod: 0,
+  });
+  handle.outline!.selectedObjects = [];
+  env.draw();
+  expect(vi.spyOn(composer(), "render")).toHaveBeenCalledOnce();
+});
+
+test("combined chains place outline before bloom and preserve explicit native settings", () => {
+  const env = fixture();
+  const handle = attachPostprocessing(env.app, {
+    bloom: { strength: 2 },
+    outline: {
+      enabled: false,
+      edgeThickness: 4,
+      edgeStrength: 5,
+      edgeGlow: 2,
+      visibleEdgeColor: 0xff8800,
+      hiddenEdgeColor: 0x123456,
+    },
+  });
+  expect(composer().passes.map((pass) => pass.constructor.name)).toEqual([
+    "RenderPass",
+    "OutlinePass",
+    "UnrealBloomPass",
+    "OutputPass",
+  ]);
+  expect(handle.bloom!.strength).toBe(2);
+  expect(handle.outline!.enabled).toBe(false);
+  expect(handle.outline!.visibleEdgeColor.getHex()).toBe(0xff8800);
+  expect(handle.outline!.hiddenEdgeColor.getHex()).toBe(0x123456);
+  expect(handle.outline!.edgeThickness).toBe(4);
+});
+
+test("outline disposal clears selection references while leaving borrowed scene resources untouched", () => {
+  const env = fixture();
+  const object = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
+  env.env.scene.add(object);
+  const geometry = vi.spyOn(object.geometry, "dispose");
+  const material = vi.spyOn(object.material, "dispose");
+  const handle = attachPostprocessing(env.app, { outline: { selectedObjects: [object] } });
+  const pass = vi.spyOn(handle.outline!, "dispose");
+  handle.dispose();
+  expect(pass).toHaveBeenCalledOnce();
+  expect(handle.outline!.selectedObjects).toEqual([]);
+  expect(object.parent).toBe(env.env.scene);
+  expect(geometry).not.toHaveBeenCalled();
+  expect(material).not.toHaveBeenCalled();
+  object.geometry.dispose();
+  object.material.dispose();
+});
+
+test("outline render failures restore visibility and native scene overrides, including detached selections", () => {
+  const env = fixture();
+  const object = new Mesh();
+  const hidden = new Mesh();
+  const outside = new Mesh();
+  hidden.visible = false;
+  env.env.scene.add(object, hidden);
+  const background = new Color(0x334455);
+  env.env.scene.background = background;
+  const handle = attachPostprocessing(env.app, { outline: { selectedObjects: [object, outside] } });
+  const override = handle.outline!.depthMaterial;
+  state.onPass = (_pass, index) => {
+    if (index !== 1) return;
+    object.visible = false;
+    hidden.visible = true;
+    outside.visible = false;
+    env.env.scene.background = null;
+    env.env.scene.overrideMaterial = override;
+    throw new Error("mask render");
+  };
+  expect(() => env.draw()).toThrow("mask render");
+  expect(object.visible).toBe(true);
+  expect(hidden.visible).toBe(false);
+  expect(outside.visible).toBe(true);
+  expect(env.env.scene.background).toBe(background);
+  expect(env.env.scene.overrideMaterial).toBeNull();
+});
+
+test("successful outline rendering leaves intentional application scene changes intact", () => {
+  const env = fixture();
+  const object = new Mesh();
+  env.env.scene.add(object);
+  attachPostprocessing(env.app, { outline: { selectedObjects: [object] } });
+  const background = new Color(0xabcdef);
+  state.onPass = () => {
+    env.env.scene.background = background;
+  };
+  env.draw();
+  expect(env.env.scene.background).toBe(background);
+});
+
+test("resource disposal during native resize defers GPU release until the resize operation returns", () => {
+  const env = fixture();
+  const handle = attachPostprocessing(env.app, { outline: {}, bloom: {} });
+  const instance = composer();
+  state.onSize = () => {
+    handle.dispose();
+    expect(vi.spyOn(instance, "dispose")).not.toHaveBeenCalled();
+  };
+  env.resize(300, 200);
+  expect(handle.disposed).toBe(true);
+  expect(vi.spyOn(instance, "dispose")).toHaveBeenCalledOnce();
+  expect(env.pipeline).toBeNull();
+});
+
+test("native resize rejects render reentry and a failed size remains retryable", () => {
+  const env = fixture();
+  attachPostprocessing(env.app, { outline: {} });
+  state.onSize = () => {
+    expect(() => env.draw()).toThrow("cannot reenter");
+  };
+  env.resize(300, 200);
+  expect(vi.spyOn(composer(), "render")).not.toHaveBeenCalled();
+  state.onSize = () => {
+    throw new Error("transient size failure");
+  };
+  expect(() => env.resize(400, 200)).toThrow("transient size failure");
+  state.onSize = undefined;
+  env.resize(400, 200);
+  expect(composer().renderTarget1.width).toBe(800);
+});
+
+test("initialization and rollback failures are both retained in the reported aggregate", () => {
+  const env = fixture();
+  state.failDispose = true;
+  state.onSize = () => {
+    throw new Error("resize initialization");
+  };
+  expect(() => attachPostprocessing(env.app, { outline: {} })).toThrow(AggregateError);
+  expect(env.pipeline).toBeNull();
+  expect(vi.spyOn(composer(), "dispose")).toHaveBeenCalledOnce();
 });
