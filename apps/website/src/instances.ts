@@ -11,7 +11,7 @@ root.innerHTML = `<div class="shell">
   <main><section class="intro"><div class="eyebrow"><span class="dot"></span> INSTANCE PLAYGROUND</div><h1>共享形状，<br><span>独立实例数据。</span></h1><p>25 个立方体，共用几何体和材质。<br>按需绘制，点击查看原生实例编号。</p></section>
   <article class="scene-card" data-testid="instances">
     <div class="instances-stage" aria-label="实例化网格画布"></div>
-    <div class="metrics"><div><span>INSTANCES</span><strong data-testid="instance-count">0</strong></div><div><span>DRAW CALLS</span><strong data-testid="instance-calls">0</strong></div><div><span>PICKED ID</span><strong data-testid="instance-picked">—</strong></div></div>
+    <div class="metrics"><div><span>INSTANCES</span><strong data-testid="instance-count">0</strong></div><div><span>DRAW CALLS</span><strong data-testid="instance-calls">0</strong></div><div><span>PICKED ID</span><strong data-testid="instance-picked">—</strong></div><div><span>HOVERED ID</span><strong data-testid="instance-hovered">—</strong></div></div>
     <div class="actions"><button data-action="all">显示全部</button><button data-action="one">仅首个</button><button data-action="zero">隐藏全部</button><button data-action="move">移动首个</button><button data-action="color">首个变绿</button><button data-action="remove">释放网格</button><button data-action="create">重建网格</button><button data-action="render">绘制一帧</button></div>
     <p class="model-feedback">红色为实例 0；其余实例为蓝色。释放网格后可复用相同几何体与材质重建。</p>
     <p class="model-feedback" role="alert" data-testid="instance-error" hidden></p>
@@ -44,12 +44,14 @@ const create = (): void => {
   }
   handle.setCount(25);
   display("picked", "—");
+  display("hovered", "—");
   render();
 };
 const picking = attachPicking(app, {
   objects: () => (handle && !handle.disposed ? [handle.mesh] : []),
 });
 picking.on("click", ({ intersection }) => display("picked", intersection?.instanceId ?? "—"));
+picking.on("hover", ({ intersection }) => display("hovered", intersection?.instanceId ?? "—"));
 const click = (event: MouseEvent): void => {
   const action = (event.target as Element).closest<HTMLButtonElement>("button")?.dataset.action;
   if (!action) return;
@@ -58,6 +60,7 @@ const click = (event: MouseEvent): void => {
     else if (action === "remove") {
       handle?.dispose();
       display("picked", "—");
+      display("hovered", "—");
     } else if (handle && !handle.disposed) {
       if (action === "all") handle.setCount(25);
       if (action === "one") handle.setCount(1);

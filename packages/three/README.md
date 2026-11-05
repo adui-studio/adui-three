@@ -358,9 +358,9 @@ updateSkinnedBounds 默认 true：在有效拾取时同步递归目标内的骨�
 
 按画布 getBoundingClientRect 换算 NDC，不乘 DPR；支持页面偏移、滚动和轴向 CSS 缩放，不支持 CSS 旋转/倾斜。零尺寸、非有限坐标、画布外返回 null。拾取前更新相机与目标世界矩阵；ready/stopped 状态也可使用。目标或祖先 visible=false 的交点会被过滤，其余沿用原生 CPU raycast、材质面朝向和 raycaster layers 规则；不等同 GPU 可见像素，不解析透明贴图、遮挡的非目标对象或 shader 顶点位移。
 
-click 在主指针左键/单指按下和抬起命中同一个对象时同步触发，两次都为空也触发 null。期间任意移动超过阈值即取消，回到原处也不恢复；离开、取消、失焦、第二指针介入会取消本次点击。不调用 preventDefault、指针捕获或独立 RAF，可与 OrbitControls 共存。触摸滚动策略由应用/控制器设置。
+click 在主指针左键/单指按下和抬起命中同一对象且 instanceId/batchId 相同时同步触发，两次都为空也触发 null。期间任意移动超过阈值即取消，回到原处也不恢复；离开、取消、失焦、第二指针介入会取消本次点击。不调用 preventDefault、指针捕获或独立 RAF，可与 OrbitControls 共存。触摸滚动策略由应用/控制器设置。
 
-hover 仅在无按钮的主鼠标/笔 pointermove 导致最近对象改变时触发，pointerleave/pointercancel 触发 null；触摸没有悬停。静止指针下物体运动、目标替换不会主动刷新，下一次指针事件重新判断；失焦重置内部状态，销毁不额外派发事件。业务选择状态、光标和高亮由应用管理。
+hover 仅在无按钮的主鼠标/笔 pointermove 导致最近对象或其 instanceId/batchId 改变时触发，pointerleave/pointercancel 触发 null；触摸没有悬停。静止指针下物体运动、目标替换不会主动刷新，下一次指针事件重新判断；失焦重置内部状态，销毁不额外派发事件。业务选择状态、光标和高亮由应用管理。
 
 on 返回幂等取消函数，同一回调可独立订阅多次；派发中新订阅下一次生效，取消或销毁立即生效，回调异常交给浏览器。手动或宿主/scope 销毁移除监听，不释放借用目标。销毁后 pick/on 抛错，dispose 幂等。包导入没有 DOM 副作用。
 

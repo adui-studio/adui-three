@@ -115,6 +115,46 @@ test("instanced GPU draw, moved bounds, color upload and native instance picking
   await expect(page.getByTestId("instance-error")).toBeHidden();
 });
 
+test("hover moves between native instances of one GPU mesh and clears on exit", async ({
+  page,
+}) => {
+  const center = await pixels(page, "red");
+  const sibling = await page.getByTestId("instances").evaluate((element) => {
+    element.querySelector<HTMLButtonElement>('[data-action="render"]')!.click();
+    const canvas = element.querySelector("canvas")!;
+    const gl = canvas.getContext("webgl2")!;
+    const width = gl.drawingBufferWidth,
+      height = gl.drawingBufferHeight;
+    const bytes = new Uint8Array(width * 4);
+    gl.readPixels(0, Math.floor(height / 2), width, 1, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
+    let start = -1,
+      end = -1;
+    for (let x = Math.floor(width / 2); x < width; x++) {
+      const blue = bytes[x * 4 + 2]! > 150 && bytes[x * 4]! < 60;
+      if (blue && start === -1) start = x;
+      if (!blue && start !== -1) {
+        end = x;
+        break;
+      }
+    }
+    const rect = canvas.getBoundingClientRect();
+    return {
+      found: start !== -1 && end > start,
+      x: rect.left + ((start + end) / 2 / width) * rect.width,
+      y: rect.top + rect.height / 2,
+    };
+  });
+  expect(sibling.found).toBe(true);
+  await page.mouse.move(center.x, center.y);
+  await expect(page.getByTestId("instance-hovered")).toHaveText("0");
+  await page.mouse.move(sibling.x, sibling.y);
+  await expect(page.getByTestId("instance-hovered")).toHaveText("13");
+  await page.mouse.move(center.x, center.y);
+  await expect(page.getByTestId("instance-hovered")).toHaveText("0");
+  await page.mouse.move(0, 0);
+  await expect(page.getByTestId("instance-hovered")).toHaveText("—");
+});
+
 test("instance buffers return to the warm borrowed-asset baseline across repeated rebuilds", async ({
   page,
 }) => {

@@ -200,7 +200,7 @@ loadKTX2(app,url,LoadKTX2Options) 同样从 textures 导出，返回 KTX2Texture
 
 pick 每次读取目标快照，更新相机/目标世界矩阵，以画布矩形将 viewport CSS 坐标映射至 NDC；不使用 drawing buffer 尺寸或全局容器。零尺寸/越界/非有限坐标返回 null；最近交点保留原生实际子对象，过滤 visible=false 的节点/祖先。支持偏移、滚动、轴向缩放，不支持 CSS 旋转/倾斜；其余沿用原生 CPU raycast，不保证 GPU 像素级一致或把非目标作为遮挡物。
 
-click：主指针左键/单指 pointerdown 记录位置与命中对象 → move/up 任意位移超过阈值取消 → pointerup 同一 pointerId、同一对象（包括都为 null）才派发。离开/取消/失焦/第二指针取消候选。模块不捕获指针、不 preventDefault，不修改 OrbitControls。hover：无按钮鼠标/笔移动时只在对象引用变化派发，leave/cancel 清空；触摸无 hover，静止指针或对象变更等下一次事件刷新。失焦只重置内部状态，销毁不派发事件。
+click：主指针左键/单指 pointerdown 记录位置与命中对象 → move/up 任意位移超过阈值取消 → pointerup 同一 pointerId、同一对象且 instanceId/batchId 相同（包括都为 null）才派发。离开/取消/失焦/第二指针取消候选。模块不捕获指针、不 preventDefault，不修改 OrbitControls。hover：无按钮鼠标/笔移动时只在对象引用或 instanceId/batchId 变化派发，leave/cancel 清空；触摸无 hover，静止指针或对象变更等下一次事件刷新。失焦只重置内部状态，销毁不派发事件。
 
 每次 on 是独立订阅，返回幂等 off；派发拍快照，新增延迟至下次，取消/销毁立即生效，回调异常不吞。句柄登记 app.resources，手动或宿主/scope 释放时解除全部画布/窗口监听、清订阅，保护借用目标，不创建帧循环。ready/stopped 可拾取，销毁后 pick/on 抛错。演示自行持有选中状态与光标；模型加载/移除及销毁重建时清空界面状态。
 
@@ -282,6 +282,8 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
 ## 实例化网格契约
+
+拾取以对象引用与原生 instanceId/batchId 的数值快照共同表示命中目标。hover 跨同一网格的不同实例也派发；按下至抬起实例变化会取消点击，即使指针未移动。保留原始 Intersection，不复制或改变结果对象；仅内部保存身份字段，防止后续原生结果复用/修改污染按下或悬停状态。这不是业务实例身份系统，复用相同槽位编号的内容变化仍由消费者管理。
 
 geometry 入口导出 createInstancedMesh(app,options)、CreateInstancedMeshOptions 和 InstancedMeshHandle。options 的 geometry、material（单个或只读数组）为借用，数组只复制引用列表；capacity 为正整数，count 为 [0,capacity] 整数且默认 0，addToScene 默认 true。handle 暴露 mesh/capacity/resources/disposed、setCount、setMatrixAt、setColorAt、dispose。
 

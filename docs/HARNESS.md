@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 304 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 307 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 67 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 68 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 实例拾取身份修复：三项先行失败单测分别复现同一 InstancedMesh 跨实例漏 hover、静止按下后换实例误 click，以及 batchId 结果复用污染；按对象引用和原生实例编号快照判断后全部通过，累计 307 项单测。ready 通过 13 项文档测试、135 文件格式和 80 源文件静态检查与全部构建，十二入口独立打包及严格声明/消费检查通过。
+
+实例浏览器专项 3/3 通过（约 6.5 秒）；完整 68/68 通过，零重试。新增用实际 GPU 红/蓝像素定位鼠标，验证同一网格实例 0 → 13 → 0 → 离开时的 hover；按下/抬起换实例和 batchId 仍以原生数学/结果单测覆盖，不外推为 BatchedMesh GPU 渲染验收。没有新 RAF、监听、依赖或发布。
 
 2026-11-06 实例清理补查：新浏览器用例通过本地路由消费实际库产物和锁定的 Three.js 源码，不改生产页面。真实 WebGL 复现 extension 错误、绘制后注册的原生错误监听均删除两个实例 buffer；绘制前注册的错误监听阻断 renderer dispose，只删除零个 buffer。移除故障监听并显式原生 dispose 后可继续清理。纠正 ADR 对 BufferAttribute.dispose 的过度承诺：该方法的 GPU 释放只适用于 WebGPU，当前 WebGL 路径依赖节点事件。专项 1/1 通过（约 3.7 秒）。ready 通过 13 项文档测试、304 项单测、135 文件格式、80 源文件静态检查与构建。
 

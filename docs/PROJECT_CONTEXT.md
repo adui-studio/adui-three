@@ -14,6 +14,7 @@
 - controls：OrbitControls；TransformControls 负责 helper/初始 GPU 快照，借用模型与轨道控制，拖拽/取消按值恢复配置，无第二循环。
 - loaders：GLTF/GLB 逻辑取消、迟到清理、模型资源快照/扩展 scope，显式 Draco/Meshopt/KTX2。cloneGLTF 复制默认树与独立动画数据，共享资产租约到最后一个使用者结束。任务自有解码器，运输可能继续，运行资源本地托管。
 - interaction / labels：原生 Raycaster 点击/悬停、动态目标及事件清理，默认按需刷新蒙皮边界/骨骼矩阵并防 pick 重入；DOM 标签在完成阶段投影，明确元素和模型借用边界。
+- 实例交互：hover 和 click 匹配同时比较 object、instanceId、batchId 的快照；同一网格内跨实例会派发 hover，按下后换实例则取消点击，保留原始 Intersection。
 - animation：单 Mixer、片段播放/暂停/恢复/停止、原生事件队列和双范围清理，seek 按秒定位后暂停；crossFadeTo 根据当前权重渐变到目标，支持中断、暂停和清理。
 - camera：世界边界即时取景和宿主 delta 驱动过渡，校验视锥/控件限制，支持输入、替换、尺寸、移除等取消。
 - postprocessing：HalfFloat composer、基础/可选描边/可选泛光/输出链，借用 renderer，拥有 passes/targets，操作中释放延后清 GPU。
@@ -26,7 +27,7 @@
 
 ## 验证状态
 
-当前 ready 通过：13 项文档检查器测试、304 项主包单测、格式/Lint/类型及全部构建。test:package 的十二入口 tarball 独立安装、无 DOM/禁止网络导入、development 解析和四次严格声明/消费编译通过。本轮真实浏览器 67/67 通过，零重试，包含 GPU 骨骼/实例/拾取、截图像素/编码隔离/URL 生命周期，以及原生 dispose 监听顺序边界；详细结果和首次失败记录见 [Harness](HARNESS.md)。
+当前 ready 通过：13 项文档检查器测试、307 项主包单测、格式/Lint/类型及全部构建。test:package 的十二入口 tarball 独立安装、无 DOM/禁止网络导入、development 解析和四次严格声明/消费编译通过。本轮真实浏览器 68/68 通过，零重试，包含 GPU 骨骼/实例/拾取、截图像素/编码隔离/URL 生命周期、原生 dispose 监听顺序边界和同一网格跨实例 hover；详细结果和首次失败记录见 [Harness](HARNESS.md)。
 
 浏览器环境是 Chromium/SwiftShader，单 worker、零自动重试；完整设备/格式/浏览器矩阵、长期 GPU 泄漏和性能基准尚未完成。保留 TypeScript 7 API 实验性和演示大 chunk 构建提示，不将本地通过称为远端 CI 通过。失败诊断、历史统计和阶段未提交记录统一保留在 Harness，不在接手入口复制过期状态。
 

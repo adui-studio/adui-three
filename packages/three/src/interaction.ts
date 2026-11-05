@@ -25,9 +25,23 @@ export interface PickingHandle {
   readonly disposed: boolean;
   /** Viewport-relative CSS coordinates, like PointerEvent.clientX/clientY. */
   pick(clientX: number, clientY: number): Intersection | null;
-  /** Hover fires only when the nearest object changes; click includes empty space. */
+  /** Hover fires when the nearest object/instance/batch changes; click includes empty space. */
   on(type: "click" | "hover", callback: (event: PickingEvent) => void): () => void;
   dispose(): void;
+}
+
+interface PickTarget {
+  object: Object3D | null;
+  instanceId: number | undefined;
+  batchId: number | undefined;
+}
+
+function target(hit: Intersection | null): PickTarget {
+  return { object: hit?.object ?? null, instanceId: hit?.instanceId, batchId: hit?.batchId };
+}
+
+function sameTarget(a: PickTarget, b: PickTarget): boolean {
+  return a.object === b.object && a.instanceId === b.instanceId && a.batchId === b.batchId;
 }
 
 function visible(object: Object3D): boolean {
@@ -55,8 +69,8 @@ export function attachPicking(app: ThreeApp, options: PickingOptions): PickingHa
   };
   let disposed = false;
   let picking = false;
-  let hovered: Object3D | null = null;
-  let press: { id: number; x: number; y: number; object: Object3D | null } | null = null;
+  let hovered = target(null);
+  let press: { id: number; x: number; y: number; target: PickTarget } | null = null;
 
   const active = (): void => {
     if (disposed) throw new Error("Picking handle has been disposed");
@@ -137,9 +151,9 @@ export function attachPicking(app: ThreeApp, options: PickingOptions): PickingHa
     }
   };
   const hover = (intersection: Intersection | null, event: PointerEvent): void => {
-    const object = intersection?.object ?? null;
-    if (object === hovered) return;
-    hovered = object;
+    const next = target(intersection);
+    if (sameTarget(next, hovered)) return;
+    hovered = next;
     emit("hover", { intersection, originalEvent: event });
   };
   const down = (event: PointerEvent): void => {
@@ -152,7 +166,7 @@ export function attachPicking(app: ThreeApp, options: PickingOptions): PickingHa
       id: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      object: pick(event.clientX, event.clientY)?.object ?? null,
+      target: target(pick(event.clientX, event.clientY)),
     };
   };
   const moved = (event: PointerEvent): void => {
@@ -181,7 +195,7 @@ export function attachPicking(app: ThreeApp, options: PickingOptions): PickingHa
     )
       return;
     const intersection = pick(event.clientX, event.clientY);
-    if ((intersection?.object ?? null) === previous.object)
+    if (sameTarget(target(intersection), previous.target))
       emit("click", { intersection, originalEvent: event });
   };
   const leave = (event: PointerEvent): void => {
@@ -190,7 +204,7 @@ export function attachPicking(app: ThreeApp, options: PickingOptions): PickingHa
   };
   const blur = (): void => {
     press = null;
-    hovered = null;
+    hovered = target(null);
   };
   const bindings = {
     pointerdown: down,
@@ -222,7 +236,7 @@ export function attachPicking(app: ThreeApp, options: PickingOptions): PickingHa
       listeners.click.clear();
       listeners.hover.clear();
       press = null;
-      hovered = null;
+      hovered = target(null);
       app.resources.untrack(handle);
     },
   };

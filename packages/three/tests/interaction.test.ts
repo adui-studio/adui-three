@@ -4,6 +4,8 @@ import {
   BoxGeometry,
   Float32BufferAttribute,
   Group,
+  InstancedMesh,
+  Matrix4,
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
@@ -12,7 +14,7 @@ import {
   Uint16BufferAttribute,
   Vector3,
 } from "three";
-import type { Object3D } from "three";
+import type { Intersection, Object3D } from "three";
 import type { ThreeApp, ThreeAppState } from "../src/index.ts";
 import { ResourceScope } from "../src/resources.ts";
 import { attachPicking } from "../src/interaction.ts";
@@ -58,6 +60,71 @@ function fixture() {
   };
   return { app, state, mesh, targets, canvas, view, picker, send };
 }
+
+function instancedFixture() {
+  const env = fixture();
+  const mesh = new InstancedMesh(env.mesh.geometry, env.mesh.material, 2);
+  mesh.setMatrixAt(0, new Matrix4().makeTranslation(-0.6, 0, 0));
+  mesh.setMatrixAt(1, new Matrix4().makeTranslation(0.6, 0, 0));
+  env.targets.splice(0, 1, mesh);
+  env.state.camera.updateMatrixWorld();
+  const left = new Vector3(-0.6, 0, 0).project(env.state.camera);
+  const right = new Vector3(0.6, 0, 0).project(env.state.camera);
+  return {
+    ...env,
+    instance: mesh,
+    left: 100 + (left.x + 1) * 200,
+    right: 100 + (right.x + 1) * 200,
+  };
+}
+
+test("hover distinguishes native instances on one mesh and resets the instance identity on leave and blur", () => {
+  const env = instancedFixture();
+  const ids: Array<number | null> = [];
+  env.picker.on("hover", ({ intersection }) => ids.push(intersection?.instanceId ?? null));
+  env.send("pointermove", { clientX: env.left });
+  env.send("pointermove", { clientX: env.left });
+  env.send("pointermove", { clientX: env.right });
+  env.send("pointerleave");
+  env.send("pointermove", { clientX: env.right });
+  env.view.dispatchEvent(new Event("blur"));
+  env.send("pointermove", { clientX: env.right });
+  expect(ids).toEqual([0, 1, null, 1, 1]);
+});
+
+test("a stationary press cannot click a different native instance moved under the pointer", () => {
+  const env = instancedFixture();
+  const clicks = vi.fn();
+  env.picker.on("click", clicks);
+  env.send("pointerdown", { clientX: env.left });
+  env.instance.setMatrixAt(0, new Matrix4().makeTranslation(0.6, 0, 0));
+  env.instance.setMatrixAt(1, new Matrix4().makeTranslation(-0.6, 0, 0));
+  env.instance.boundingSphere = null;
+  env.send("pointerup", { clientX: env.left });
+  expect(clicks).not.toHaveBeenCalled();
+  env.send("pointerdown", { clientX: env.left });
+  env.send("pointerup", { clientX: env.left });
+  expect(clicks).toHaveBeenCalledOnce();
+  expect(clicks.mock.calls[0]![0].intersection.instanceId).toBe(1);
+});
+
+test("batch ids participate in hover and press identity without changing the native intersection", () => {
+  const env = fixture();
+  const hit: Intersection = { distance: 1, point: new Vector3(), object: env.mesh, batchId: 0 };
+  vi.spyOn(env.picker.raycaster, "intersectObjects").mockReturnValue([hit]);
+  const hover = vi.fn(),
+    click = vi.fn();
+  env.picker.on("hover", hover);
+  env.picker.on("click", click);
+  env.send("pointermove");
+  env.send("pointerdown");
+  hit.batchId = 1;
+  env.send("pointermove");
+  env.send("pointerup");
+  expect(hover).toHaveBeenCalledTimes(2);
+  expect(click).not.toHaveBeenCalled();
+  expect(hover.mock.calls[1]![0].intersection).toBe(hit);
+});
 
 function skinFixture(externalBones = false, withBox = true) {
   const env = fixture();

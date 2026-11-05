@@ -21,6 +21,10 @@ PickingOptions.updateSkinnedBounds 默认 true。有效画布坐标拾取时，�
 
 真实蒙皮数学用例覆盖旧 sphere/box、兄弟骨骼和 bind inverse、opt-out、不额外分配 box、重叠根去重、recursive=false、错误后恢复、同步失效和重入。原创样例新增 Reach 片段移动根骨骼 3 单位，在暂停宿主下以实际 GPU 像素定位鼠标，验证移出旧边界后仍可悬停/选中和返回，不改变其他实例；结果见 Harness。
 
+## 实例身份补充
+
+实例化网格接入后，以 object 引用和 instanceId/batchId 数值快照共同去重 hover 和匹配 click，不改变原生 Intersection。两项真实 InstancedMesh 数学测试与一项 batchId 结果复用测试先复现旧行为；修复后同一网格跨实例派发 hover，静止指针下切换实例取消点击。浏览器用实际红/蓝像素定位，真实移动鼠标验证实例 0 → 13 → 0 → 离开。
+
 ## 来源
 
 - [SkinnedMesh 官方 API](https://threejs.org/docs/pages/SkinnedMesh.html)
