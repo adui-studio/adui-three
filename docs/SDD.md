@@ -2,15 +2,15 @@
 
 ## 当前实现
 
-核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing 分别提供控制器、模型加载、拾取、DOM 标签、动画、取景和泛光。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
+核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing、environment、textures 分别提供控制器/变换、模型加载、拾取、DOM 标签、动画/定位、取景、泛光/描边、HDR 环境和独立图片纹理。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
 
 核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画扩展见 [ADR-0004](adr/0004-animation-lifecycle.md)。完整选项、默认值和示例以 [主包 README](../packages/three/README.md) 与导出类型为准；已通过可选泛光模块接入自有 composer；尚无寻路、框架适配或 WebGPU 实现。
 
 ## 核心 API
 
-新增 RenderPipeline 类型：render(FrameInfo):void、resize(ViewportSize):void；setRenderPipeline 借用对象并返回幂等解除函数。挂接时通知当前尺寸，后续仅变化时通知，包括零尺寸/暂停/DPR；旧解除函数不影响新租约。重复挂接拒绝，初始化错误或同步销毁释放槽位。宿主销毁解除引用而不调用借用对象 dispose，所有者自行登记资源。
+新增 RenderPipeline 类型：render(FrameInfo):void、resize(ViewportSize):void；setRenderPipeline 借用对象并返回幂等解除函数。挂接时通知当前尺寸，后续在变化或失败待重试时通知，包括零尺寸/暂停/DPR；旧解除函数不影响新租约。重复挂接拒绝，初始化错误或同步销毁释放槽位。宿主销毁解除引用而不调用借用对象 dispose，所有者自行登记资源。
 
-render():void 显式绘制一帧，沿用当前管线或原生 renderer，并派发 onAfterRender；不触发 onUpdate、不调度 RAF、不推进 elapsed，delta=0。ready/stopped/running 可用，隐藏/零尺寸跳过，disposed 后拒绝。更新/绘制/完成阶段内重入拒绝；异常停止宿主后抛出。自动帧和手动绘制共享绘制阶段及完成订阅竞争规则，生命周期变化中止剩余完成回调。详见 [ADR-0009](adr/0009-render-pipeline.md)。
+render():void 显式绘制一帧，沿用当前管线或原生 renderer，并派发 onAfterRender；不触发 onUpdate、不调度 RAF、不推进 elapsed，delta=0。ready/stopped/running 可用，隐藏/零尺寸跳过，disposed 后拒绝。更新/绘制/完成阶段和尺寸处理期间重入拒绝；异常停止宿主后抛出。自动帧和手动绘制共享绘制阶段及完成订阅竞争规则，生命周期变化中止剩余完成回调。详见 [ADR-0009](adr/0009-render-pipeline.md)。
 
 | 公开接口                                                | 具体职责与契约                                                                |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------- |
