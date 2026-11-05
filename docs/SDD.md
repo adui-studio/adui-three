@@ -118,6 +118,8 @@ modelHandle 的资源快照建立后才移交已创建纹理，随模型/宿主�
 
 ## 相机取景契约
 
+蒙皮目标在 precise 顶点采样前，先刷新其引用骨骼的世界矩阵（可位于目标子树外），再调用 SkinnedMesh.updateMatrixWorld 按原生 bindMode 刷新绑定逆矩阵。支持暂停后的骨骼和父级变换；不推进 Mixer、不修改骨骼 inverse-bind 数组或分配 boneTexture。computeObjectFrame 的结果仍是调用时快照，不接管逐帧剔除边界或自定义 shader 位移。
+
 [camera.ts](../packages/three/src/camera.ts) 为独立入口，导出 computeObjectFrame、fitObject、ObjectFrameOptions、FitObjectOptions、ObjectFrame。computeObjectFrame 接收透视相机与借用对象，更新世界矩阵后以 Box3.setFromObject(true) 得到 AABB；取对角线一半为半径，结合 zoom 的有效双轴半视角与 padding 计算距离，minimumDistance 作下限。推荐 near=(distance-radius)/2、far=distance+2*radius，检查数值范围；返回向量/边界快照，不移动相机。
 
 fitObject 在宿主/scope 存活和非零视口时即时应用；默认 adjustClipping=true，false 时先验证当前裁剪范围可容纳目标。可借用当前相机的 OrbitControls，合并 minDistance，检查 maxDistance、cursor/目标半径与有效角度配置；不可容纳时先拒绝。原生角度限制可改变方向，保守球仍用于取景。临时关闭 damping/autoRotate，经公开 update(0) 清惯性后写 position/target，再更新投影、控件和世界矩阵；finally 恢复设置。WeakSet 仅防同相机同步重入，无长期订阅或资源持有；同步事件中检查宿主存活，错误不承诺回滚消费者副作用。

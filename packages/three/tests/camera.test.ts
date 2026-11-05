@@ -1,12 +1,17 @@
 import { expect, test, vi } from "vite-plus/test";
 import {
+  Bone,
   BoxGeometry,
   BufferGeometry,
+  DetachedBindMode,
   Float32BufferAttribute,
   Group,
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
+  Skeleton,
+  SkinnedMesh,
+  Uint16BufferAttribute,
   Vector3,
 } from "three";
 import type { Box3 } from "three";
@@ -44,6 +49,78 @@ function contained(camera: PerspectiveCamera, bounds: Box3): void {
         }
       }
 }
+
+function skinnedFixture(externalBones: boolean) {
+  const env = fixture();
+  const geometry = new BoxGeometry(2, 4, 3);
+  const count = geometry.attributes.position!.count;
+  geometry.setAttribute("skinIndex", new Uint16BufferAttribute(new Uint16Array(count * 4), 4));
+  const weights = new Float32Array(count * 4);
+  for (let index = 0; index < count; index++) weights[index * 4] = 1;
+  geometry.setAttribute("skinWeight", new Float32BufferAttribute(weights, 4));
+  const bone = new Bone();
+  const skin = new SkinnedMesh(geometry, env.object.material);
+  const parent = new Group();
+  parent.add(skin);
+  if (externalBones) parent.add(bone);
+  else skin.add(bone);
+  parent.updateMatrixWorld(true);
+  skin.bind(new Skeleton([bone]));
+  return { ...env, bone, skin, parent };
+}
+
+test("framing a skinned subtree refreshes sibling bones before sampling the current pose", () => {
+  const env = skinnedFixture(true);
+  env.bone.position.x = 7;
+  const frame = computeObjectFrame(env.camera, env.skin);
+  expect(frame.center.x).toBeCloseTo(7);
+  expect(frame.bounds.min.x).toBeCloseTo(6);
+  expect(frame.bounds.max.x).toBeCloseTo(8);
+  env.bone.position.x = -4;
+  const fit = fitObject(env.app, env.skin);
+  expect(fit.center.x).toBeCloseTo(-4);
+  contained(env.camera, fit.bounds);
+});
+
+test("framing refreshes attached bind inverses after parent movement without a render", () => {
+  for (const external of [false, true]) {
+    const env = skinnedFixture(external);
+    env.parent.position.set(10, 20, -5);
+    env.bone.position.x = 3;
+    const frame = computeObjectFrame(env.camera, env.skin);
+    expect(frame.center.toArray()).toEqual([13, 20, -5]);
+    expect(env.skin.bindMatrixInverse.elements[12]).toBe(-10);
+    expect(frame.bounds.getSize(new Vector3()).toArray()).toEqual([2, 4, 3]);
+  }
+});
+
+test("detached bind mode preserves its bind matrix when the mesh and skeleton move independently", () => {
+  const env = skinnedFixture(true);
+  env.bone.removeFromParent();
+  env.skin.bindMode = DetachedBindMode;
+  env.bone.position.x = 3;
+  env.parent.position.set(10, 20, -5);
+  const frame = computeObjectFrame(env.camera, env.skin);
+  expect(frame.center.toArray()).toEqual([13, 20, -5]);
+  expect(env.skin.bindMatrixInverse).toEqual(env.skin.bindMatrix.clone().invert());
+});
+
+test("skinned pose preparation does not claim shared skeleton data or move an invalidated host camera", () => {
+  const env = skinnedFixture(true);
+  const inverses = env.skin.skeleton.boneInverses.map((matrix) => matrix.clone());
+  const before = env.camera.position.clone();
+  const update = env.bone.updateWorldMatrix.bind(env.bone);
+  vi.spyOn(env.bone, "updateWorldMatrix").mockImplementationOnce((parents, children) => {
+    update(parents, children);
+    env.state.resources.dispose();
+  });
+  expect(() => fitObject(env.app, env.skin)).toThrow("disposed");
+  expect(env.camera.position).toEqual(before);
+  expect(env.skin.skeleton.boneInverses).toEqual(inverses);
+  expect(env.skin.skeleton.boneTexture).toBeNull();
+  expect(env.state.start).not.toHaveBeenCalled();
+  expect(env.state.renderer.render).not.toHaveBeenCalled();
+});
 
 test("planning updates ancestor transforms and returns independent snapshots without moving the camera", () => {
   const env = fixture();

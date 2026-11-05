@@ -2,7 +2,7 @@
 
 ## 目标与当前阶段
 
-更新日期：2026-11-06。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。主包与双实例原生 TS 演示已实现；最近完成动画渐变、模型实例和上下文丢失隔离，原创骨骼/morph GPU 验证以 704d2ff、蒙皮拾取修复以 26d9926 推送。画布截图以 c73ca9c 推送；实例化网格当前已实现，验证记录见 Harness。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
+更新日期：2026-11-06。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。主包与双实例原生 TS 演示已实现；截图以 c73ca9c、实例化网格以 eba97c8、实例交互修复以 3e57f7c 推送。本轮修复暂停蒙皮取景的骨骼/绑定逆矩阵准备，已完成本地验收，验证记录见 Harness。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
 
 用户授权持续封装、分步提交推送；提交描述和正文使用中文，格式 type(scope): emoji 中文描述。不得改写已有提交或擅自发布 npm。用户明确“不做任何 CI”：不新增/启用工作流，不调整组织或仓库 Actions 设置。历史工作流已由 e6ea2c2 移除，保留当时的本地输入回归修复。
 
@@ -27,7 +27,7 @@
 
 ## 验证状态
 
-当前 ready 通过：13 项文档检查器测试、307 项主包单测、格式/Lint/类型及全部构建。test:package 的十二入口 tarball 独立安装、无 DOM/禁止网络导入、development 解析和四次严格声明/消费编译通过。本轮真实浏览器 68/68 通过，零重试，包含 GPU 骨骼/实例/拾取、截图像素/编码隔离/URL 生命周期、原生 dispose 监听顺序边界和同一网格跨实例 hover；详细结果和首次失败记录见 [Harness](HARNESS.md)。
+当前 ready 通过：13 项文档检查器测试、311 项主包单测、格式/Lint/类型及全部构建。本轮真实浏览器 69/69 通过，零重试，新增暂停蒙皮父级缩放后的即时/平滑取景像素和距离验证；此前十二入口 tarball 独立安装、无 DOM/禁止网络导入、development 解析和四次严格声明/消费编译通过，本轮没有改导出/依赖。详细结果和首次失败记录见 [Harness](HARNESS.md)。
 
 浏览器环境是 Chromium/SwiftShader，单 worker、零自动重试；完整设备/格式/浏览器矩阵、长期 GPU 泄漏和性能基准尚未完成。保留 TypeScript 7 API 实验性和演示大 chunk 构建提示，不将本地通过称为远端 CI 通过。失败诊断、历史统计和阶段未提交记录统一保留在 Harness，不在接手入口复制过期状态。
 
@@ -51,7 +51,7 @@
 
 WebGL 上下文丢失会将 contextLost 设 true 并完整结束该宿主，业务通过 abort 更新状态并显式重建；不自动继续旧 GPU 图或替换 renderer。真实原型发现旧代 GPU 清理的 1282，证据与取舍见 ADR-0019。另一宿主的模型实例仍由其租约持有共享资产。
 
-先读 [AGENTS](../AGENTS.md)、需求、SDD、[架构](ARCHITECTURE.md)、[代码地图](CODEBASE_MAP.md) 和 [Harness](HARNESS.md)。修改范围对应需求编号；API/所有权边界见 ADR-0002 至 ADR-0021，ADR-0001 保留历史 Proposed 提案。Skills 按 [索引](SKILLS.md) 加载，不自动安装或扩大远程授权。
+先读 [AGENTS](../AGENTS.md)、需求、SDD、[架构](ARCHITECTURE.md)、[代码地图](CODEBASE_MAP.md) 和 [Harness](HARNESS.md)。修改范围对应需求编号；API/所有权边界见 ADR-0002 至 ADR-0022，ADR-0001 保留历史 Proposed 提案。Skills 按 [索引](SKILLS.md) 加载，不自动安装或扩大远程授权。
 
 下一步按真实需求选择更高层动画状态/重定向、正交相机或其他能力；这些仍未实现，不预建空包。共享解码器服务、浏览器范围、更多 Three.js minor、WebGPU/WebXR、框架适配和 npm 发布权限仍待专门评估。后续代码检查 ready，影响宿主/渲染/演示执行 test:browser，导出/打包变化执行 test:package，文档执行 docs:test/docs:check。
 

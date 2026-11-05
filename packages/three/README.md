@@ -257,6 +257,8 @@ fitObject 使用当前 app.camera 和尺寸立即应用；支持宿主 ready/sto
 
 传入 `FitObjectOptions.controls` 时必须属于当前相机。遵守 minDistance，maxDistance 或 cursor/目标半径约束无法容纳时写入前拒绝；不修改这些限制。控件角度限制仍生效，返回 position 反映最终位置。通过公开 update(0) 先消耗残余惯性，再同步相机/target；临时关闭的 damping/autoRotate 标志始终恢复。原生 change 回调会执行，回调中销毁宿主阻止后续取景写入；同相机重入拒绝。消费者回调抛错时，不承诺回滚原生更新已产生的变动。
 
+蒙皮目标在计算前刷新所引用的骨骼世界矩阵（包括目标子树外的骨骼），并按原生 bindMode 更新绑定逆矩阵，再采样当前顶点。暂停后直接改变父级变换或骨骼姿态，也无需先渲染一帧才能正确取景；不修改骨骼 inverse-bind 数据、推进动画或创建骨骼 GPU 纹理。这不包含自定义顶点着色器位移。
+
 两个函数不创建循环、资源句柄、订阅或自动播放/启动，也不直接 render。暂停时应用若希望立即显示，可显式 render 一次并更新标签；演示使用这一方式。旋转、动画、resize 或模型替换后，按需重新调用取景。相机过渡见下节；正交/父级/偏轴相机留后续，详见 [ADR-0007](https://github.com/adui-studio/adui-three/blob/main/docs/adr/0007-camera-framing.md)。
 
 ## KTX2 纹理模型

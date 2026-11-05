@@ -23,10 +23,17 @@
 
 AABB 包围球可能留较多空白，precise 遍历有 CPU 成本。原生边界包含隐藏后代；InstancedMesh/BatchedMesh 沿用原生保守边界，着色器位移或过期实例边界需由应用维护。取景只描述调用时快照；动画、旋转、resize 后按需求重算。裁剪面针对目标，其他场景物体可能被裁剪。
 
-单测投影世界 AABB 角点验证横竖屏、zoom、缩放和变换，使用真实 OrbitControls 验证惯性、限制、事件重入及销毁。浏览器验证暂停绘制、拾取/标签、大模型、窄容器、零尺寸、移除重建与真实拖拽。相机过渡、正交/父级/偏轴相机与完整设备矩阵留后续；实际结果见 Harness。
+单测投影世界 AABB 角点验证横竖屏、zoom、缩放和变换，使用真实 OrbitControls 验证惯性、限制、事件重入及销毁。浏览器验证暂停绘制、拾取/标签、大模型、窄容器、零尺寸、移除重建与真实拖拽。平滑过渡已由 [ADR-0008](0008-camera-transition.md) 补充实现；正交/父级/偏轴相机与完整设备矩阵仍留后续；实际结果见 Harness。
+
+## 蒙皮姿态补充
+
+2026-11-06 补查发现 updateWorldMatrix 不执行 SkinnedMesh.updateMatrixWorld 中的绑定逆矩阵刷新，且取景子树可能不含其骨骼。现在在 precise Box3 顶点采样前更新每个蒙皮网格引用的骨骼世界矩阵，再通过原生 updateMatrixWorld 按 bindMode 刷新绑定逆矩阵。覆盖 Attached/Detached 模式，不改骨骼 inverse-bind 数组、不创建骨骼 GPU 纹理或驱动动画。
+
+先行单测复现兄弟骨骼姿态丢失和父级变换重复计入；真实浏览器复现缩放 20 倍却将取景距离放大约 400 倍。修复后复用同一路径的即时取景和平滑取景按当前姿态工作。操作仍是调用时快照，新增的骨骼矩阵更新仅发生在请求取景时，不代替逐帧动画边界维护。
 
 ## 来源
 
 - [r187 Box3](https://github.com/mrdoob/three.js/blob/r187/src/math/Box3.js)
 - [r187 PerspectiveCamera](https://github.com/mrdoob/three.js/blob/r187/src/cameras/PerspectiveCamera.js)
 - [r187 OrbitControls](https://github.com/mrdoob/three.js/blob/r187/examples/jsm/controls/OrbitControls.js)
+- [r187 SkinnedMesh](https://github.com/mrdoob/three.js/blob/r187/src/objects/SkinnedMesh.js)

@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 307 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 311 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 68 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 69 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,12 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 蒙皮取景补查：两项先行失败数学测试复现子树外兄弟骨骼遗漏（中心 0 而非 7）和父级变换重复计入（[23,40,-10] 而非 [13,20,-5]）；真实浏览器先行失败复现模型放大 20 倍却将取景距离放大约 400 倍。修复仅在取景请求内准备所引用骨骼世界矩阵及原生绑定逆矩阵，四项新增单测覆盖上述路径、Detached 模式、共享 inverse-bind 数据/无 boneTexture 分配和准备期间 scope 结束，累计 311 项单测通过。
+
+ready 通过 13 项文档检查器测试、135 文件格式、80 源文件静态检查与全部构建；新增浏览器专项修复后 1/1 通过（约 7.9 秒），验证 Reach 暂停姿态缩放后的距离比例、实际黄色像素数量、平滑取景恢复原尺寸及另一宿主不受影响。首次失败 trace/error 保存在忽略的 playwright-report/diagnostics/skinned-framing。没有新增入口、依赖、RAF、CI 或发布；不接管逐帧剔除边界或自定义 shader 位移。
+
+修复后完整 69/69 通过（约 4.6 分钟），零重试。本轮多项既有操作较此前慢，原生源码路由的实例清理故障用例约 46.1 秒但通过；不改变超时、重试或既有断言，不将运行耗时当作 GPU 性能数据。
 
 2026-11-06 实例拾取身份修复：三项先行失败单测分别复现同一 InstancedMesh 跨实例漏 hover、静止按下后换实例误 click，以及 batchId 结果复用污染；按对象引用和原生实例编号快照判断后全部通过，累计 307 项单测。ready 通过 13 项文档测试、135 文件格式和 80 源文件静态检查与全部构建，十二入口独立打包及严格声明/消费检查通过。
 

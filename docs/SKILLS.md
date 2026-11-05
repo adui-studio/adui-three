@@ -107,6 +107,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 实例化阶段复用 threejs-geometry，并以 r187 官方源码核验 needsUpdate、包围体和新的 Object3D/BufferAttribute dispose；不直接照搬 Skill 版本。以真实 draw 参数、像素、拾取和 GPU buffer 回归检验管理契约。
 
+蒙皮取景补查复用 threejs-fundamentals，并核验 r187 Box3 的 precise 顶点路径与 SkinnedMesh.updateMatrixWorld 的绑定逆矩阵语义。先行单测和 GPU 缩放距离复现后修复，不用渲染一帧掩盖取景函数的姿态准备缺失。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

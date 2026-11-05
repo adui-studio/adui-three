@@ -1,5 +1,5 @@
 import { Box3, MathUtils, Vector3 } from "three";
-import type { Object3D, PerspectiveCamera } from "three";
+import type { Object3D, PerspectiveCamera, SkinnedMesh } from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { ThreeApp } from "./three-app.ts";
 
@@ -74,6 +74,14 @@ export function computeObjectFrame(
     throw new RangeError("Invalid view direction");
   outward.divideScalar(magnitude).normalize();
   object.updateWorldMatrix(true, true);
+  object.traverse((node) => {
+    const mesh = node as SkinnedMesh;
+    if (!mesh.isSkinnedMesh) return;
+    // Bones can live outside the framed subtree. Box3's precise vertex path does not update them.
+    for (const bone of mesh.skeleton.bones) bone.updateWorldMatrix(true, false);
+    // SkinnedMesh refreshes its bind inverse in this method, not in updateWorldMatrix().
+    mesh.updateMatrixWorld(true);
+  });
   const bounds = new Box3().setFromObject(object, true);
   if (bounds.isEmpty() || !finite([...bounds.min.toArray(), ...bounds.max.toArray()]))
     throw new RangeError("Object has no finite bounds");

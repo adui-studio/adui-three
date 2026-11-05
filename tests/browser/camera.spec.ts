@@ -1,5 +1,72 @@
 import { expect, test } from "@playwright/test";
 
+test("paused skinned framing and transitions use the current pose after parent scale changes", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  const panel = page.getByTestId("scene-A"),
+    other = page.getByTestId("scene-B");
+  for (const item of [panel, other])
+    await item.getByRole("button", { name: "暂停", exact: true }).click();
+  await panel.getByRole("button", { name: "加载骨骼样例", exact: true }).click();
+  await expect(panel).toHaveAttribute("data-model-state", "loaded");
+  await panel.getByRole("button", { name: "播放动画", exact: true }).click();
+  await panel.getByRole("button", { name: "切换片段", exact: true }).click();
+  await panel.getByRole("button", { name: "切换片段", exact: true }).click();
+  await panel.getByRole("slider", { name: "动画定位" }).fill("50");
+  await expect(panel.getByTestId("animation-clip")).toHaveText("Reach");
+  const pixels = () =>
+    panel.evaluate((element) => {
+      element.querySelector<HTMLButtonElement>('[data-action="render"]')!.click();
+      const gl = element.querySelector("canvas")!.getContext("webgl2")!;
+      const bytes = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+      gl.readPixels(
+        0,
+        0,
+        gl.drawingBufferWidth,
+        gl.drawingBufferHeight,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        bytes,
+      );
+      let count = 0;
+      for (let offset = 0; offset < bytes.length; offset += 4)
+        if (
+          bytes[offset]! > 150 &&
+          bytes[offset + 1]! > 120 &&
+          bytes[offset]! > bytes[offset + 2]! * 1.25
+        )
+          count++;
+      return { count, error: gl.getError() };
+    });
+  await panel.getByRole("button", { name: "适配视角", exact: true }).click();
+  const original = await pixels();
+  const distance = Number(await panel.getAttribute("data-fit-distance"));
+  expect(original.count).toBeGreaterThan(500);
+  await panel.getByRole("button", { name: "大模型", exact: true }).click();
+  // No intermediate draw: the fit itself must synchronize attached bind inverses.
+  await panel.getByRole("button", { name: "适配视角", exact: true }).click();
+  const enlarged = await pixels();
+  expect(Number(await panel.getAttribute("data-fit-distance")) / distance).toBeCloseTo(20, 3);
+  expect(enlarged.count / original.count).toBeGreaterThan(0.9);
+  expect(enlarged.count / original.count).toBeLessThan(1.1);
+  expect(enlarged.error).toBe(0);
+  await expect(panel).toHaveAttribute("data-state", "stopped");
+  await panel.getByRole("button", { name: "大模型", exact: true }).click();
+  await panel.getByRole("button", { name: "平滑取景", exact: true }).click();
+  await expect(panel.getByTestId("transition-state")).toHaveText("completed");
+  await panel.getByRole("button", { name: "暂停", exact: true }).click();
+  expect(Number(await panel.getAttribute("data-fit-distance"))).toBeCloseTo(distance, 3);
+  const transitioned = await pixels();
+  expect(transitioned.count).toBeGreaterThan(500);
+  expect(transitioned.error).toBe(0);
+  await expect(other).toHaveAttribute("data-state", "stopped");
+  await expect(other).toHaveAttribute("data-model-state", "idle");
+  expect(errors).toEqual([]);
+});
+
 test("fitting a large loaded model updates a paused view, picking and labels without changing the other host", async ({
   page,
 }) => {
