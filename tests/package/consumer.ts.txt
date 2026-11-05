@@ -51,9 +51,10 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   labels.add({ object: loaded.scene, element: document.createElement("span") });
   const animations = attachGLTFAnimations(app, model);
   animations.play(0, { loop: "once" });
+  animations.play(0, { loop: "pingpong", repetitions: 2 });
   animations.seek(0);
   animations.resume();
-  animations.crossFadeTo(0, { duration: 0.3, loop: "repeat" });
+  animations.crossFadeTo(0, { duration: 0.3, loop: "repeat", repetitions: 3 });
   const blendProgress: number = animations.blendProgress;
   const blending: boolean = animations.blending;
   void blendProgress; void blending;

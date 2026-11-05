@@ -4,6 +4,7 @@ import {
   AdditiveAnimationBlendMode,
   BoxGeometry,
   Group,
+  LoopPingPong,
   Mesh,
   MeshBasicMaterial,
   NumberKeyframeTrack,
@@ -72,6 +73,175 @@ async function fixture(
   };
   return { app, state, model, scene, gltf, geometry, animation, callbacks, tick };
 }
+
+test("finite repeat counts traversals, finishes once, holds its endpoint and restarts a fresh budget", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  const ended = vi.fn();
+  env.animation.mixer.addEventListener("finished", ended);
+  env.animation.play(0, { repetitions: 2 });
+  env.tick(1.25);
+  expect(env.scene.position.y).toBeCloseTo(0.5);
+  expect(env.animation.state).toBe("playing");
+  env.tick(0.75);
+  expect(env.animation.state).toBe("finished");
+  expect(env.scene.position.y).toBe(2);
+  env.tick(1);
+  expect(ended).toHaveBeenCalledOnce();
+  env.animation.play(0, { repetitions: 2 });
+  env.tick(1.25);
+  expect(env.animation.state).toBe("playing");
+});
+
+test("ping-pong reverses the native pose while retaining native local time", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.play(0, { loop: "pingpong" });
+  expect(env.animation.action!.loop).toBe(LoopPingPong);
+  expect(env.animation.action!.repetitions).toBe(Infinity);
+  env.tick(0.75);
+  expect(env.scene.position.y).toBeCloseTo(1.5);
+  env.tick(0.5);
+  expect(env.animation.action!.time).toBeCloseTo(0.25);
+  expect(env.scene.position.y).toBeCloseTo(1.5);
+  env.tick(0.5);
+  expect(env.scene.position.y).toBeCloseTo(0.5);
+  expect(env.animation.state).toBe("playing");
+});
+
+test("finite ping-pong holds the logical odd/even endpoint without a final-frame parity snap", async () => {
+  for (const repetitions of [1, 2, 3, 4]) {
+    const env = await fixture();
+    env.state.state = "running";
+    env.animation.play(0, { loop: "pingpong", repetitions });
+    for (let step = 0; step < repetitions * 4; step++) env.tick(0.25);
+    expect(env.animation.state).toBe("finished");
+    expect(env.scene.position.y).toBe(repetitions % 2 ? 2 : 0);
+    env.tick(1);
+    expect(env.scene.position.y).toBe(repetitions % 2 ? 2 : 0);
+  }
+});
+
+test("one large native delta crossing all ping-pong legs still holds the capped logical endpoint", async () => {
+  for (const repetitions of [1, 2, 3, 4]) {
+    const env = await fixture();
+    env.state.state = "running";
+    env.animation.play(0, { loop: "pingpong", repetitions });
+    env.tick(repetitions + 0.5);
+    expect(env.scene.position.y).toBe(repetitions % 2 ? 2 : 0);
+    expect(env.animation.state).toBe("finished");
+  }
+});
+
+test("unclamped finite repeat and ping-pong restore the original bound pose", async () => {
+  for (const loop of ["repeat", "pingpong"] as const) {
+    const env = await fixture();
+    env.scene.position.y = 3;
+    env.state.state = "running";
+    env.animation.play(0, { loop, repetitions: 2, clampWhenFinished: false });
+    env.tick(2.25);
+    expect(env.animation.state).toBe("finished");
+    expect(env.scene.position.y).toBe(3);
+    expect(env.animation.action!.enabled).toBe(false);
+  }
+});
+
+test("invalid repetition budgets preserve playback and a fade before mutating native actions", async () => {
+  const env = await fixture();
+  env.animation.play(0);
+  const original = env.animation.action;
+  for (const repetitions of [0, -1, 1.5, NaN, -Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    expect(() => env.animation.play(1, { repetitions })).toThrow(RangeError);
+    expect(() => env.animation.crossFadeTo(1, { repetitions })).toThrow(RangeError);
+  }
+  for (const repetitions of [2, Infinity])
+    expect(() => env.animation.play(1, { loop: "once", repetitions })).toThrow(RangeError);
+  expect(env.animation.action).toBe(original);
+  expect(env.animation.blending).toBe(false);
+  expect(env.animation.state).toBe("playing");
+});
+
+test("controller and host pauses preserve a finite ping-pong budget", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.play(0, { loop: "pingpong", repetitions: 2 });
+  env.tick(0.75);
+  env.animation.pause();
+  env.tick(5);
+  expect(env.scene.position.y).toBeCloseTo(1.5);
+  env.animation.resume();
+  env.state.state = "stopped";
+  env.tick(5);
+  env.state.state = "running";
+  env.tick(1.25);
+  expect(env.animation.state).toBe("finished");
+  expect(env.scene.position.y).toBe(0);
+});
+
+test("seek samples the forward clip phase and restarts loop history while preserving loop settings", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.play(0, { loop: "pingpong", repetitions: 2 });
+  env.tick(1.25);
+  env.animation.seek(0.25);
+  expect(env.scene.position.y).toBeCloseTo(0.5);
+  expect(env.animation.action!.repetitions).toBe(2);
+  env.animation.resume();
+  env.tick(1.5);
+  expect(env.animation.state).toBe("playing");
+  env.tick(0.25);
+  expect(env.animation.state).toBe("finished");
+  expect(env.scene.position.y).toBe(0);
+});
+
+test("finite ping-pong finishes inside a fade and retains the correct pose until blending completes", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.play(0);
+  env.animation.crossFadeTo(1, { loop: "pingpong", repetitions: 1, duration: 2 });
+  env.tick(1);
+  expect(env.animation.blending).toBe(true);
+  expect(env.scene.position.x).toBeCloseTo(2);
+  env.tick(1);
+  expect(env.animation.state).toBe("finished");
+  expect(env.scene.position.x).toBe(4);
+  expect(env.animation.blending).toBe(false);
+});
+
+test("outgoing finite ping-pong actions also normalize endpoints during a longer fade", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.play(0, { loop: "pingpong", repetitions: 1 });
+  env.animation.crossFadeTo(1, { duration: 2 });
+  env.tick(1);
+  expect(env.scene.position.y).toBeCloseTo(1);
+  env.tick(0.5);
+  expect(env.scene.position.y).toBeCloseTo(0.5);
+});
+
+test("native finite completion queues replay after the terminal pose sample", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.mixer.addEventListener("finished", () => env.animation.play(1, { repetitions: 2 }));
+  env.animation.play(0, { loop: "pingpong", repetitions: 2 });
+  env.tick(2);
+  expect(env.animation.action!.getClip().name).toBe("Slide");
+  expect(env.animation.state).toBe("playing");
+  expect(env.scene.position.y).toBe(0);
+  expect(env.animation.action!.time).toBe(0);
+});
+
+test("model disposal inside finite ping-pong completion skips endpoint resampling and releases the mixer", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.mixer.addEventListener("finished", () => env.model.dispose());
+  env.animation.play(0, { loop: "pingpong", repetitions: 2 });
+  const update = vi.spyOn(env.animation.mixer, "update");
+  env.tick(2);
+  expect(update).toHaveBeenCalledOnce();
+  expect(env.animation.disposed).toBe(true);
+  expect(env.callbacks.size).toBe(0);
+});
 
 test("attachment is idle, snapshots clip references and does not start the host", async () => {
   const env = await fixture();

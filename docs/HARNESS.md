@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 311 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 323 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 69 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 71 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 有限循环阶段：核验 r187 原生探针，有限往返单/双/三轮完成帧与紧接的 update(0) 呈现相反端点；普通零 delta 补采样不足以覆盖一次跨多轮的情况。通过原生迭代后公开 reset/time/paused 和零 delta 混合归一终点，新增十二项单测覆盖循环数、往返/奇偶/大 delta、参数、暂停/seek、入场/离场渐变、原生事件排队与销毁，累计 323 项单测通过。
+
+首次静态检查时 website 仍读取旧 dist 声明；先构建主包更新声明后通过，未放宽类型或增加忽略。ready 通过 13 项文档测试、137 文件格式、81 源文件静态检查与全部构建；十二入口独立 tarball 安装、禁止 DOM/网络导入与四次严格声明/消费编译通过。新增专项 2/2（约 20.4 秒），完整 71/71（约 3.4 分钟），零重试。真实 Reach 往返完成像素与初始完全一致，有限重复完成/重播、暂停/继续、模型移除及宿主重建均验证。无新入口、依赖、CI 或发布；不提供负向速率或剩余循环数查询。
 
 2026-11-06 原生实例清理夹具调整：此前本地路由直接加载 src/Three.js 的源码模块图；改为锁定依赖 package.json 默认 import 对应的 build/three.module.js，仍使用真实 Three.js 和库构建产物。实测 native-esm-imports.json 仅记录 three.module.js 与 three.core.js 两项原生模块请求，文件保存到用例输出目录并附到报告，不依赖仅驻内存的附件 body。
 

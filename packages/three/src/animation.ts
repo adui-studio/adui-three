@@ -1,4 +1,10 @@
-import { AnimationMixer, LoopOnce, LoopRepeat, NormalAnimationBlendMode } from "three";
+import {
+  AnimationMixer,
+  LoopOnce,
+  LoopPingPong,
+  LoopRepeat,
+  NormalAnimationBlendMode,
+} from "three";
 import type { AnimationAction, AnimationClip, Object3D } from "three";
 import type { GLTFInstance, GLTFModel } from "./loaders.ts";
 import type { ThreeApp } from "./three-app.ts";
@@ -7,7 +13,9 @@ export type AnimationState = "idle" | "playing" | "paused" | "finished" | "dispo
 
 export interface PlayAnimationOptions {
   /** Default repeat. */
-  loop?: "repeat" | "once";
+  loop?: "repeat" | "once" | "pingpong";
+  /** Positive safe integer or Infinity. Default Infinity, except once which only accepts 1. */
+  repetitions?: number;
   /** Hold the last pose for a completed one-shot. Default true. */
   clampWhenFinished?: boolean;
   /** Positive finite playback rate. Default 1. */
@@ -68,6 +76,7 @@ export function attachGLTFAnimations(
   let released = false;
   let unsubscribe = (): void => {};
   const actions = new Set<AnimationAction>();
+  const terminal = new Set<AnimationAction>();
   let blend: { duration: number; elapsed: number; weights: Map<AnimationAction, number> } | null =
     null;
   let blendProgress = 0;
@@ -93,6 +102,7 @@ export function attachGLTFAnimations(
     }
     roots.delete(root);
     actions.clear();
+    terminal.clear();
     blend = null;
     if (errors.length) throw new AggregateError(errors, "GLTF animation cleanup failed");
   };
@@ -112,6 +122,18 @@ export function attachGLTFAnimations(
           );
       }
       mixer.update(delta);
+      // r187's final ping-pong sample can use the opposite parity, especially when delta skips loops.
+      // Wait until native iteration ends, then fix the clamped endpoint through public action APIs.
+      if (!disposed && terminal.size) {
+        for (const entry of terminal) {
+          const endpoint = entry.repetitions % 2 === 1 ? entry.getClip().duration : 0;
+          entry.reset();
+          entry.time = endpoint;
+          entry.paused = true;
+        }
+        terminal.clear();
+        mixer.update(0);
+      }
       // Never deactivate native actions while AnimationMixer is iterating its active array.
       if (!disposed && blend && blendProgress === 1) {
         blend = null;
@@ -146,6 +168,14 @@ export function attachGLTFAnimations(
     else command();
   };
   const finished = (event: { action: AnimationAction }): void => {
+    if (
+      !disposed &&
+      actions.has(event.action) &&
+      event.action.loop === LoopPingPong &&
+      event.action.clampWhenFinished &&
+      Number.isSafeInteger(event.action.repetitions)
+    )
+      terminal.add(event.action);
     if (!disposed && event.action === action) {
       targetFinished = true;
       if (!blend) state = "finished";
@@ -181,16 +211,32 @@ export function attachGLTFAnimations(
           ? matches[0]
           : undefined;
     if (!clip) throw new RangeError("Select an existing clip index or a unique exact name");
-    const { loop = "repeat", clampWhenFinished = true, timeScale = 1 } = options;
-    if ((loop !== "repeat" && loop !== "once") || !Number.isFinite(timeScale) || timeScale <= 0)
+    const {
+      loop = "repeat",
+      clampWhenFinished = true,
+      timeScale = 1,
+      repetitions = loop === "once" ? 1 : Infinity,
+    } = options;
+    if (
+      (loop !== "repeat" && loop !== "once" && loop !== "pingpong") ||
+      !Number.isFinite(timeScale) ||
+      timeScale <= 0
+    )
       throw new RangeError(
-        "Animation loop must be repeat/once and timeScale must be positive and finite",
+        "Animation loop must be repeat/once/pingpong and timeScale must be positive and finite",
+      );
+    if (
+      !(repetitions === Infinity || (Number.isSafeInteger(repetitions) && repetitions > 0)) ||
+      (loop === "once" && repetitions !== 1)
+    )
+      throw new RangeError(
+        "Repetitions must be a positive safe integer or Infinity; once requires 1",
       );
     if (typeof clampWhenFinished !== "boolean")
       throw new TypeError("clampWhenFinished must be boolean");
     if (!Number.isFinite(clip.duration) || clip.duration <= 0 || !clip.validate())
       throw new RangeError("Animation clip must have a positive finite duration and valid tracks");
-    return { clip, settings: { loop, clampWhenFinished, timeScale } };
+    return { clip, settings: { loop, repetitions, clampWhenFinished, timeScale } };
   };
   const configure = (entry: AnimationAction, settings: Required<PlayAnimationOptions>): void => {
     entry.paused = false;
@@ -198,8 +244,12 @@ export function attachGLTFAnimations(
     entry
       .setEffectiveTimeScale(settings.timeScale)
       .setLoop(
-        settings.loop === "once" ? LoopOnce : LoopRepeat,
-        settings.loop === "once" ? 1 : Infinity,
+        settings.loop === "once"
+          ? LoopOnce
+          : settings.loop === "pingpong"
+            ? LoopPingPong
+            : LoopRepeat,
+        settings.repetitions,
       );
     entry.clampWhenFinished = settings.clampWhenFinished;
   };
@@ -228,6 +278,7 @@ export function attachGLTFAnimations(
         blend = null;
         blendProgress = 0;
         targetFinished = false;
+        terminal.clear();
         mixer.stopAllAction();
         actions.clear();
         action = mixer.clipAction(clip);
@@ -272,6 +323,7 @@ export function attachGLTFAnimations(
         weights.set(next, next.getEffectiveWeight());
         action = next;
         targetFinished = false;
+        terminal.clear();
         blendProgress = 0;
         blend = weights.size > 1 ? { duration, elapsed: 0, weights } : null;
         state = "playing";
@@ -298,6 +350,7 @@ export function attachGLTFAnimations(
         blend = null;
         blendProgress = 0;
         targetFinished = false;
+        terminal.clear();
         stopOthers(target);
         target.reset().setEffectiveWeight(weight);
         target.time = seconds;
@@ -316,6 +369,7 @@ export function attachGLTFAnimations(
         blend = null;
         blendProgress = 0;
         targetFinished = false;
+        terminal.clear();
         mixer.stopAllAction();
         actions.clear();
         mixer.time = 0;
@@ -331,6 +385,7 @@ export function attachGLTFAnimations(
       blend = null;
       blendProgress = 0;
       pending.length = 0;
+      terminal.clear();
       unsubscribe();
       mixer.removeEventListener("finished", finished);
       app.resources.untrack(handle);

@@ -109,6 +109,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 蒙皮取景补查复用 threejs-fundamentals，并核验 r187 Box3 的 precise 顶点路径与 SkinnedMesh.updateMatrixWorld 的绑定逆矩阵语义。先行单测和 GPU 缩放距离复现后修复，不用渲染一帧掩盖取景函数的姿态准备缺失。
 
+有限循环阶段复用 threejs-animation，以 r187 AnimationAction 官方实现核验 repetitions 和 LoopPingPong。原生探针发现完成时的奇偶采样错位后，通过公开 reset/time/paused 与迭代后零 delta 采样处理，并覆盖跨多轮 delta、入场/离场渐变与事件队列；不照搬独立动画循环。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

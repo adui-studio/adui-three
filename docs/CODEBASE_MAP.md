@@ -93,6 +93,8 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 [camera-frame.ts](../packages/three/src/camera-frame.ts) 在 precise 世界边界采样前准备蒙皮骨骼和绑定逆矩阵；相机单测覆盖外部骨骼、父级移动、Detached 模式与所有者失效，camera.spec.ts 验证暂停缩放后的实际像素和即时/平滑取景距离。
 
+[动画循环浏览器回归](../tests/browser/animation-loops.spec.ts) 验证有限重复完成、重播/移除/重建和真实骨骼往返后的精确 GPU 像素；animation.ts 在原生迭代结束后归一化有限往返端点，原生 Mixer 数学与事件边界由 animation.test.ts 覆盖。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

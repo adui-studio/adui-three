@@ -130,7 +130,9 @@ fitObject 在宿主/scope 存活和非零视口时即时应用；默认 adjustCl
 
 [animation.ts](../packages/three/src/animation.ts) 导出 attachGLTFAnimations、GLTFAnimationsHandle、PlayAnimationOptions、CrossFadeOptions、AnimationState。接收已加载模型或实例，片段引用拍只读数组快照；一个根对象只允许一个活动句柄，同时登记宿主和模型 scopes，任一结束都取消更新并清理自有 Mixer，不释放借用资产。
 
-初始 idle，无自动播放/宿主启动。play 接受合法索引或唯一精确名称，校验正有限 duration、原生 clip.validate、repeat/once 和正有限速度后才替换旧 action；立即采样零时刻。切换或重播停止旧 action，reset 当前片段，设置 weight/timeScale/loop/clamp 并 play。暂停跳过采样但保留速率配置；resume 只恢复 paused；finished 不再推进，play 可重播。stop 停止 action、恢复原生绑定属性并清空选择和时间。销毁后控制方法抛错，stop/dispose 幂等。
+初始 idle，无自动播放/宿主启动。play 接受合法索引或唯一精确名称，校验正有限 duration、原生 clip.validate、repeat/once/pingpong 和正有限速度后才替换旧 action；立即采样零时刻。切换或重播停止旧 action，reset 当前片段，设置 weight/timeScale/loop/clamp 并 play。暂停跳过采样但保留速率配置；resume 只恢复 paused；finished 不再推进，play 可重播。stop 停止 action、恢复原生绑定属性并清空选择和时间。销毁后控制方法抛错，stop/dispose 幂等。
+
+repetitions 为正安全整数或 Infinity，repeat/pingpong 默认 Infinity，once 默认且只接受 1。每次单向遍历算一次，pingpong=2 次是一去一回。有限结束进入 finished；clamp=true 的往返按奇数终点、偶数起点固定。r187 原生最后一次采样存在奇偶错位，finished 仅登记，待原生 update 返回后通过公开 reset/time/paused 归一端点，再零 delta 采样；同时覆盖离场动作，不增加 Mixer 时间。事件中销毁则跳过归一并延后释放，事件内控制仍按队列执行。seek 重置循环历史到首个正向片段阶段，保留次数/模式；复用仍在播放的渐变目标继续既有原生循环进度，不把 repetitions 当剩余次数。详见 [ADR-0023](adr/0023-animation-loops.md)。
 
 正常由 onUpdate(delta) 采样，复用宿主的隐藏/零尺寸暂停与 delta 限幅。原生事件内的控制命令暂存到本次 update 结束后依序执行；销毁立即失效并清空命令，但 stopAllAction/uncacheRoot 延后至调用栈返回，避免修改正在遍历的缓存。普通模型销毁先结束 Mixer 再清 GPU；原生事件中销毁模型时，GPU 资源可先清理，CPU 最后一次采样后再释放缓存，不重新挂载。更新/清理错误交给宿主，详细边界见 ADR-0004。
 
@@ -280,6 +282,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-032  | 对象拾取契约                      | interaction.ts、原生蒙皮边界与 Reach 样例        | 真实边界/失效/重入单测、GPU 像素定位鼠标回归               |
 | FR-033  | 画布截图契约                      | capture.ts、独立导出和演示预览                   | 生命周期/编码单测、原生 PNG/格式/URL 与包消费回归          |
 | FR-034  | 实例化网格契约                    | geometry.ts、独立实例演示                        | 原生数学/资源单测、实际 draw/像素/拾取/buffer 回归、包消费 |
+| FR-035  | 模型动画契约                      | animation.ts、循环演示                           | 原生终点/循环/清理单测、骨骼像素与有限循环浏览器、包消费   |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 

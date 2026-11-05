@@ -305,9 +305,13 @@ animations.play("Lift", { loop: "repeat", timeScale: 1 });
 
 返回 `GLTFAnimationsHandle`，包含 mixer、clips、action、state、disposed 和 play/crossFadeTo/seek/pause/resume/stop/dispose。构造时不自动播放或启动宿主；clips 是原生片段引用的只读数组快照，空列表也可创建。play 按非负整数索引或唯一完整名称选择，未知/歧义名称、越界、非正有限 duration、无效 tracks 拒绝并保留原播放；原生 clip.validate 可能输出诊断。播放期间不要修改片段数据。
 
-play 选项：loop="repeat"（默认）或 "once"；clampWhenFinished=true（默认）；timeScale=1（正有限倍速）。重复播放同一片段也从零开始；play 切换立即停止旧 action；需要渐变时使用 crossFadeTo。调用时采样首帧，后续由宿主 onUpdate(delta) 驱动；宿主停止/隐藏/零尺寸期间不前进，恢复首帧 delta=0。pause/resume 保持姿态、时间和配置的速度，不改变宿主或 mixer.timeScale；idle/finished 时无操作。
+play 选项：loop="repeat"（默认）、"once" 或 "pingpong"；repetitions 为正安全整数或 Infinity（repeat/pingpong 默认 Infinity，once 默认且只接受 1）；clampWhenFinished=true（默认）；timeScale=1（正有限倍速）。重复播放同一片段也从零开始；play 切换立即停止旧 action；需要渐变时使用 crossFadeTo。调用时采样首帧，后续由宿主 onUpdate(delta) 驱动；宿主停止/隐藏/零尺寸期间不前进，恢复首帧 delta=0。pause/resume 保持姿态、时间和配置的速度，不改变宿主或 mixer.timeScale；idle/finished 时无操作。
 
-state 为 idle/playing/paused/finished/disposed，描述控制器状态；once 结束进入 finished，clamp=true 保留末姿态，false 按原生 binding 规则恢复未被其他 action 使用的属性。stop 恢复绑定属性、清空 action 和 Mixer 时间；停止、暂停时可再次 play。销毁后 play/seek/pause/resume 抛错，stop/dispose 幂等。
+repetitions 按单向遍历计数：`animations.play("Lift", { loop: "pingpong", repetitions: 2 })` 是一去一回，奇数次保留片段终点、偶数次保留起点。有限 repeat 完成保留片段终点。库在原生迭代返回后归一化 r187 的往返末帧，不读取私有循环计数；不为此推进 Mixer 时间。
+
+往返中 action.time 是原生循环本地时间，反向阶段不直接等于实际采样的片段时间。seek 仍定位到正向片段秒数并暂停，同时重置循环历史，保留次数和模式；它不是整个往返过程的绝对时间轴。crossFadeTo 继承 repetitions；复用仍在播放的目标时继续其原生循环进度，配置的次数是总预算而非追加次数。
+
+state 为 idle/playing/paused/finished/disposed，描述控制器状态；有限次数播放结束进入 finished，clamp=true 保留末姿态，false 按原生 binding 规则恢复未被其他 action 使用的属性。stop 恢复绑定属性、清空 action 和 Mixer 时间；停止、暂停时可再次 play。销毁后 play/seek/pause/resume 抛错，stop/dispose 幂等。
 
 seek(seconds) 仅接受已有选择的 [0,clip.duration] 有限秒数，零 delta 采样后进入 paused，保持 mixer.time、loop/clamp/weight/timeScale，不启动宿主或绘制。可检查已完成动作，精确端点保持到 resume 后依循环规则推进；定位重置过去循环次数及原生淡变/warp。若正在 crossFadeTo，定位会停止其他贡献并以全权重检查当前目标。暂停画面需要应用 app.render。原生事件内的定位依序执行，并在执行前按实际片段重新校验；队列更早的切换/stop 可能使请求失效并抛错。
 
