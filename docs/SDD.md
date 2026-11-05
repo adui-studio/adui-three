@@ -150,8 +150,6 @@ add 接收 object、独占挂载的 detached element、局部 offset=[0,0,0]、a
 
 ## 验证设计
 
-已有命令通过 [CI](../.github/workflows/ci.yml) 自动执行：Ubuntu/Windows × Node 22.18.0/24 运行 ready 与 test:package，Ubuntu/Node 24 运行浏览器回归并上传诊断。CI 不改变库运行时或测试断言；实际平台验收结果仍以 Harness 记录为准，不把工作流配置当成兼容性证明。
-
 [帧单测](../packages/three/tests/frame-loop.test.ts) 使用可控 RAF，验证去重、旧回调、重入与异常；[资源单测](../packages/three/tests/resources.test.ts) 验证所有权、去重、顺序与失败继续清理；[宿主单测](../packages/three/tests/three-app.test.ts) 保留真实 scene/camera/geometry，替换 renderer 和平台，验证生命周期、resize、DPR、visibility、借入资源和控制器。
 
 [浏览器回归](../tests/browser/scene.spec.ts) 通过生产构建后的演示验证真实 WebGL、双实例独立暂停、零尺寸恢复、DPR、收窄容器、反复销毁重建、交互及移动端无水平溢出。截图供人工目视验证，不能据此声称完整浏览器兼容、性能基准或长期 GPU 无泄漏。真实结果见 [Harness](HARNESS.md)。

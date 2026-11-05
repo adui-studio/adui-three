@@ -63,8 +63,6 @@
 
 同日继续交付平滑取景时复用 git-commit/gitmoji，采用中文描述及过渡意图的 💫；后续包消费检查沿用 NFR-002，核验 pnpm pack/install、Node 条件导出与 TypeScript skipLibCheck 官方文档，不安装额外技能或依赖。包结构相关改动增加 test:package 独立门禁，详见 Harness。
 
-继续 CI 阶段沿用 git-commit/gitmoji，核验 Actions 官方文档、标签对应提交及 pnpm 的 annotated tag 解引用；工作流由临时下载并校验官方 SHA256 的 actionlint 1.7.11 验证，不增加仓库依赖。GitHub 插件连接失败时尝试公开 API，遇限流则保留远端运行尚未核验的状态，不读取本地凭据。
-
 ## 发现与创建原则
 
 提交任务中，用户的中文描述/正文要求优先于第三方 Skill 的英文祈使语气示例；继续使用 git-commit 执行和 gitmoji 选意图，不改动导入的 Skill 原文。
