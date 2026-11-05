@@ -48,6 +48,8 @@
 
 - [动画时间轴回归](../tests/browser/animation-seek.spec.ts)：公开 seek 秒接口、暂停宿主的实际标签姿态、恢复/端点和模型生命周期；复用动画单测与既有原创节点资产。
 
+- [独立 KTX2](../packages/three/src/ktx2-texture.ts) / [单测](../packages/three/tests/ktx2-texture.test.ts) / [浏览器回归](../tests/browser/ktx2-texture.spec.ts)：复用转码适配，原生二维纹理所有权与取消；模型/独立纹理共用 [GPU/Worker 探针](../tests/browser/ktx2-probe.ts)。
+
 ## 调用链与定位
 
 - [environment.ts](../packages/three/src/environment.ts) / [单测](../packages/three/tests/environment.test.ts) / [浏览器回归](../tests/browser/environment.spec.ts)：HDR 加载、逻辑取消、独占场景绑定和预热 GPU 清理。

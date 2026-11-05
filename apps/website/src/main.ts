@@ -8,8 +8,8 @@ import { attachPostprocessing } from "@adui/three/postprocessing";
 import type { PostprocessingHandle } from "@adui/three/postprocessing";
 import { attachEnvironment, loadHDR } from "@adui/three/environment";
 import type { EnvironmentBinding, HDREnvironment } from "@adui/three/environment";
-import { loadTexture } from "@adui/three/textures";
-import type { TextureAsset } from "@adui/three/textures";
+import { loadTexture, loadKTX2 } from "@adui/three/textures";
+import type { TextureAsset, KTX2TextureAsset } from "@adui/three/textures";
 import { attachGLTFAnimations } from "@adui/three/animation";
 import type { GLTFAnimationsHandle } from "@adui/three/animation";
 import { attachPicking } from "@adui/three/interaction";
@@ -64,8 +64,8 @@ function mountPanel(id: string, color: number): void {
     <div class="effect-actions"><button data-action="bloom" aria-pressed="false">泛光</button><button data-action="bloom-strength" aria-pressed="false">增强泛光</button><button data-action="outline" aria-pressed="false">选择描边</button><button data-action="remove-bloom">释放后处理</button><span data-testid="bloom-state">idle</span></div>
     <div class="effect-actions"><button data-action="environment">加载 HDR</button><button data-action="environment-background" aria-pressed="true">环境背景</button><button data-action="cancel-environment">取消环境</button><button data-action="remove-environment">移除环境</button><button data-action="environment-error">环境失败</button></div>
     <p class="environment-feedback" role="status">环境：<span data-testid="environment-state">idle</span> · 原创 HDR 渐变</p>
-    <div class="effect-actions"><button data-action="texture">加载纹理</button><button data-action="texture-flip" aria-pressed="true">纹理翻转</button><button data-action="cancel-texture">取消纹理</button><button data-action="remove-texture">移除纹理</button><button data-action="texture-error">纹理失败</button></div>
-    <p class="camera-feedback" role="status">占位物体纹理：<span data-testid="texture-state">idle</span> · 原创四色方向图</p>
+    <div class="effect-actions"><button data-action="texture">加载纹理</button><button data-action="texture-ktx2">加载 KTX2 纹理</button><button data-action="texture-ktx2-error">KTX2 纹理失败</button><button data-action="texture-flip" aria-pressed="true">纹理翻转</button><button data-action="cancel-texture">取消纹理</button><button data-action="remove-texture">移除纹理</button><button data-action="texture-error">纹理失败</button></div>
+    <p class="camera-feedback" role="status">占位物体纹理：<span data-testid="texture-state">idle</span> · 原创方向图 / 棋盘图</p>
     <div class="model-actions"><button data-action="glb">加载 GLB</button><button data-action="gltf">加载 GLTF</button><button data-action="draco">加载 Draco</button><button data-action="meshopt">加载 Meshopt</button><button data-action="ktx2">加载 KTX2</button><button data-action="ktx2-glb">KTX2 GLB</button><button data-action="decoder-error">缺少解码器</button><button data-action="ktx2-error">缺少转码器</button><button data-action="cancel-model">取消加载</button><button data-action="remove-model">移除模型</button><button data-action="invalid-model">失败示例</button></div>
     <p class="model-feedback" role="status">模型未加载 · 使用项目原创的内嵌纹理样例</p>
     <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-once">单次播放</button><button data-action="animation-stop">停止动画</button></div>
@@ -110,7 +110,7 @@ function mountPanel(id: string, color: number): void {
   let environmentState = "idle";
   let environmentBackground = true;
   let transform: TransformControlsHandle | undefined;
-  let textureAsset: TextureAsset | undefined;
+  let textureAsset: TextureAsset | KTX2TextureAsset | undefined;
   let textureRequest: AbortController | undefined;
   let textureVersion = 0;
   let textureState = "idle";
@@ -165,13 +165,20 @@ function mountPanel(id: string, color: number): void {
     card.dataset.textureState = textureState;
     card.dataset.textureFlip = String(textureFlip);
     card.querySelector('[data-testid="texture-state"]')!.textContent = textureState;
-    for (const action of ["texture", "texture-error"])
+    for (const action of ["texture", "texture-error", "texture-ktx2", "texture-ktx2-error"])
       button(action).disabled = !app || state === "disposed" || !!model;
     button("cancel-texture").disabled = textureState !== "loading";
     button("remove-texture").disabled = !textureAsset || textureAsset.disposed;
     button("texture-flip").disabled =
-      !textureAsset || textureAsset.disposed || !!model || textureState === "loading";
-    button("texture-flip").setAttribute("aria-pressed", String(textureFlip));
+      !textureAsset ||
+      textureAsset.disposed ||
+      !!model ||
+      textureState === "loading" ||
+      (!!textureAsset && "isCompressedTexture" in textureAsset.texture);
+    button("texture-flip").setAttribute(
+      "aria-pressed",
+      String(textureFlip && !(textureAsset && "isCompressedTexture" in textureAsset.texture)),
+    );
     const activeTransform = transform && !transform.disposed ? transform : undefined;
     const hasTransform = !!activeTransform;
     const transformObject = transform?.controls.object;
@@ -339,7 +346,7 @@ function mountPanel(id: string, color: number): void {
     textureState = "idle";
   }
 
-  async function requestTexture(url: string): Promise<void> {
+  async function requestTexture(url: string, ktx2 = false): Promise<void> {
     if (!app || app.state === "disposed" || !placeholder) return;
     const version = ++textureVersion;
     textureRequest?.abort();
@@ -349,9 +356,14 @@ function mountPanel(id: string, color: number): void {
     const material = placeholder.material as MeshStandardMaterial;
     textureState = "loading";
     refresh();
-    let loaded: TextureAsset | undefined;
+    let loaded: TextureAsset | KTX2TextureAsset | undefined;
     try {
-      loaded = await loadTexture(owner, url, { signal: controller.signal, flipY: textureFlip });
+      loaded = ktx2
+        ? await loadKTX2(owner, url, {
+            signal: controller.signal,
+            transcoderPath: { js: basisJS, wasm: basisWasm },
+          })
+        : await loadTexture(owner, url, { signal: controller.signal, flipY: textureFlip });
       if (version !== textureVersion || owner !== app || loaded.disposed) {
         loaded.dispose();
         return;
@@ -620,6 +632,8 @@ function mountPanel(id: string, color: number): void {
       }
       if (action === "rebuild") rebuild();
       if (action === "texture") void requestTexture("/textures/quadrants.png");
+      if (action === "texture-ktx2") void requestTexture("/models/checker.ktx2", true);
+      if (action === "texture-ktx2-error") void requestTexture("/textures/invalid.png", true);
       if (action === "texture-error") void requestTexture("/textures/invalid.png");
       if (action === "cancel-texture") textureRequest?.abort();
       if (action === "texture-flip") {

@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 230 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 240 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 45 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 48 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-05 独立 KTX2 阶段：ready 通过 13 项文档检查器测试、240 项主包单测、114 文件格式及 65 源文件 Lint/类型检查，十入口和演示构建成功。新增 10 项运输/原生纹理测试，保留 TaskKTX2Loader 的输入复制/移交/清理，验证配置、能力、取消/迟到、原始/数组格式拒绝、错误与清理。首次静态检查的数组纹理构造缺少 format 参数已按锁定声明修正，无忽略类型检查。
+
+三项新浏览器回归单独 3/3 通过（约 9.4 秒），随后完整 48/48 通过（约 1.2 分钟），零重试；真实压缩 mip 上传/逐次删除、同 URL 一次下载且取消只跳过一项解析、WASM 初始化期间销毁的迟到 Worker/Blob URL 释放、缺失转码器/坏容器恢复和 RGBA 回退均验证，截图已目视检查。既有模型 KTX2 用例复用同一探针且保持全部通过。test:package 十入口真实安装与四次严格声明/消费编译通过。未增加依赖、资产、CI 或 npm 发布；二维 ETC1S/BasisLZ 之外的硬件/格式矩阵仍待验证。
 
 2026-11-05 尺寸恢复加固：先用四项失败回归复现原生缓冲异常后仍 running、丢失缓冲/管线重试、递归 resize 和初始化中绘制；修复后新增 6 项宿主单测全部通过，宿主/后处理定向 61/61 通过。ready 通过 13 项文档检查器测试、230 项主包单测、109 文件格式与 61 源文件 Lint/类型检查，十入口和演示构建成功。首次新测试把已有 mock 的构造调用计入重试，显式清基线后精确断言失败+重试两次调用，未放宽行为断言。
 

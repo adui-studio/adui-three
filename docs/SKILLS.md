@@ -91,6 +91,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 尺寸失败恢复阶段按 FR-007/FR-021 做定向审查，先以四项失败单测复现，再补原生 buffer 与管线独立重试、尺寸重入保护。利用真实 canvas.width setter 故障注入验证实际 WebGL/泛光恢复，不用 fake renderer 单测替代 GPU 集成验收；流程继续仅本地执行。
 
+独立 KTX2 阶段继续复用 threejs-loaders/threejs-textures，核验 r187 KTX2Loader.load/parse/_createTexture 的实际类型与异步初始化。显式限定二维 Basis，不把原生类型声明中的 CompressedTexture 误当全部 KTX2 结果；模型/独立任务复用适配层及真实 Worker/GPU 探针，无默认 CDN 或强制终止在途任务。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

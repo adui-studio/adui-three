@@ -131,7 +131,7 @@ KTX2 纹理模型通过 `ktx2: { transcoderPath: { js, wasm } }` 接入，按当
 
 ### 独立图片纹理
 
-`@adui/three/textures` 的 `loadTexture` 返回拥有原生 Texture/ImageBitmap 的资产，支持颜色空间、解码时翻转、逻辑取消与迟到位图关闭。加载不自动修改材质，演示在占位物体上验证方向图，见 [纹理 API](packages/three/README.md#独立图片纹理)。
+`@adui/three/textures` 的 `loadTexture` 返回拥有原生 Texture/ImageBitmap 的资产，支持颜色空间、解码时翻转、逻辑取消与迟到位图关闭。`loadKTX2` 支持显式转码器配置的二维 Basis 压缩纹理，保留文件颜色空间/mip，并独立管理 Worker 与迟到结果。加载不自动修改材质，演示在占位物体上验证方向图和棋盘图，见 [纹理 API](packages/three/README.md#独立图片纹理)。
 
 ### HDR 环境
 
@@ -181,7 +181,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 230 项主包单元测试和 45 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR、独立 KTX2 纹理入口或框架适配。
+当前有 240 项主包单元测试和 48 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
 
 ## 项目结构
 

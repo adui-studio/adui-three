@@ -26,6 +26,7 @@
 - [贡献指南](CONTRIBUTING.md)：Issue/PR 模板及 emoji 提交规范。
 
 - [动画定位决策](docs/adr/0015-animation-seek.md)：按秒采样、暂停及既有事件队列边界。
+- [独立 KTX2 决策](docs/adr/0016-standalone-ktx2.md)：二维压缩纹理、任务隔离与转码清理。
 
 ## 工作流程与约束
 

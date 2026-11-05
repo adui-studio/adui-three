@@ -166,6 +166,8 @@ textures 入口的 loadTexture(app, url, LoadTextureOptions) 返回 TextureAsset
 
 FileLoader 只共享 ArrayBuffer，不中止运输；每任务从 Blob 单独解码。位图 premultiplyAlpha/colorSpaceConversion 均 none，imageOrientation 按初始 flipY 烘焙，Texture.flipY=false 并 needsUpdate；颜色意图通过 Texture.colorSpace 交给 renderer。取消立即拒绝 AbortError，迟到字节跳过解码，在途位图关闭；迟到失败被消费，清理错误报告。句柄登记宿主，resources 前置解除引用后清纹理/原始位图，全部尝试并聚合异常，后换 image 为借用。应用负责材质 needsUpdate 和额外借用引用；详见 [ADR-0014](adr/0014-image-textures.md)。
 
+loadKTX2(app,url,LoadKTX2Options) 同样从 textures 导出，返回 KTX2TextureAsset（CompressedTexture、resources、disposed、dispose）。显式 transcoderPath 与 workerLimit=1（1–32），绑定宿主 signal/scope，先 detectSupport 当前 renderer，再下载原始字节。取消早于解析时跳过转码；已开始的原生 parse 等回调结束再释放 Worker/Blob URL。共享 TaskKTX2Loader 的输入复制隔离全局任务缓存，成功移交单一资产、失败或迟到由适配层清理。只接受二维 Basis 输出，原始未压缩/数组/立方图拒绝并清理；颜色空间/mip/方向沿用文件和原生实现，不提供 PNG 的 flipY 覆盖。详见 [ADR-0016](adr/0016-standalone-ktx2.md)。
+
 ## 对象拾取契约
 
 [interaction.ts](../packages/three/src/interaction.ts) 是独立子入口，导出 attachPicking、PickingOptions、PickingEvent 和 PickingHandle。`attachPicking(app, { objects, recursive?, dragThreshold? })` 使用必填目标 getter；recursive=true、dragThreshold=4 CSS 像素。句柄提供原生 raycaster、disposed、pick(clientX, clientY)、on("click" | "hover", callback) 与 dispose。
@@ -243,6 +245,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-025  | 对象变换契约                      | controls.ts、transform-controls.ts、演示手柄     | 原生资源/输入单测、实际拖拽和 buffer/program 回归 |
 | FR-026  | 独立图片纹理契约                  | textures.ts、PNG 生成器及演示                    | 颜色/异步/清理单测、像素/位图和 GPU 回归          |
 | FR-027  | 模型动画契约                      | animation.ts、演示时间轴                         | 精确采样/状态/队列单测、真实姿态与端点回归        |
+| FR-028  | 独立图片纹理契约                  | ktx2-texture.ts、TaskKTX2Loader、演示            | 原生资产/取消单测、真实转码与 RGBA/Worker 回归    |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                      |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器               |
 

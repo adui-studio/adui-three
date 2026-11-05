@@ -58,7 +58,7 @@ export class TaskKTX2Loader extends KTX2Loader {
     onError?: (error: unknown) => void,
   ): void {
     if (this.#ended) {
-      onError?.(new Error("The KTX2 model task has settled"));
+      onError?.(new Error("The KTX2 task has settled"));
       return;
     }
     this.#active++;
@@ -79,7 +79,7 @@ export class TaskKTX2Loader extends KTX2Loader {
     };
     try {
       // FileLoader may coalesce equal URLs or return a globally cached buffer. Never transfer it
-      // or reuse KTX2Loader's cached Texture across independently owned model tasks.
+      // or reuse KTX2Loader's cached Texture across independently owned tasks.
       super.parse(
         buffer.slice(0),
         (texture) => {
@@ -97,7 +97,7 @@ export class TaskKTX2Loader extends KTX2Loader {
     }
   }
 
-  /** A model resource snapshot now owns the decoded textures, including a late cancelled model. */
+  /** A resource owner now owns the decoded textures, including a late cancelled model. */
   adopt(): void {
     this.#adopted = true;
     this.#textures.clear();

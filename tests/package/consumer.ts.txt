@@ -1,4 +1,4 @@
-import { loadTexture } from "@adui/three/textures";
+import { loadTexture, loadKTX2 } from "@adui/three/textures";
 import { loadHDR, attachEnvironment } from "@adui/three/environment";
 import { ResourceScope, ThreeApp } from "@adui/three";
 import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
@@ -71,6 +71,10 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   textureAsset.resources.track({ dispose: () => { object.material.map = null; } });
   object.material.map = textureAsset.texture;
   textureAsset.dispose();
+  const compressed = await loadKTX2(app, "/map.ktx2", { transcoderPath: { js: "/basis.js", wasm: "/basis.wasm" }, workerLimit: 1, signal: app.signal });
+  object.material.map = compressed.texture;
+  compressed.resources.track({ dispose: () => { object.material.map = null; } });
+  compressed.dispose();
   app.dispose();
   scope.dispose();
 }

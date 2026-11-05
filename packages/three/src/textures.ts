@@ -9,6 +9,9 @@ import {
 import type { ThreeApp } from "./three-app.ts";
 import { ResourceScope } from "./resources.ts";
 
+export { loadKTX2 } from "./ktx2-texture.ts";
+export type { KTX2TextureAsset, LoadKTX2Options } from "./ktx2-texture.ts";
+
 export interface TextureProgress {
   readonly loaded: number;
   readonly total: number | null;

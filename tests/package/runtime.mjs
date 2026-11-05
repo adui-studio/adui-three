@@ -19,7 +19,7 @@ const expected = {
   "@adui/three/camera": ["computeObjectFrame", "fitObject", "transitionToObject"],
   "@adui/three/postprocessing": ["attachBloom", "attachPostprocessing"],
   "@adui/three/environment": ["loadHDR", "attachEnvironment"],
-  "@adui/three/textures": ["loadTexture"],
+  "@adui/three/textures": ["loadTexture", "loadKTX2"],
 };
 const development = process.argv.includes("--resolve-only");
 for (const [specifier, names] of Object.entries(expected)) {
