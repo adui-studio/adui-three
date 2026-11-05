@@ -33,3 +33,6 @@ dist-ssr
 
 # AI agent worktrees
 .claude/worktrees/
+
+# Pinned development-only model fixture encoders
+.cache/model-fixtures/

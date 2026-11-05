@@ -13,6 +13,23 @@
   padding: 15px 24px 0;
   border-top: 1px solid #293830;
 }
+.animation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 12px 24px 0;
+  border-top: 1px solid #293830;
+}
+.animation-actions button {
+  font-size: 10px;
+  padding: 6px 9px;
+}
+.animation-feedback {
+  margin: 12px 24px 16px;
+  color: #8fae9c;
+  font-size: 10px;
+  line-height: 1.7;
+}
 .model-actions button {
   font-size: 10px;
   padding: 6px 9px;
@@ -171,9 +188,36 @@ h2 {
   overflow: hidden;
 }
 .viewport {
+  position: relative;
   height: 340px;
   width: 100%;
   margin: 0 auto;
+}
+.label-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.scene-label {
+  display: block;
+  padding: 5px 9px;
+  border: 1px solid #4b7460;
+  border-radius: 5px;
+  background: #15281ee8;
+  color: #c3ead2;
+  font-size: 10px;
+  white-space: nowrap;
+}
+button.scene-marker {
+  padding: 4px 8px;
+  background: #15281e;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.scene-marker[aria-pressed="true"] {
+  background: #b4e8c9;
+  color: #14261c;
 }
 .stage-hint {
   pointer-events: none;
@@ -330,4 +374,14 @@ footer {
   .version {
     display: none;
   }
+}
+.picking-feedback {
+  margin: 0 20px 18px;
+  color: #b9cbc5;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.picking-hint {
+  display: block;
+  color: #82958e;
 }
