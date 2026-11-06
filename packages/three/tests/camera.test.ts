@@ -347,6 +347,43 @@ test("a native change event may dispose the host during inertia flush without su
   expect(controls.enableDamping).toBe(true);
 });
 
+test("perspective framing rejects reentry from world-bound vertex preparation", () => {
+  const env = fixture(),
+    original = env.object.getVertexPosition.bind(env.object);
+  let entered = false;
+  vi.spyOn(env.object, "getVertexPosition").mockImplementation((index, target) => {
+    if (!entered) {
+      entered = true;
+      expect(() => fitObject(env.app, env.object)).toThrow("already in progress");
+    }
+    return original(index, target);
+  });
+  expect(() => fitObject(env.app, env.object)).not.toThrow();
+  expect(entered).toBe(true);
+});
+
+test("perspective option preparation shares the write lock and getter failure releases it", () => {
+  const env = fixture();
+  let entered = false;
+  const options: FitObjectOptions = {
+    get padding(): number {
+      if (!entered) {
+        entered = true;
+        expect(() => fitObject(env.app, env.object)).toThrow("already in progress");
+      }
+      return 1.2;
+    },
+  };
+  expect(() => fitObject(env.app, env.object, options)).not.toThrow();
+  const invalid: FitObjectOptions = {
+    get padding(): number {
+      throw new Error("options");
+    },
+  };
+  expect(() => fitObject(env.app, env.object, invalid)).toThrow("options");
+  expect(() => fitObject(env.app, env.object)).not.toThrow();
+});
+
 test("reentrant framing is rejected and native callback errors restore flags and release the guard", () => {
   const env = fixture();
   const controls = new OrbitControls(env.camera);

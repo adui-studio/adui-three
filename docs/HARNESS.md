@@ -18,7 +18,7 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 388 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 390 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
 | `pnpm run test:browser`         | 构建演示并执行 83 项真实 Chromium 多步骤回归                       |
@@ -60,6 +60,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 透视准备重入补查：两项先行失败测试复现 fitObject 在选项 getter/顶点准备中允许同相机嵌套应用；将写锁提前至 prepareObjectFrame 之前，并在所有退出路径释放。新测试同时验证 getter 异常后可再次取景；原生事件配置恢复与四组相机相关 61 项单测通过。ready 通过累计 390 项单测、13 项文档测试、153 文件格式、92 源文件静态检查与构建，完整浏览器 83/83（约 3.8 分钟），零重试。无公共类型/导出/依赖变化，未重复独立打包检查。
 
 2026-11-06 正交过渡阶段：复用内部泛型过渡执行器，新增十二项单测，累计 388 项通过；原十七项透视过渡测试保持。新增失败单测发现即时正交 fit 在取消过渡前保存租用 false，修正为取消恢复后保存；另一个异常夹具最初在宿主较早的 controls 更新中抛错，改为在过渡自身更新抛错，验证 failed/传播与清理，无时限调整。
 

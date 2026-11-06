@@ -35,6 +35,8 @@ OrthographicThreeApp 采用独立 options.camera（frustumHeight=10、near=0、f
 
 ## 正交取景契约
 
+透视 fitObject 的相机写锁也覆盖选项 getter 与世界边界/顶点准备，准备期间同相机的即时/平滑取景拒绝。失败不取消原有效过渡，不留写锁；控件标志仅在实际租用后恢复，恢复异常仍释放锁。纯 computeObjectFrame 不接管相机写锁。
+
 computeOrthographicFrame(OrthographicCamera,Object3D,ObjectFrameOptions?) 返回 OrthographicObjectFrame，包含 ObjectFrame 全字段与 zoom；fitOrthographicObject(OrthographicThreeApp,Object3D,FitObjectOptions?) 应用计划，无绘制/启动/订阅。未缩放视锥保持，zoom 根据两轴最小跨度、世界 AABB 包围球与 padding 计算，距离及裁剪面保守容纳深度。边界准备与透视共享，包含子树外骨骼及更新绑定逆矩阵。
 
 仅接受居中、无父级/缩放、自动矩阵且无 view offset 的相机，拒绝不可表示/空/退化边界。校验控件归属、zoom/distance/target 约束；保留约束并临时关闭/恢复 damping 与 autoRotate。adjustClipping=false 允许 near=0，但不足的原裁剪面拒绝。准备期起持有相机写锁，getter/顶点/控件异常也释放；不回滚原生副作用，不自动跟踪尺寸或目标。详见 [ADR-0027](adr/0027-orthographic-framing.md)。

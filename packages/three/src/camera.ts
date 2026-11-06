@@ -1,12 +1,9 @@
 import type { Object3D } from "three";
+import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { ThreeApp } from "./three-app.ts";
 import { prepareObjectFrame } from "./camera-frame.ts";
 import type { FitObjectOptions, ObjectFrame } from "./camera-frame.ts";
-import {
-  assertCameraWriteAvailable,
-  beginCameraWrite,
-  cancelCameraMotion,
-} from "./camera-runtime.ts";
+import { beginCameraWrite, cancelCameraMotion } from "./camera-runtime.ts";
 
 export { computeObjectFrame } from "./camera-frame.ts";
 export { computeOrthographicFrame, fitOrthographicObject } from "./camera-orthographic.ts";
@@ -26,18 +23,20 @@ export function fitObject(
   object: Object3D,
   options: FitObjectOptions = {},
 ): ObjectFrame {
-  assertCameraWriteAvailable(app.camera);
-  const { camera, frame, controls, adjustClipping, active, ownedCamera } = prepareObjectFrame(
-    app,
-    object,
-    options,
-  );
-  cancelCameraMotion(camera);
-  const endWrite = beginCameraWrite(camera);
-  const damping = controls?.enableDamping;
-  const autoRotate = controls?.autoRotate;
+  const endWrite = beginCameraWrite(app.camera);
+  let controls: OrbitControls | undefined;
+  let damping = false,
+    autoRotate = false,
+    controlsChanged = false;
   try {
+    const prepared = prepareObjectFrame(app, object, options);
+    controls = prepared.controls;
+    const { camera, frame, adjustClipping, active, ownedCamera } = prepared;
+    cancelCameraMotion(camera);
+    damping = controls?.enableDamping ?? false;
+    autoRotate = controls?.autoRotate ?? false;
     if (controls) {
+      controlsChanged = true;
       controls.enableDamping = false;
       controls.autoRotate = false;
       // Use the public update path to consume residual pan/dolly/rotation before assigning the fit.
@@ -59,10 +58,13 @@ export function fitObject(
     frame.position.copy(camera.position);
     return frame;
   } finally {
-    if (controls) {
-      controls.enableDamping = damping!;
-      controls.autoRotate = autoRotate!;
+    try {
+      if (controls && controlsChanged) {
+        controls.enableDamping = damping;
+        controls.autoRotate = autoRotate;
+      }
+    } finally {
+      endWrite();
     }
-    endWrite();
   }
 }
