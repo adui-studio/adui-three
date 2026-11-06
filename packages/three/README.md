@@ -73,6 +73,22 @@ capture 不写相机、取消过渡或推进时间，零尺寸可用；restore �
 
 带控件保存会记录 target，并要求无 roll、单位 up；带控件恢复需已有 target、同相机与相同 up。距离、正交缩放和目标限制先校验，原生角度限制可调整最终姿态。控件惯性通过公开 update 消耗，配置与共享写锁在异常后恢复；原生副作用不回滚。演示“保存视角 / 恢复视角”使用内存 JSON，库不访问 localStorage 或业务 Store。
 
+### EXR 环境图
+
+```ts
+import { loadEXR, attachEnvironment } from "@adui/three/environment";
+
+const exr = await loadEXR(app, "/studio.exr", { signal: abort.signal });
+const binding = attachEnvironment(app, exr, { background: true });
+app.render();
+binding.dispose();
+exr.dispose();
+```
+
+loadEXR 与 loadHDR 共用 LoadHDROptions/HDREnvironment（HDR 表示高动态范围资产）和显式绑定/释放；前者以原生 part=0、半浮点 RGBA 解析 EXR，后者保持 RGBE。保留原生色彩/方向/过滤，设置等距柱状映射，不猜格式、自动曝光、写材质或创建循环。
+
+相同 URL 下载可合并，EXR 解压前独立复制输入；取消是逻辑性的，不能抢占同步解析或承诺运输终止。迟到纹理/错误、所有者结束和重试沿用既有环境契约。绑定与 GPU 缓存先清，再释放源纹理；不要另行 dispose 借用纹理。原创 64×32 FLOAT scanline 样例离线生成，半浮点/照明与 GPU 清理通过验证；其他压缩、多 part、深度 EXR 和硬件矩阵没有逐项验收。
+
 ## 最小示例
 
 在当前工作区通过 `workspace:*` 引用；容器需有明确尺寸。下面使用公开入口，应用自行组合原生 Three.js 对象。

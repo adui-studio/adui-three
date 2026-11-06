@@ -6,6 +6,8 @@ Draco JS/WASM 从锁定的 Three.js 0.187.0 glTF decoder 目录通过 Vite URL �
 - [Draco Apache-2.0](draco.txt)：Google Draco 1.5.7 官方 LICENSE；Three.js Draco README 标注相同许可。
 - [Meshoptimizer MIT](meshoptimizer.txt)：编码器 0.25.0 的 LICENSE，另保留 r187 decoder 源头的 2016–2026 作者声明。
 - [Basis Universal Apache-2.0](basis.txt)：官方 v1_60_snapshot_final 固定提交的原始 LICENSE；r187 basis README 同样标注 Apache-2.0，覆盖本轮使用来源记录。
+- [EXRLoader 保留声明](exr.txt)：逐字保留 r187 EXRLoader 头部的 TinyEXR / Syoyo Fujita 与 OpenEXR / ILM 声明，仅复制许可注释，没有复制解码实现。
+- [fflate MIT](fflate.txt)：r187 vendored 文件标注 0.8.3；许可来自 [官方 v0.8.3 标签](https://github.com/101arrowz/fflate/blob/v0.8.3/LICENSE)，由原生 EXRLoader 引入，未增加工作区依赖。
 
 几何压缩样例使用开发依赖 draco3dgltf 1.5.7 与 meshoptimizer 0.25.0，模型几何与 PNG 是本项目原创。原始解码器文件由构建工具输出到演示 dist，运行时许可说明随 public 目录复制；主 npm 包不包含这些二进制资源。
 

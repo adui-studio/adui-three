@@ -1,7 +1,7 @@
 import { loadTexture, loadKTX2 } from "@adui/three/textures";
 import { captureFrame } from "@adui/three/capture";
 import { createInstancedMesh } from "@adui/three/geometry";
-import { loadHDR, attachEnvironment } from "@adui/three/environment";
+import { loadHDR, loadEXR, attachEnvironment } from "@adui/three/environment";
 import { ResourceScope, ThreeApp, OrthographicThreeApp } from "@adui/three";
 import type { AnyThreeApp } from "@adui/three";
 import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
@@ -18,6 +18,9 @@ import { BoxGeometry, Color, LineCurve3, Matrix4, Mesh, MeshBasicMaterial, Vecto
 // Compile only: all library values come from the installed archive, without workspace paths.
 export async function consume(container: HTMLElement, overlay: HTMLElement, model: GLTFModel) {
   const app = new ThreeApp(container, { maxPixelRatio: 2 });
+  const exr = await loadEXR(app, "/environment.exr", { signal: app.signal });
+  attachEnvironment(app, exr, { background: true });
+  exr.dispose();
   const orthographic = new OrthographicThreeApp(container, { camera: { frustumHeight: 8, near: 0 } });
   const span: number = orthographic.camera.top - orthographic.camera.bottom;
   const savedView = captureCameraView(orthographic);

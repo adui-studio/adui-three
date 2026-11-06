@@ -125,6 +125,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 视图阶段继续使用 threejs-fundamentals，核验原生镜头、Quaternion 归一化与 OrbitControls 目标/公开更新接口。候选只含数值，未复制 userData/场景；reversedDepth 是只读属性，不直接改写原生深度模式。JSON 与实际像素独立验收。
 
+EXR 阶段使用 threejs-loaders，核验 r187 EXRLoader/DataTextureLoader 和 OpenEXR 官方布局；不采用技能中的独立循环或 manager.abort 终止共享 FileLoader 运输。复用逻辑取消/迟到清理，解压前复制任务输入，新增原生半浮点与 GPU 验收。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

@@ -18,13 +18,13 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 404 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 411 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 87 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 90 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
-| `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
+| `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR / 未压缩 EXR 环境                      |
 | `pnpm run fixtures:models`      | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
 
 首次浏览器回归需执行 `pnpm exec playwright install chromium`。测试使用 Playwright 1.64.1 / Chromium / SwiftShader，DPR=3 验证宿主上限 2；preview 使用 127.0.0.1:4173，端口需空闲，测试结束自动收尾。截图和失败 trace 位于忽略提交的 test-results。
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 EXR 环境阶段：loadEXR 复用既有 HDR 任务/资产/绑定生命周期，固定原生首 part、半浮点 RGBA 并复制解码输入。七项新单测覆盖真实解析、方向/颜色空间、共享运输输入隔离、取消/迟到纹理、错误及重试，累计 411 项；旧 HDR 十二项保持通过。ready 通过 13 项文档测试、162 文件格式、99 源文件静态检查与全部构建，十二入口 tarball 和四次严格声明/消费通过。
+
+EXR/HDR 浏览器专项 6/6（约 34.1 秒），实际照明/背景、泛光共存、同 URL 取消隔离、失败恢复和三轮 GPU 纹理/framebuffer 回预热基线均验证，截图已目视检查。原创 64×32 FLOAT RGB 未压缩 EXR 两次生成 SHA256 相同（734049692e66833dbb269f415dd823ffa5ba0016f5862c73db9c1b978e83553f），旧 HDR 字节未变化；未运行独立 EXR 校验器或覆盖全部编码/硬件矩阵。保留原生 EXR/TinyEXR/OpenEXR 和 fflate 0.8.3 许可，无新依赖、CI 或发布。最终完整浏览器 90/90 通过（约 4.6 分钟），零重试。
 
 2026-11-06 相机视图阶段：新增两个 camera 命名导出和 version=1 数值联合快照，十四项单测验证 JSON/跨宿主、当前比例与非对称窗口、无效数据/布局/生命周期、原生轨道目标/惯性/约束、过渡交接、异常与只读反向深度模式保持，累计 404 项。首次静态检查阻止对只读 reversedDepth 赋值与测试的动态构造表达式；不改深度模式并使用显式 Vector3 后通过。
 

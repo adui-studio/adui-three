@@ -1,4 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
+import { generateEXRFixture } from "./generate-exr-fixture.mjs";
 
 // Original, deterministic 2:1 Radiance RGBE studio gradient; no downloaded image or encoder.
 const width = 64;
@@ -18,6 +19,7 @@ for (let y = 0; y < height; y++) {
 const directory = new URL("../apps/website/public/environments/", import.meta.url);
 await mkdir(directory, { recursive: true });
 await writeFile(new URL("studio.hdr", directory), Buffer.concat([header, pixels]));
+await generateEXRFixture(directory);
 console.log(
   `Generated original ${width}×${height} studio.hdr (${header.length + pixels.length} bytes)`,
 );

@@ -139,9 +139,9 @@ KTX2 纹理模型通过 `ktx2: { transcoderPath: { js, wasm } }` 接入，按当
 
 `@adui/three/textures` 的 `loadTexture` 返回拥有原生 Texture/ImageBitmap 的资产，支持颜色空间、解码时翻转、逻辑取消与迟到位图关闭。`loadKTX2` 支持显式转码器配置的二维 Basis 压缩纹理，保留文件颜色空间/mip，并独立管理 Worker 与迟到结果。加载不自动修改材质，演示在占位物体上验证方向图和棋盘图，见 [纹理 API](packages/three/README.md#独立图片纹理)。
 
-### HDR 环境
+### HDR / EXR 环境
 
-从 `@adui/three/environment` 导入 `loadHDR` 与 `attachEnvironment`，先加载资产，再按应用的请求版本绑定环境照明/可选背景。资产或宿主释放时先解绑，保留外部场景变更；演示提供加载、背景切换、取消和失败恢复，见 [HDR API](packages/three/README.md#hdr-环境)。
+从 `@adui/three/environment` 导入 `loadHDR` / `loadEXR` 与 `attachEnvironment`，先加载资产，再按应用的请求版本绑定环境照明/可选背景。资产或宿主释放时先解绑，保留外部场景变更；演示提供加载、背景切换、取消和失败恢复，见 [HDR API](packages/three/README.md#hdr-环境)。
 
 ### 相机取景
 
@@ -189,7 +189,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 404 项主包单元测试和 87 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
+当前有 411 项主包单元测试和 90 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
 
 ## 项目结构
 

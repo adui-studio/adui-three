@@ -40,6 +40,7 @@
 - [正交取景决策](docs/adr/0027-orthographic-framing.md)：世界包围球缩放、原生约束与准备期写锁。
 - [正交过渡决策](docs/adr/0028-orthographic-transition.md)：共享过渡调度、缩放插值与控件配置交接。
 - [视图快照决策](docs/adr/0029-camera-views.md)：独立数值视图、当前比例恢复与轨道状态交接。
+- [EXR 环境决策](docs/adr/0030-exr-environment.md)：原生半浮点解析、输入隔离与共用环境生命周期。
 
 ## 工作流程与约束
 

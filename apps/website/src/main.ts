@@ -7,7 +7,7 @@ import { fitObject, transitionToObject } from "@adui/three/camera";
 import type { CameraTransitionHandle } from "@adui/three/camera";
 import { attachPostprocessing } from "@adui/three/postprocessing";
 import type { PostprocessingHandle } from "@adui/three/postprocessing";
-import { attachEnvironment, loadHDR } from "@adui/three/environment";
+import { attachEnvironment, loadHDR, loadEXR } from "@adui/three/environment";
 import type { EnvironmentBinding, HDREnvironment } from "@adui/three/environment";
 import { loadTexture, loadKTX2 } from "@adui/three/textures";
 import type { TextureAsset, KTX2TextureAsset } from "@adui/three/textures";
@@ -66,8 +66,8 @@ function mountPanel(id: string, color: number): void {
     <div class="effect-actions"><button data-action="transform" aria-pressed="false">变换手柄</button><button data-action="transform-mode">切换变换</button><button data-action="remove-transform">释放手柄</button></div>
     <p class="camera-feedback" role="status">变换：<span data-testid="transform-mode">idle</span> · <span data-testid="transform-position">—</span></p>
     <div class="effect-actions"><button data-action="bloom" aria-pressed="false">泛光</button><button data-action="bloom-strength" aria-pressed="false">增强泛光</button><button data-action="outline" aria-pressed="false">选择描边</button><button data-action="remove-bloom">释放后处理</button><span data-testid="bloom-state">idle</span></div>
-    <div class="effect-actions"><button data-action="environment">加载 HDR</button><button data-action="environment-background" aria-pressed="true">环境背景</button><button data-action="cancel-environment">取消环境</button><button data-action="remove-environment">移除环境</button><button data-action="environment-error">环境失败</button></div>
-    <p class="environment-feedback" role="status">环境：<span data-testid="environment-state">idle</span> · 原创 HDR 渐变</p>
+    <div class="effect-actions"><button data-action="environment">加载 HDR</button><button data-action="environment-exr">加载 EXR</button><button data-action="environment-exr-error">EXR 失败</button><button data-action="environment-background" aria-pressed="true">环境背景</button><button data-action="cancel-environment">取消环境</button><button data-action="remove-environment">移除环境</button><button data-action="environment-error">环境失败</button></div>
+    <p class="environment-feedback" role="status">环境：<span data-testid="environment-state">idle</span> · 原创 HDR / EXR 渐变</p>
     <div class="effect-actions"><button data-action="texture">加载纹理</button><button data-action="texture-ktx2">加载 KTX2 纹理</button><button data-action="texture-ktx2-error">KTX2 纹理失败</button><button data-action="texture-flip" aria-pressed="true">纹理翻转</button><button data-action="cancel-texture">取消纹理</button><button data-action="remove-texture">移除纹理</button><button data-action="texture-error">纹理失败</button></div>
     <p class="camera-feedback" role="status">占位物体纹理：<span data-testid="texture-state">idle</span> · 原创方向图 / 棋盘图</p>
     <div class="model-actions"><button data-action="glb">加载 GLB</button><button data-action="gltf">加载 GLTF</button><button data-action="draco">加载 Draco</button><button data-action="meshopt">加载 Meshopt</button><button data-action="ktx2">加载 KTX2</button><button data-action="ktx2-glb">KTX2 GLB</button><button data-action="decoder-error">缺少解码器</button><button data-action="ktx2-error">缺少转码器</button><button data-action="cancel-model">取消加载</button><button data-action="remove-model">移除模型</button><button data-action="invalid-model">失败示例</button></div>
@@ -228,7 +228,12 @@ function mountPanel(id: string, color: number): void {
     button("remove-transform").disabled = !hasTransform;
     card.dataset.environmentState = environmentState;
     card.querySelector('[data-testid="environment-state"]')!.textContent = environmentState;
-    for (const action of ["environment", "environment-error"])
+    for (const action of [
+      "environment",
+      "environment-error",
+      "environment-exr",
+      "environment-exr-error",
+    ])
       button(action).disabled = !app || state === "disposed";
     button("cancel-environment").disabled = environmentState !== "loading";
     button("remove-environment").disabled = !environment || environment.disposed;
@@ -550,7 +555,7 @@ function mountPanel(id: string, color: number): void {
     }
   }
 
-  async function requestEnvironment(url: string): Promise<void> {
+  async function requestEnvironment(url: string, exr = false): Promise<void> {
     if (!app || app.state === "disposed") return;
     const version = ++environmentVersion;
     environmentRequest?.abort();
@@ -561,7 +566,7 @@ function mountPanel(id: string, color: number): void {
     refresh();
     let loaded: HDREnvironment | undefined;
     try {
-      loaded = await loadHDR(owner, url, { signal: controller.signal });
+      loaded = await (exr ? loadEXR : loadHDR)(owner, url, { signal: controller.signal });
       if (version !== environmentVersion || owner !== app || loaded.disposed) {
         loaded.dispose();
         return;
@@ -869,6 +874,9 @@ function mountPanel(id: string, color: number): void {
         if (app?.state !== "running") app?.render();
       }
       if (action === "environment") void requestEnvironment("/environments/studio.hdr");
+      if (action === "environment-exr") void requestEnvironment("/environments/studio.exr", true);
+      if (action === "environment-exr-error")
+        void requestEnvironment("/environments/invalid.exr", true);
       if (action === "environment-error") void requestEnvironment("/environments/invalid.hdr");
       if (action === "cancel-environment") environmentRequest?.abort();
       if (action === "remove-environment") {

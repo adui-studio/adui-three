@@ -1,6 +1,13 @@
-import { EquirectangularReflectionMapping, FileLoader, LoadingManager } from "three";
+import {
+  EquirectangularReflectionMapping,
+  FileLoader,
+  HalfFloatType,
+  LoadingManager,
+  RGBAFormat,
+} from "three";
 import type { DataTexture } from "three";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
+import { EXRLoader } from "three/addons/loaders/EXRLoader.js";
 import type { AnyThreeApp } from "./three-app.ts";
 import { ResourceScope } from "./resources.ts";
 
@@ -82,6 +89,35 @@ export function loadHDR(
   url: string,
   options: LoadHDROptions = {},
 ): Promise<HDREnvironment> {
+  return loadEnvironment(app, url, options, (buffer) => new HDRLoader().createDataTexture(buffer));
+}
+
+/** Load the native first EXR part as a linear half-float equirectangular environment. */
+export function loadEXR(
+  app: AnyThreeApp,
+  url: string,
+  options: LoadHDROptions = {},
+): Promise<HDREnvironment> {
+  return loadEnvironment(
+    app,
+    url,
+    options,
+    // FileLoader bytes can be shared by unrelated tasks; native decompression owns its input.
+    (buffer) =>
+      new EXRLoader()
+        .setDataType(HalfFloatType)
+        .setOutputFormat(RGBAFormat)
+        .setPart(0)
+        .createDataTexture(buffer.slice(0)),
+  );
+}
+
+function loadEnvironment(
+  app: AnyThreeApp,
+  url: string,
+  options: LoadHDROptions,
+  decode: (buffer: ArrayBuffer) => DataTexture,
+): Promise<HDREnvironment> {
   if (typeof url !== "string" || !url.trim())
     return Promise.reject(new TypeError("A non-empty HDR URL is required"));
   const { signal, onProgress, onCleanupError } = options;
@@ -122,7 +158,7 @@ export function loadHDR(
           let texture: DataTexture | undefined;
           try {
             if (!(buffer instanceof ArrayBuffer)) throw new TypeError("HDR requires binary data");
-            texture = new HDRLoader().createDataTexture(buffer);
+            texture = decode(buffer);
             texture.mapping = EquirectangularReflectionMapping;
             if (settled || app.signal.aborted || signal?.aborted || app.resources.disposed) {
               const late = texture;

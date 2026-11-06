@@ -27,7 +27,7 @@ const expected = {
     "restoreCameraView",
   ],
   "@adui/three/postprocessing": ["attachBloom", "attachPostprocessing"],
-  "@adui/three/environment": ["loadHDR", "attachEnvironment"],
+  "@adui/three/environment": ["loadHDR", "loadEXR", "attachEnvironment"],
   "@adui/three/textures": ["loadTexture", "loadKTX2"],
   "@adui/three/capture": ["captureFrame"],
   "@adui/three/geometry": ["createInstancedMesh"],
