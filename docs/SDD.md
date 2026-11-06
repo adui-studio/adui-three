@@ -186,6 +186,8 @@ resize 去重并同步 CSS 尺寸与 DPR，零尺寸保留上次目标；单次 
 
 ## 组合效果与选择描边契约
 
+正交演示消费同一 attachPostprocessing 入口和独占管线，使用 ACES 映射，选择由拾取写原生 selectedObjects；enabled 旁路保留资源，组合开关释放整条链。真实正交像素与三次纹理/framebuffer 回到预热基线已专项验证，不据此声称所有可选模块/设备的正交组合均已验收。
+
 attachPostprocessing(app, PostprocessingOptions) 至少提供 bloom 或 outline；PostprocessingHandle 提供可选原生 bloom/outline、disposed、dispose。attachBloom 是兼容包装，委托同一模块。固定顺序为基础 RenderPass、可选 OutlinePass、可选 UnrealBloomPass、末尾 OutputPass；不做任意编排或独立句柄隐式合并。
 
 OutlineOptions：selectedObjects=[]（借用对象数组快照）、edgeStrength=3、edgeThickness=1（范围 [1,4]）、edgeGlow=0、enabled=true；强度/光晕非负有限。visibleEdgeColor/hiddenEdgeColor 可选 0..0xffffff 整数，否则原生默认。对象必须为 Object3D；直接更新原生参数由应用保证有效。消费者负责与拾取/模型生命周期同步，dispose 清空选择，不释放模型资产。

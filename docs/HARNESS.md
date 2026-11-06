@@ -21,7 +21,7 @@ pnpm install --frozen-lockfile
 | `pnpm exec vp run -r test`      | 主包的 390 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 83 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 85 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 正交效果集成：演示复用既有组合效果入口，以原生 selectedObjects 跟随拾取，分别旁路及整体释放泛光/描边，使用 ACES 映射。新增两项真实 GPU 回归验证黄色描边、泛光像素变化、对侧隔离、释放后原始像素恢复、暂停 resize/零尺寸和三轮目标纹理/framebuffer 回到预热基线；随后销毁/重建不复活旧效果。正交专项 9/9（约 16.6 秒），完整首轮 85/85（约 3.9 分钟）。
+
+截图发现桌面工具栏按钮被挤成竖排，加入投影演示专用换行/禁止按钮缩字样式，保持其他演示布局。最终 ready 通过 13 项文档测试、154 文件格式、93 源文件静态检查与构建，主包复用已通过的 390 项单测缓存；布局修正后的完整浏览器 85/85（228611.03ms，约 3.8 分钟），零重试，组合效果截图已目视检查。截图调整首次被格式门禁拦截，格式化后通过；未修改库实现、公共接口、依赖或打包。
 
 2026-11-06 透视准备重入补查：两项先行失败测试复现 fitObject 在选项 getter/顶点准备中允许同相机嵌套应用；将写锁提前至 prepareObjectFrame 之前，并在所有退出路径释放。新测试同时验证 getter 异常后可再次取景；原生事件配置恢复与四组相机相关 61 项单测通过。ready 通过累计 390 项单测、13 项文档测试、153 文件格式、92 源文件静态检查与构建，完整浏览器 83/83（约 3.8 分钟），零重试。无公共类型/导出/依赖变化，未重复独立打包检查。
 

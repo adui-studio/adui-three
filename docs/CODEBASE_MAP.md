@@ -105,6 +105,8 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 正交过渡复用 [camera-transition.ts](../packages/three/src/camera-transition.ts) 的泛型执行器与正交准备；[过渡单测](../packages/three/tests/camera-orthographic-transition.test.ts) 验证 zoom/取消/配置和微小终点。orthographic 演示增加过渡、宿主启停和输入/尺寸/重建操作。
 
+正交效果集成在 orthographic 演示中消费既有 postprocessing：组合泛光/描边、原生旁路和拾取选择；[效果浏览器回归](../tests/browser/orthographic-effects.spec.ts) 核验真实像素、对侧隔离、暂停尺寸、三轮纹理/帧缓冲释放及重建。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

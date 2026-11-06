@@ -10,7 +10,10 @@ import {
   transitionOrthographicToObject,
 } from "@adui/three/camera";
 import type { CameraTransitionHandle } from "@adui/three/camera";
-import { BoxGeometry, Color, Group, Mesh, MeshBasicMaterial } from "three";
+import { attachPostprocessing } from "@adui/three/postprocessing";
+import type { PostprocessingHandle } from "@adui/three/postprocessing";
+import { ACESFilmicToneMapping, BoxGeometry, Color, Group, Mesh, MeshBasicMaterial } from "three";
+import type { Object3D } from "three";
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
 root.innerHTML = `<div class="shell">
@@ -28,8 +31,8 @@ for (const orthographic of [true, false]) {
   card.innerHTML = `<div class="card-heading"><h2>${orthographic ? "正交相机" : "透视相机"}</h2><span data-testid="projection-state">—</span></div>
     <div class="stage"><div class="viewport" aria-label="${orthographic ? "正交" : "透视"}画布"><div class="label-overlay"></div></div></div>
     <div class="metrics"><div><span>ZOOM</span><strong data-testid="projection-zoom">1.000</strong></div><div><span>BLUE Z</span><strong data-testid="projection-depth">-5</strong></div><div><span>WIDTH</span><strong data-testid="projection-width">0</strong></div><div><span>HEIGHT</span><strong data-testid="projection-height">0</strong></div></div>
-    <div class="actions"><button data-action="fit">适配视角</button><button data-action="smooth">平滑取景</button><button data-action="cancel">取消过渡</button><button data-action="pause-host">暂停场景</button><button data-action="start-host">运行场景</button><button data-action="large">放大模型</button><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
-    <p class="model-feedback">过渡：<span data-testid="projection-motion">idle</span> · <span data-testid="projection-progress">0.000</span></p><p class="model-feedback">选中：<span data-testid="projection-picked">—</span> · <span data-testid="projection-error" role="alert"></span></p>`;
+    <div class="actions projection-actions"><button data-action="effects">组合效果</button><button data-action="bloom">泛光开关</button><button data-action="outline">描边开关</button><button data-action="fit">适配视角</button><button data-action="smooth">平滑取景</button><button data-action="cancel">取消过渡</button><button data-action="pause-host">暂停场景</button><button data-action="start-host">运行场景</button><button data-action="large">放大模型</button><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
+    <p class="model-feedback">效果：<span data-testid="projection-effects">idle</span> · 泛光 <span data-testid="projection-bloom">off</span> · 描边 <span data-testid="projection-outline">off</span></p><p class="model-feedback">过渡：<span data-testid="projection-motion">idle</span> · <span data-testid="projection-progress">0.000</span></p><p class="model-feedback">选中：<span data-testid="projection-picked">—</span> · <span data-testid="projection-error" role="alert"></span></p>`;
   root.querySelector(".workspace")!.appendChild(card);
   const viewport = card.querySelector<HTMLDivElement>(".viewport")!;
   const overlay = viewport.querySelector<HTMLDivElement>(".label-overlay")!;
@@ -37,6 +40,7 @@ for (const orthographic of [true, false]) {
   let blue: Mesh | undefined;
   let content: Group | undefined, fit: (() => void) | undefined;
   let transition: (() => void) | undefined, motion: CameraTransitionHandle | undefined;
+  let effects: PostprocessingHandle | undefined, selected: Object3D | undefined;
   let fitting = false,
     large = false;
   let narrow = false,
@@ -52,18 +56,27 @@ for (const orthographic of [true, false]) {
     show("height", String(app?.size.height ?? 0));
     show("motion", motion?.state ?? "idle");
     show("progress", (motion?.progress ?? 0).toFixed(3));
-    for (const button of card.querySelectorAll<HTMLButtonElement>("button"))
+    show("effects", effects && !effects.disposed ? "active" : "idle");
+    show("bloom", effects && !effects.disposed && effects.bloom?.enabled ? "on" : "off");
+    show("outline", effects && !effects.disposed && effects.outline?.enabled ? "on" : "off");
+    for (const button of card.querySelectorAll<HTMLButtonElement>("button")) {
       button.disabled = button.dataset.action !== "rebuild" && (!app || app.state === "disposed");
+      if (["bloom", "outline"].includes(button.dataset.action ?? ""))
+        button.disabled ||= !effects || effects.disposed;
+    }
   };
   const rebuild = (): void => {
     app?.dispose();
     motion = undefined;
+    effects = undefined;
+    selected = undefined;
     app = orthographic
       ? new OrthographicThreeApp(viewport, { camera: { frustumHeight: 6, far: 100 } })
       : new ThreeApp(viewport, {
           camera: { fov: 33.4, near: 0.1, far: 100, position: [0, 0, 10] },
         });
     app.scene.background = new Color(0x101a20);
+    app.renderer.toneMapping = ACESFilmicToneMapping;
     const geometry = app.resources.track(new BoxGeometry(1.4, 1.4, 1.4));
     const redMaterial = app.resources.track(new MeshBasicMaterial({ color: 0xff3838 }));
     const blueMaterial = app.resources.track(new MeshBasicMaterial({ color: 0x3878ff }));
@@ -89,9 +102,13 @@ for (const orthographic of [true, false]) {
       element.textContent = object.name;
       labels.add({ object, element, offset: [0, 0.95, 0], anchor: [0.5, 1] });
     }
-    attachPicking(app, { objects: () => [red, blue!] }).on("click", ({ intersection }) =>
-      show("picked", intersection?.object.name ?? "—"),
-    );
+    attachPicking(app, { objects: () => [red, blue!] }).on("click", ({ intersection }) => {
+      selected = intersection?.object;
+      show("picked", selected?.name ?? "—");
+      if (effects?.outline && !effects.disposed)
+        effects.outline.selectedObjects = selected ? [selected] : [];
+      if (app?.state !== "running") app?.render();
+    });
     const host = app;
     const draw = (): void => {
       host.render();
@@ -155,6 +172,25 @@ for (const orthographic of [true, false]) {
         return;
       }
       if (!app || app.state === "disposed") return;
+      if (button.dataset.action === "effects") {
+        if (effects && !effects.disposed) {
+          effects.dispose();
+          effects = undefined;
+        } else
+          effects = attachPostprocessing(app, {
+            bloom: { threshold: 0.1, strength: 0.8, radius: 0.25 },
+            outline: {
+              selectedObjects: selected ? [selected] : [],
+              edgeStrength: 5,
+              visibleEdgeColor: 0xffff00,
+              hiddenEdgeColor: 0xffff00,
+            },
+          });
+      }
+      if (button.dataset.action === "bloom" && effects?.bloom)
+        effects.bloom.enabled = !effects.bloom.enabled;
+      if (button.dataset.action === "outline" && effects?.outline)
+        effects.outline.enabled = !effects.outline.enabled;
       if (button.dataset.action === "smooth") {
         transition?.();
         app.start();

@@ -121,6 +121,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 正交过渡继续使用 threejs-fundamentals 及已核验的 r187 Quaternion/OrbitControls，复用已有过渡执行器。zoom 凸组合保持微小终点，配置交接由失败单测驱动修复，不复制独立调度。
 
+正交组合效果补查使用 threejs-postprocessing，并核验官方 OutlinePass/UnrealBloomPass 的公开选择、参数和释放接口。演示只组合既有宿主管线，未照搬技能 r186 版本或新增 composer/循环；以真实像素与纹理/framebuffer 计数验证。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

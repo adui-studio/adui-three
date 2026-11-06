@@ -21,6 +21,8 @@ OrthographicThreeApp.camera 精确为 OrthographicCamera；默认 ThreeApp.camer
 
 通用扩展可用 AnyThreeApp 借用两种宿主；controls、模型/纹理加载、动画、拾取/标签、后处理、截图与实例化入口均接受此类型。camera 的正交即时/平滑取景采用独立命名接口，既有透视接口保持原类型。演示服务 `/?demo=orthographic` 比较深度、缩放、拾取/标签和放大模型后的取景。
 
+正交演示还可开启“组合效果”，点击对象后观察描边，并分别旁路泛光/描边或释放整条链；复用既有 postprocessing，不增加库入口。效果在暂停、resize/零尺寸恢复和宿主重建中保持各自所有权。
+
 ### 正交自动取景
 
 ```ts
