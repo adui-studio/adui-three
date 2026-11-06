@@ -23,6 +23,8 @@ const expected = {
     "computeOrthographicFrame",
     "fitOrthographicObject",
     "transitionOrthographicToObject",
+    "captureCameraView",
+    "restoreCameraView",
   ],
   "@adui/three/postprocessing": ["attachBloom", "attachPostprocessing"],
   "@adui/three/environment": ["loadHDR", "attachEnvironment"],
@@ -57,6 +59,19 @@ if (!development) {
   camera.position.set(3, 2, 5);
   camera.lookAt(0, 0, 0);
   assert.ok(computeObjectFrame(camera, mesh).distance > 0);
+  const { captureCameraView, restoreCameraView } = await import("@adui/three/camera");
+  const viewHost = {
+    camera,
+    state: "ready",
+    resources: new ResourceScope(),
+    size: { width: 800, height: 400 },
+  };
+  const cameraView = captureCameraView(viewHost);
+  camera.position.set(90, 90, 90);
+  restoreCameraView(viewHost, JSON.parse(JSON.stringify(cameraView)));
+  assert.deepEqual(camera.position.toArray(), [3, 2, 5]);
+  assert.equal(camera.aspect, 2);
+  viewHost.resources.dispose();
   mesh.geometry.dispose();
   mesh.material.dispose();
   await assert.rejects(import("@adui/three/src/three-app.ts"), {

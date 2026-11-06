@@ -47,6 +47,14 @@ transitionOrthographicToObject(OrthographicThreeApp,Object3D,CameraTransitionOpt
 
 准备/应用持有写锁；外部视锥/zoom 或 min/maxZoom 改写在有效更新取消，暂停/零尺寸不轮询，目标不自动跟踪。scope/signal/替换/即时应用与错误清理沿用既有过渡。即时正交 fit 在取消旧过渡之后保存恢复配置。默认先扩裁剪再收紧，取消保留当前状态。见 [ADR-0028](adr/0028-orthographic-transition.md)。
 
+## 相机视图契约
+
+captureCameraView(AnyThreeApp,CameraViewOptions?) 返回 CameraView，restoreCameraView(app,view,options?) 返回实际恢复后的新快照。version=1，kind 为 perspective/orthographic，公共字段 position/quaternion/up/zoom/near/far，可选 target；透视有 fov，正交有 top/bottom/centerX。数值数组独立，可由消费者 JSON 往返和跨同类宿主使用，无原生对象或资产引用。
+
+恢复按当前 CSS 比例重算 aspect/水平范围，保留垂直构图。拒绝父级/缩放/手动矩阵、view/filmOffset、坏元组/非有限/未归一化四元数、无效裁剪及不可表示候选。capture 零尺寸可用且不取消运动；restore 需有效视口，准备起持写锁，验证后才取消旧过渡。不自动绘制、启动、持久化或接管资源。
+
+借用 controls 时保存 target，要求无 roll/单位 up；恢复要求同相机、当前 up 一致及已有 target，校验距离/正交 zoom/目标范围，原生角度限制仍可调整实际姿态。先取消旧租约再暂存配置，通过公开 update 清惯性并同步，finally 恢复 damping/autoRotate 与写锁；错误不回滚原生副作用。详见 [ADR-0029](adr/0029-camera-views.md)。
+
 ## 模块与关键流程
 
 | 模块     | 实现                                                 | 关键边界                                           |
@@ -312,6 +320,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-038  | 正交宿主契约                      | three-app.ts、orthographic.ts                    | 宿主数学/清理单测、投影/缩放/交互/GPU 浏览器、包消费       |
 | FR-039  | 正交取景契约                      | camera-orthographic.ts、共享边界准备             | 角点/蒙皮/控件/重入单测、放大与窄屏浏览器、包消费          |
 | FR-040  | 正交过渡契约                      | camera-transition.ts、共享正交准备               | 缩放/控件/取消单测、真实过渡浏览器、泛型包消费             |
+| FR-041  | 相机视图契约                      | camera-view.ts、投影演示                         | JSON/镜头/控件/异常单测、相同像素浏览器、包消费            |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 

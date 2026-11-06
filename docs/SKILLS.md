@@ -123,6 +123,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 正交组合效果补查使用 threejs-postprocessing，并核验官方 OutlinePass/UnrealBloomPass 的公开选择、参数和释放接口。演示只组合既有宿主管线，未照搬技能 r186 版本或新增 composer/循环；以真实像素与纹理/framebuffer 计数验证。
 
+视图阶段继续使用 threejs-fundamentals，核验原生镜头、Quaternion 归一化与 OrbitControls 目标/公开更新接口。候选只含数值，未复制 userData/场景；reversedDepth 是只读属性，不直接改写原生深度模式。JSON 与实际像素独立验收。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

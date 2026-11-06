@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 390 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 404 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 85 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 87 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,12 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 相机视图阶段：新增两个 camera 命名导出和 version=1 数值联合快照，十四项单测验证 JSON/跨宿主、当前比例与非对称窗口、无效数据/布局/生命周期、原生轨道目标/惯性/约束、过渡交接、异常与只读反向深度模式保持，累计 404 项。首次静态检查阻止对只读 reversedDepth 赋值与测试的动态构造表达式；不改深度模式并使用显式 Vector3 后通过。
+
+额外原生探针复现跨度 2e100、far=2e108、aspect=1 的正交候选在正向模式逆矩阵有限、反向模式却溢出；先行失败单测证实原校验漏过。临时候选现使用 Matrix4 公开方法和目标当前模式，写入前拒绝，不改目标只读标记。两种相机的正常反向投影近/远深度端点均数学验证，不外推 GPU 反向模式兼容。
+
+ready 通过 404 项单测、13 项文档测试、158 文件格式、96 源文件静态检查与全部构建；十二入口 tarball 及四次严格声明/消费通过，额外执行无 DOM 的实际 JSON 视图恢复与当前 aspect 检查。新增浏览器专项 2/2（约 9.3 秒）验证两类相机缩放/原生平移后完全相同像素、JSON 跨重建、窄容器高度与过渡取消；此前完整 87/87（约 4.7 分钟），反向数值补查后的最终完整 87/87（约 4.3 分钟），均零重试。未新增入口/依赖、存储服务、CI 或发布。
 
 2026-11-06 正交效果集成：演示复用既有组合效果入口，以原生 selectedObjects 跟随拾取，分别旁路及整体释放泛光/描边，使用 ACES 映射。新增两项真实 GPU 回归验证黄色描边、泛光像素变化、对侧隔离、释放后原始像素恢复、暂停 resize/零尺寸和三轮目标纹理/framebuffer 回到预热基线；随后销毁/重建不复活旧效果。正交专项 9/9（约 16.6 秒），完整首轮 85/85（约 3.9 分钟）。
 

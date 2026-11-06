@@ -39,6 +39,7 @@
 - [正交宿主决策](docs/adr/0026-orthographic-host.md)：具体相机类型、共用生命周期和视锥尺寸策略。
 - [正交取景决策](docs/adr/0027-orthographic-framing.md)：世界包围球缩放、原生约束与准备期写锁。
 - [正交过渡决策](docs/adr/0028-orthographic-transition.md)：共享过渡调度、缩放插值与控件配置交接。
+- [视图快照决策](docs/adr/0029-camera-views.md)：独立数值视图、当前比例恢复与轨道状态交接。
 
 ## 工作流程与约束
 

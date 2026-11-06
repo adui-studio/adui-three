@@ -63,6 +63,8 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 ## 关键取舍
 
+camera-view 仅保存与恢复相机的数值配置，复用相机写锁和过渡取消；不创建调度、存储服务或场景序列化。快照不拥有原宿主/控件/模型，细节见 [ADR-0029](adr/0029-camera-views.md)。
+
 透视/正交过渡共用 camera-transition 的内部泛型执行器，正交规划与即时应用共用 prepareOrthographicFrame。生命周期与输入租约保持单一实现，核心无反向依赖，见 [ADR-0028](adr/0028-orthographic-transition.md)。
 
 正交取景在 camera 子入口以独立函数提供，两种相机共享内部精确世界边界/蒙皮准备与相机写锁；默认核心不依赖规划。应用只写原生姿态/zoom/裁剪面，控件借用且不改变约束，不增加调度，见 [ADR-0027](adr/0027-orthographic-framing.md)。

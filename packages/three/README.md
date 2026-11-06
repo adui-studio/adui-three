@@ -56,6 +56,23 @@ if (result.status === "completed") console.log(result.frame.zoom);
 
 尺寸、视锥/zoom、姿态或控件缩放约束改写在下次更新取消；默认先扩裁剪、完成后收紧，near=0 有效，取消保留当前姿态/zoom。控件配置按值租用/恢复，即时取景先完成旧租约交接。目标改变后自行取消并重新规划，不保证过渡中全部可见或避障。
 
+### 保存和恢复视角
+
+```ts
+import { captureCameraView, restoreCameraView } from "@adui/three/camera";
+
+const saved = captureCameraView(app, { controls: orbit.controls });
+const json = JSON.stringify(saved); // 消费者自行存储。
+const actual = restoreCameraView(app, JSON.parse(json), { controls: orbit.controls });
+app.render();
+```
+
+CameraView 是 version=1 的透视/正交联合快照，含独立 position/quaternion/up 数组、zoom、near/far，可选轨道 target；透视含 fov，正交含 top/bottom/centerX。没有场景、模型、userData 或 GPU 引用，可在原宿主结束后恢复到同类新宿主。恢复按当前 CSS 比例适配，保持垂直构图，不保存旧 aspect、renderer 或深度模式；类型字段只读不表示运行时冻结。
+
+capture 不写相机、取消过渡或推进时间，零尺寸可用；restore 需要有效视口，完整校验后取消旧过渡，返回实际视图，不绘制或启动。只支持未挂父级、无缩放、自动矩阵且无 view/filmOffset 的相机，拒绝坏版本/数值/镜头范围。
+
+带控件保存会记录 target，并要求无 roll、单位 up；带控件恢复需已有 target、同相机与相同 up。距离、正交缩放和目标限制先校验，原生角度限制可调整最终姿态。控件惯性通过公开 update 消耗，配置与共享写锁在异常后恢复；原生副作用不回滚。演示“保存视角 / 恢复视角”使用内存 JSON，库不访问 localStorage 或业务 Store。
+
 ## 最小示例
 
 在当前工作区通过 `workspace:*` 引用；容器需有明确尺寸。下面使用公开入口，应用自行组合原生 Three.js 对象。

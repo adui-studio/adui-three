@@ -2,7 +2,7 @@
 
 ## 目标与当前阶段
 
-更新日期：2026-11-06。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。最近交付正交平滑取景 70cd2b7、透视准备重入修复 7551ed1；本轮补齐正交描边/泛光组合演示与 GPU 验收。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
+更新日期：2026-11-06。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。最近交付透视准备重入修复 7551ed1、正交组合效果 b3a9d4f；本轮增加相机视图保存/恢复与 JSON 重建演示。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
 
 用户授权持续封装、分步提交推送；提交描述和正文使用中文，格式 type(scope): emoji 中文描述。不得改写已有提交或擅自发布 npm。用户明确“不做任何 CI”：不新增/启用工作流，不调整组织或仓库 Actions 设置。历史工作流已由 e6ea2c2 移除，保留当时的本地输入回归修复。
 
@@ -18,6 +18,7 @@
 - animation：单 Mixer、片段播放/暂停/恢复/停止、原生事件队列和双范围清理，支持有限 repeat/once/pingpong 和规范化往返终点；seek 按秒定位到首个正向阶段后暂停并重置循环历史；crossFadeTo 根据当前权重渐变到目标，支持中断、暂停和清理。on 提供采样完成后的类型化 loop/finished，回调播放命令排队、销毁跳过剩余通知，异常传播宿主帧策略。
 - followPath：借用原生三维 Curve 与目标，在父级局部空间采样位置/可选朝向，使用同一宿主更新，支持独立暂停、循环/往返、替换和外部修改取消；可选模型 scope 在结束时自动解除登记。
 - camera：透视/正交独立即时取景，正交以保守包围球规划 zoom/距离/裁剪面，共享蒙皮边界准备。transitionToObject/transitionOrthographicToObject 共用宿主 delta 过渡执行器，支持暂停、替换、输入/尺寸/外部配置取消；正交结果含 zoom，准备/应用写锁和控件租约清理统一。
+- camera views：captureCameraView/restoreCameraView 提供 version=1 独立数值快照，支持 JSON/同类跨宿主、当前比例适配与可选轨道 target。恢复验证后才取消旧过渡，消费惯性并保留控制配置；不自动存储/绘制/启动。
 - postprocessing：HalfFloat composer、基础/可选描边/可选泛光/输出链，借用 renderer，拥有 passes/targets，操作中释放延后清 GPU。正交演示增加原生拾取选择、效果旁路/释放，专项验证实际像素、暂停尺寸及三轮 GPU 目标回到预热基线。
 - environment：HDR 资产加载与独占场景绑定分开；复用原生环境转换，按值恢复外部场景状态，资产释放先解绑。
 - textures：图片下载字节可共享、ImageBitmap 独立拥有；颜色空间显式，翻转在解码时烘焙，前置引用清理后释放纹理和原始位图。loadKTX2 额外支持二维 Basis，按任务拥有转码器和原生压缩纹理，取消/格式边界见 ADR-0016。
@@ -28,7 +29,7 @@
 
 ## 验证状态
 
-当前 ready 通过：13 项文档检查器测试、390 项主包单测（本轮命中既有主包缓存）、格式/Lint/类型及全部构建。最终真实浏览器 85/85 通过，零重试，包含正交描边/泛光的像素、双实例隔离、暂停尺寸和三轮 GPU 目标释放。桌面工具栏换行修正后的组合效果截图已检查。十二入口 tarball 和四次严格消费在正交过渡阶段通过，本次只改演示与验证，无库接口/依赖变化。证据见 [Harness](HARNESS.md)。
+当前 ready 通过：13 项文档检查器测试、404 项主包单测、格式/Lint/类型及全部构建。最终真实浏览器 87/87 通过，零重试，包含正交/透视视图的相同像素恢复、JSON 跨重建、当前比例及过渡交接。十二入口 tarball 和四次严格消费通过，camera 八个命名导出及无 DOM 的实际 JSON 恢复已验证。反向深度数值探针和修复证据见 [Harness](HARNESS.md)，未将数学用例外推为完整硬件兼容。
 
 浏览器环境是 Chromium/SwiftShader，单 worker、零自动重试；完整设备/格式/浏览器矩阵、长期 GPU 泄漏和性能基准尚未完成。保留 TypeScript 7 API 实验性和演示大 chunk 构建提示，不将本地通过称为远端 CI 通过。失败诊断、历史统计和阶段未提交记录统一保留在 Harness，不在接手入口复制过期状态。
 
@@ -52,7 +53,7 @@
 
 WebGL 上下文丢失会将 contextLost 设 true 并完整结束该宿主，业务通过 abort 更新状态并显式重建；不自动继续旧 GPU 图或替换 renderer。真实原型发现旧代 GPU 清理的 1282，证据与取舍见 ADR-0019。另一宿主的模型实例仍由其租约持有共享资产。
 
-先读 [AGENTS](../AGENTS.md)、需求、SDD、[架构](ARCHITECTURE.md)、[代码地图](CODEBASE_MAP.md) 和 [Harness](HARNESS.md)。修改范围对应需求编号；API/所有权边界见 ADR-0002 至 ADR-0028，ADR-0001 保留历史 Proposed 提案。Skills 按 [索引](SKILLS.md) 加载，不自动安装或扩大远程授权。
+先读 [AGENTS](../AGENTS.md)、需求、SDD、[架构](ARCHITECTURE.md)、[代码地图](CODEBASE_MAP.md) 和 [Harness](HARNESS.md)。修改范围对应需求编号；API/所有权边界见 ADR-0002 至 ADR-0029，ADR-0001 保留历史 Proposed 提案。Skills 按 [索引](SKILLS.md) 加载，不自动安装或扩大远程授权。
 
 下一步按实际需求补充更多真实模型/硬件场景或更高层动画能力；不预建空包。正交取景采用独立命名函数，既有透视接口类型不扩大；拾取/标签/取景/组合效果已专项验证，不能外推全部模块和设备。共享解码器服务、浏览器范围、更多 Three.js minor、WebGPU/WebXR、框架适配和 npm 发布权限仍待专门评估。后续代码检查 ready，影响宿主/渲染/演示执行 test:browser，导出/打包变化执行 test:package，文档执行 docs:test/docs:check。
 

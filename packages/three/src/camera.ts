@@ -6,6 +6,13 @@ import type { FitObjectOptions, ObjectFrame } from "./camera-frame.ts";
 import { beginCameraWrite, cancelCameraMotion } from "./camera-runtime.ts";
 
 export { computeObjectFrame } from "./camera-frame.ts";
+export { captureCameraView, restoreCameraView } from "./camera-view.ts";
+export type {
+  CameraView,
+  PerspectiveCameraView,
+  OrthographicCameraView,
+  CameraViewOptions,
+} from "./camera-view.ts";
 export { computeOrthographicFrame, fitOrthographicObject } from "./camera-orthographic.ts";
 export type { OrthographicObjectFrame } from "./camera-orthographic.ts";
 export type { ObjectFrameOptions, FitObjectOptions, ObjectFrame } from "./camera-frame.ts";
