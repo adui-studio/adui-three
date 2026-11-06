@@ -15,7 +15,7 @@ const expected = {
   "@adui/three/loaders": ["loadGLTF", "cloneGLTF"],
   "@adui/three/interaction": ["attachPicking"],
   "@adui/three/labels": ["attachDOMLabels"],
-  "@adui/three/animation": ["attachGLTFAnimations"],
+  "@adui/three/animation": ["attachGLTFAnimations", "followPath"],
   "@adui/three/camera": ["computeObjectFrame", "fitObject", "transitionToObject"],
   "@adui/three/postprocessing": ["attachBloom", "attachPostprocessing"],
   "@adui/three/environment": ["loadHDR", "attachEnvironment"],
@@ -57,7 +57,7 @@ if (!development) {
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");
   assert.ok(
-    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|computeObjectFrame|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh/.test(
+    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|computeObjectFrame|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath/.test(
       core,
     ),
   );

@@ -283,6 +283,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-033  | 画布截图契约                      | capture.ts、独立导出和演示预览                   | 生命周期/编码单测、原生 PNG/格式/URL 与包消费回归          |
 | FR-034  | 实例化网格契约                    | geometry.ts、独立实例演示                        | 原生数学/资源单测、实际 draw/像素/拾取/buffer 回归、包消费 |
 | FR-035  | 模型动画契约                      | animation.ts、循环演示                           | 原生终点/循环/清理单测、骨骼像素与有限循环浏览器、包消费   |
+| FR-036  | 对象路径运动契约                  | path-animation.ts、独立路径演示                  | 曲线/变换/清理单测、像素/拾取/GPU 回归、包消费             |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
@@ -297,6 +298,14 @@ geometry 入口导出 createInstancedMesh(app,options)、CreateInstancedMeshOpti
 handle 登记宿主 scope，拥有节点、instanceMatrix、instanceColor、morphTexture 和扩展 resources；不拥有几何体、材质、它们的纹理或外来子节点。清理标记结束并解除登记，尝试全部独立清理后聚合异常，重复 dispose 无操作。同步添加节点时宿主结束则回滚。公开 mesh 保留原生能力；直接替换自有 buffer 或绕过 helper 修改 count/矩阵须由调用方承担上传、边界和清理一致性。决策见 [ADR-0022](adr/0022-managed-instancing.md)。
 
 原生 dispose 监听异常不保证 WebGL GPU 清理：首次绘制前的消费者监听可能阻断后续 renderer 监听，而 BufferAttribute.dispose 仅对 WebGPU 有 GPU 释放语义。扩展清理登记 resources 可独立聚合失败；原生监听不得抛错。已阻断时消费者移除出错监听后可显式 mesh.dispose，handle.dispose 不重试。真实浏览器故障注入回归记录此边界，见 ADR-0022。
+
+## 对象路径运动契约
+
+animation 入口导出 followPath(app,object,FollowPathOptions):PathMotionHandle 和 PathMotionState/Result。options 必填 curve:Curve<Vector3>、duration>0，loop 默认 once（另可 repeat/pingpong）、orientToPath 默认 false，可选 signal 和 scope:ResourceScope。句柄 state 为 running/paused/completed/cancelled/failed；progress 为当前路径比例，回程递减；finished 始终 resolve。cancel/dispose 和终态下 pause/resume 幂等，不回退姿态。
+
+曲线属于目标原父级局部空间，创建时完整验证并同步放到起点，之后每次 onUpdate 使用 delta/duration 推进；repeat 以模 1 回绕，pingpong 以模 2 镜像，不累积无限 elapsed。getPointAt 提供近似弧长采样，true 朝向把局部 +Z 旋到切线，回程取反；同次位置/朝向先准备再提交。借用曲线在运行期间不改控制点或弧长配置，非均匀父级缩放不保证世界匀速。
+
+逐目标弱引用登记和写入锁防重入；合法新请求才替换旧运动。目标/父级/自动矩阵或所拥有的局部变换被外部改写时，下次更新以 target-changed 结束。回调中取消、暂停、所有者结束时丢弃候选。运动登记宿主与可选 scope，完成/取消/失败解除所有登记/监听/订阅，不拥有目标及 GPU 资源。采样错误以 failed 结果记录并抛回宿主；清理失败聚合报告。取消原因包括 cancelled/disposed/aborted/replaced/target-changed；细节见 [ADR-0024](adr/0024-path-motion.md)。
 
 ## 维护
 

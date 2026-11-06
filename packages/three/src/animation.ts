@@ -9,6 +9,14 @@ import type { AnimationAction, AnimationClip, Object3D } from "three";
 import type { GLTFInstance, GLTFModel } from "./loaders.ts";
 import type { ThreeApp } from "./three-app.ts";
 
+export { followPath } from "./path-animation.ts";
+export type {
+  FollowPathOptions,
+  PathMotionHandle,
+  PathMotionState,
+  PathMotionResult,
+} from "./path-animation.ts";
+
 export type AnimationState = "idle" | "playing" | "paused" | "finished" | "disposed";
 
 export interface PlayAnimationOptions {

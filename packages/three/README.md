@@ -334,6 +334,34 @@ CrossFadeOptions 的 duration 默认 0.3，正有限 Mixer 秒，其他选项同
 
 play/stop 取消渐变，seek 取消其他贡献并定位目标；blendProgress 初始/取消为 0，完成为 1。控制方法仍按原生事件队列依序执行，dispose 立即失效、原生返回后释放全部缓存。不要同时手动控制 native 淡变、action 调度或 Mixer 采样。异常沿用宿主停止/抛出，不承诺回滚已采样姿态；骨骼/morph 等复杂资产仍待验证。
 
+## 对象路径运动
+
+```ts
+import { followPath } from "@adui/three/animation";
+import { CatmullRomCurve3, Vector3 } from "three";
+
+const curve = new CatmullRomCurve3([
+  new Vector3(-2, 0, 0),
+  new Vector3(0, 1, 2),
+  new Vector3(2, 0, 0),
+]);
+const motion = followPath(app, model.scene, {
+  curve,
+  duration: 4,
+  loop: "once",
+  orientToPath: true,
+  scope: model.resources,
+});
+// motion.pause(); motion.resume(); motion.cancel();
+const result = await motion.finished; // completed / cancelled（含原因）/ failed（含 error）
+```
+
+对象需已挂在本宿主 scene 下且使用自动矩阵，库借用它和曲线；创建时立即设置起点，不启动宿主或绘制。每次宿主更新以 delta/duration 推进，loop 默认为 once，可选 repeat/pingpong 无限循环到取消；progress 为当前局部弧长比例，回程递减。duration 是单向遍历秒数。getPointAt 使用原生近似弧长采样，父级非均匀缩放后不保证世界匀速；曲线控制点和弧长配置在运动期间保持不变，开放曲线 repeat 会跳回起点。
+
+orientToPath 默认 false，仅写 position；true 时局部 +Z 沿切线，回程反向，不提供倾斜或平滑转向。暂停保持姿态，resume 不补墙钟时间。finish/cancel/dispose 保留当前姿态并释放宿主、可选 scope 的登记、订阅和 abort 监听，不释放对象或其 GPU 资产。scope 可以是 model.resources，模型结束立即取消且完成后自动解除两处登记。
+
+同一对象的新合法请求替换旧运动；无效/预先 abort 的请求保留旧运动。外部改写所占用的位置/旋转、重新挂接、脱离 scene 或关闭自动矩阵，下次更新以 target-changed 结束；只控制位置时允许外部改旋转，scale 始终由应用管理。自定义曲线回调后重新核对取消/所有者，错误记为 failed 并按宿主帧异常规则抛出。原生字段自定义副作用不承诺事务回滚；不含碰撞、导航网格或相机漫游。独立演示为 `/?demo=path`。
+
 ## 对象拾取
 
 ```ts

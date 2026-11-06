@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 323 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 343 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 71 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 74 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 对象路径阶段：新增 followPath，借用原生三维曲线和目标，局部近似弧长运动、可选切线朝向、暂停、循环/往返、替换、signal 与可选模型 scope 均使用宿主调度。二十项新单测覆盖真实曲线数学、变换、父级/跨宿主、所有权、回调重入/中断和失败清理，累计 343 项通过。最初两项四元数深比较把原生 onChange 回调也纳入差异，改为比较四个数值；测试订阅快照及方法 this:void 注解消除静态提示，未放宽生产检查。
+
+ready 通过 13 项文档测试、142 文件格式、85 源文件静态检查与全部构建。十二入口 tarball 独立消费通过，animation 运行时导出含 followPath，严格类型覆盖 scope/curve/result，默认核心未包含实现。路径专项 3/3（约 10.2 秒），完整 74/74（约 3.3 分钟），零重试。实际橙色箭头像素移动/暂停拾取、绿色对象独立运行、外部改写/移除/重建、移动端和三轮 GPU buffer 回到零均验证；独立演示截图已目视检查。无新依赖、私有坐标、导航/碰撞、CI 或发布。
 
 2026-11-06 有限循环阶段：核验 r187 原生探针，有限往返单/双/三轮完成帧与紧接的 update(0) 呈现相反端点；普通零 delta 补采样不足以覆盖一次跨多轮的情况。通过原生迭代后公开 reset/time/paused 和零 delta 混合归一终点，新增十二项单测覆盖循环数、往返/奇偶/大 delta、参数、暂停/seek、入场/离场渐变、原生事件排队与销毁，累计 323 项单测通过。
 

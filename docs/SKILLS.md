@@ -111,6 +111,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 有限循环阶段复用 threejs-animation，以 r187 AnimationAction 官方实现核验 repetitions 和 LoopPingPong。原生探针发现完成时的奇偶采样错位后，通过公开 reset/time/paused 与迭代后零 delta 采样处理，并覆盖跨多轮 delta、入场/离场渐变与事件队列；不照搬独立动画循环。
 
+路径运动阶段复用 threejs-animation 与 threejs-geometry，核验原生 Curve.getPointAt/getTangentAt 和 Quaternion.setFromUnitVectors；采用父级局部空间的近似弧长采样与宿主订阅，没有复制旧业务路径、自动运行 Skill 的独立 RAF 或加入导航/碰撞依赖。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。
