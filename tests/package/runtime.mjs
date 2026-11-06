@@ -10,7 +10,7 @@ globalThis.fetch = () => {
 };
 
 const expected = {
-  "@adui/three": ["ResourceScope", "ThreeApp"],
+  "@adui/three": ["ResourceScope", "ThreeApp", "OrthographicThreeApp"],
   "@adui/three/controls": ["attachOrbitControls", "attachTransformControls"],
   "@adui/three/loaders": ["loadGLTF", "cloneGLTF"],
   "@adui/three/interaction": ["attachPicking"],

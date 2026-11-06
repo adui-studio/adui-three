@@ -7,7 +7,7 @@ import {
 } from "three";
 import type { AnimationAction, AnimationClip, Object3D } from "three";
 import type { GLTFInstance, GLTFModel } from "./loaders.ts";
-import type { ThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./three-app.ts";
 
 export { followPath } from "./path-animation.ts";
 export type {
@@ -83,7 +83,7 @@ const roots = new WeakSet<Object3D>();
 
 /** One owned mixer for a GLTF model, driven exclusively by the host's update phase. */
 export function attachGLTFAnimations(
-  app: ThreeApp,
+  app: AnyThreeApp,
   model: GLTFModel | GLTFInstance,
 ): GLTFAnimationsHandle {
   const assertOwners = (): void => {

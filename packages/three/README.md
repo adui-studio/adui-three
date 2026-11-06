@@ -2,6 +2,25 @@
 
 以生命周期为中心的 Three.js 场景宿主。当前为本地 MVP，版本 `0.0.0`，尚未发布 npm。采用 ESM，开发依赖固定 Three.js / @types/three `0.187.0`，peer 范围为 `>=0.187.0 <0.188.0`。
 
+## 正交相机
+
+```ts
+import { OrthographicThreeApp } from "@adui/three";
+
+const app = new OrthographicThreeApp(container, {
+  camera: { frustumHeight: 10, near: 0, far: 1000, position: [0, 0, 10] },
+});
+app.camera.zoom = 2;
+app.camera.updateProjectionMatrix();
+app.render();
+```
+
+OrthographicThreeApp.camera 精确为 OrthographicCamera；默认 ThreeApp.camera 继续为 PerspectiveCamera。两者共享单循环、尺寸/DPR、资源、绘制管线和上下文丢失策略，均不会自动启动。frustumHeight 是未缩放的竖向世界单位跨度，必须正且有限；正交 near 可为 0，far 必须有限且大于 near。默认参数见示例，默认看向原点；renderer/maxPixelRatio/maxDelta 与 ThreeApp 相同。
+
+改变容器尺寸时保留当前 top/bottom、水平中心和 zoom，仅按 CSS 宽高比更新左右边界；DPR 不改变取景。直接修改相机后仍需 updateProjectionMatrix，未变尺寸的 resize 不负责更新修改。零尺寸暂停，投影/缓冲失败可在修复参数后 resize/render 重试。原生 view offset 由应用管理。
+
+通用扩展可用 AnyThreeApp 借用两种宿主；controls、模型/纹理加载、动画、拾取/标签、后处理、截图与实例化入口均接受此类型。当前 camera 子入口的取景/过渡 API 仍只支持透视相机，正交自动取景另行实现。演示服务 `/?demo=orthographic` 比较相同方块的深度、缩放、拾取、标签与生命周期。
+
 ## 最小示例
 
 在当前工作区通过 `workspace:*` 引用；容器需有明确尺寸。下面使用公开入口，应用自行组合原生 Three.js 对象。

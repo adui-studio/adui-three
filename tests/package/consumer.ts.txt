@@ -2,7 +2,8 @@ import { loadTexture, loadKTX2 } from "@adui/three/textures";
 import { captureFrame } from "@adui/three/capture";
 import { createInstancedMesh } from "@adui/three/geometry";
 import { loadHDR, attachEnvironment } from "@adui/three/environment";
-import { ResourceScope, ThreeApp } from "@adui/three";
+import { ResourceScope, ThreeApp, OrthographicThreeApp } from "@adui/three";
+import type { AnyThreeApp } from "@adui/three";
 import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
 import { cloneGLTF, loadGLTF } from "@adui/three/loaders";
 import type { GLTFInstance, GLTFModel, LoadGLTFOptions } from "@adui/three/loaders";
@@ -17,6 +18,23 @@ import { BoxGeometry, Color, LineCurve3, Matrix4, Mesh, MeshBasicMaterial, Vecto
 // Compile only: all library values come from the installed archive, without workspace paths.
 export async function consume(container: HTMLElement, overlay: HTMLElement, model: GLTFModel) {
   const app = new ThreeApp(container, { maxPixelRatio: 2 });
+  const orthographic = new OrthographicThreeApp(container, { camera: { frustumHeight: 8, near: 0 } });
+  const span: number = orthographic.camera.top - orthographic.camera.bottom;
+  const aspect: number = app.camera.aspect;
+  const shared: AnyThreeApp = orthographic;
+  attachOrbitControls(shared);
+  attachDOMLabels(orthographic, overlay);
+  attachPicking(orthographic, { objects: () => [] });
+  attachBloom(orthographic);
+  loadGLTF(orthographic, "/model.glb");
+  loadTexture(orthographic, "/image.png");
+  captureFrame(orthographic);
+  attachGLTFAnimations(orthographic, model);
+  cloneGLTF(orthographic, model);
+  void [span, aspect];
+  // @ts-expect-error Framing helpers currently require a perspective host.
+  fitObject(orthographic, model.scene);
+  orthographic.dispose();
   const image: Blob = await captureFrame(app, { type: "image/webp", quality: 0.8, signal: app.signal });
   void image;
   const contextLost: boolean = app.contextLost;

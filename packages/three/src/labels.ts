@@ -1,6 +1,6 @@
 import { Vector3 } from "three";
 import type { Object3D } from "three";
-import type { ThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./three-app.ts";
 
 export interface DOMLabelOptions {
   /** Borrowed object in app.scene; a detached or hidden ancestor hides the label. */
@@ -49,7 +49,7 @@ function cleanup(actions: readonly (() => void)[], message: string): void {
 }
 
 /** Screen-space HTML labels in an application-provided positioned overlay (no border/padding). */
-export function attachDOMLabels(app: ThreeApp, container: HTMLElement): DOMLabelsHandle {
+export function attachDOMLabels(app: AnyThreeApp, container: HTMLElement): DOMLabelsHandle {
   const assertHost = (): void => {
     if (app.state === "disposed" || app.resources.disposed)
       throw new Error("ThreeApp has been disposed");

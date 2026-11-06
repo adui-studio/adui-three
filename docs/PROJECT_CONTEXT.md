@@ -2,7 +2,7 @@
 
 ## 目标与当前阶段
 
-更新日期：2026-11-06。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。主包与双实例原生 TS 演示已实现；最近交付有限/往返循环 8c7d544、对象曲线路径运动 bc5c266。本轮增加动画采样完成后的公共 loop/finished 订阅与片段接续演示。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
+更新日期：2026-11-06。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。最近交付路径运动 bc5c266、动画通知 f2ccb48；本轮新增 OrthographicThreeApp，与默认透视宿主共用生命周期，新增正交/透视对比演示。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
 
 用户授权持续封装、分步提交推送；提交描述和正文使用中文，格式 type(scope): emoji 中文描述。不得改写已有提交或擅自发布 npm。用户明确“不做任何 CI”：不新增/启用工作流，不调整组织或仓库 Actions 设置。历史工作流已由 e6ea2c2 移除，保留当时的本地输入回归修复。
 
@@ -10,7 +10,7 @@
 
 - 单主包 packages/three 与演示 apps/website，保留 Vite+/TypeScript/pnpm；初始化 utils、计数器及品牌模板已清理。库不反向依赖应用、Store、私有资产或固定 DOM。
 - ESM/ES2022 与声明；Three.js 和 @types/three 开发基准 0.187.0，peer >=0.187.0 <0.188.0。Three.js/addons 外部化，development 指向随包 src。
-- 核心 ThreeApp、ResourceScope：单 RAF、启停/隐藏/零尺寸、DPR、显式所有权、异步 signal、独占借用 RenderPipeline 与单次 render。原生缓冲/投影和管线尺寸失败分别保留待重试状态；尺寸处理中拒绝递归绘制/resize/重挂接。
+- 核心 ThreeApp、OrthographicThreeApp、ResourceScope：透视/正交具体相机类型，共用内部 SceneHost 的单 RAF、启停/隐藏/零尺寸、DPR、显式所有权、异步 signal、独占借用 RenderPipeline 与单次 render。正交保留竖向跨度、中心和 zoom；通用模块接受 AnyThreeApp。原生缓冲/投影和管线尺寸失败分别保留待重试状态；尺寸处理中拒绝递归绘制/resize/重挂接。
 - controls：OrbitControls；TransformControls 负责 helper/初始 GPU 快照，借用模型与轨道控制，拖拽/取消按值恢复配置，无第二循环。
 - loaders：GLTF/GLB 逻辑取消、迟到清理、模型资源快照/扩展 scope，显式 Draco/Meshopt/KTX2。cloneGLTF 复制默认树与独立动画数据，共享资产租约到最后一个使用者结束。任务自有解码器，运输可能继续，运行资源本地托管。
 - interaction / labels：原生 Raycaster 点击/悬停、动态目标及事件清理，默认按需刷新蒙皮边界/骨骼矩阵并防 pick 重入；DOM 标签在完成阶段投影，明确元素和模型借用边界。
@@ -28,7 +28,7 @@
 
 ## 验证状态
 
-当前 ready 通过：13 项文档检查器测试、355 项主包单测、格式/Lint/类型及全部构建。本轮真实浏览器 76/76 通过，零重试，新增采样后完成接续与循环通知、模型替换/宿主重建验证。十二入口 tarball 独立安装、无 DOM/禁止网络导入、development 解析和四次严格声明/消费编译通过；事件 payload 通过类型收窄消费检查，未新增运行时入口或依赖。首轮克隆用例混入自动滚动差异，改为相对画布坐标后完整通过，详细证据见 [Harness](HARNESS.md)。
+当前 ready 通过：13 项文档检查器测试、363 项主包单测、格式/Lint/类型及全部构建。本轮真实浏览器 79/79 通过，零重试，新增正交/透视真实像素比较、原生缩放、拾取/标签及三轮 GPU 清理。十二入口 tarball 独立安装、无 DOM/禁止网络导入、development 解析和四次严格声明/消费编译通过；具体相机类型、公共宿主类型与透视取景限制均验证。核心多导出 OrthographicThreeApp，未新增运行时子入口或依赖，详细证据见 [Harness](HARNESS.md)。
 
 浏览器环境是 Chromium/SwiftShader，单 worker、零自动重试；完整设备/格式/浏览器矩阵、长期 GPU 泄漏和性能基准尚未完成。保留 TypeScript 7 API 实验性和演示大 chunk 构建提示，不将本地通过称为远端 CI 通过。失败诊断、历史统计和阶段未提交记录统一保留在 Harness，不在接手入口复制过期状态。
 
@@ -52,9 +52,9 @@
 
 WebGL 上下文丢失会将 contextLost 设 true 并完整结束该宿主，业务通过 abort 更新状态并显式重建；不自动继续旧 GPU 图或替换 renderer。真实原型发现旧代 GPU 清理的 1282，证据与取舍见 ADR-0019。另一宿主的模型实例仍由其租约持有共享资产。
 
-先读 [AGENTS](../AGENTS.md)、需求、SDD、[架构](ARCHITECTURE.md)、[代码地图](CODEBASE_MAP.md) 和 [Harness](HARNESS.md)。修改范围对应需求编号；API/所有权边界见 ADR-0002 至 ADR-0025，ADR-0001 保留历史 Proposed 提案。Skills 按 [索引](SKILLS.md) 加载，不自动安装或扩大远程授权。
+先读 [AGENTS](../AGENTS.md)、需求、SDD、[架构](ARCHITECTURE.md)、[代码地图](CODEBASE_MAP.md) 和 [Harness](HARNESS.md)。修改范围对应需求编号；API/所有权边界见 ADR-0002 至 ADR-0026，ADR-0001 保留历史 Proposed 提案。Skills 按 [索引](SKILLS.md) 加载，不自动安装或扩大远程授权。
 
-下一步按真实需求选择更高层动画状态/重定向、正交相机或其他能力；这些仍未实现，不预建空包。共享解码器服务、浏览器范围、更多 Three.js minor、WebGPU/WebXR、框架适配和 npm 发布权限仍待专门评估。后续代码检查 ready，影响宿主/渲染/演示执行 test:browser，导出/打包变化执行 test:package，文档执行 docs:test/docs:check。
+下一步按真实需求选择正交自动取景/过渡、更高层动画状态/重定向或其他能力；这些仍未实现，不预建空包。当前 camera 子入口仍要求透视相机，不能把公共宿主类型扩展当作所有模块正交 GPU 验收。共享解码器服务、浏览器范围、更多 Three.js minor、WebGPU/WebXR、框架适配和 npm 发布权限仍待专门评估。后续代码检查 ready，影响宿主/渲染/演示执行 test:browser，导出/打包变化执行 test:package，文档执行 docs:test/docs:check。
 
 ## 维护
 

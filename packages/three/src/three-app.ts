@@ -1,23 +1,39 @@
-import { PerspectiveCamera, Scene, WebGLRenderer } from "three";
-import type { WebGLRendererParameters } from "three";
+import { OrthographicCamera, PerspectiveCamera, Scene, WebGLRenderer } from "three";
+import type { Camera, WebGLRendererParameters } from "three";
 import { FrameLoop } from "./frame-loop.ts";
 import type { FrameInfo } from "./frame-loop.ts";
 import { ResourceScope } from "./resources.ts";
 
 export type ThreeAppState = "ready" | "running" | "stopped" | "disposed";
 
-export interface ThreeAppOptions {
+interface HostOptions {
+  renderer?: Omit<WebGLRendererParameters, "canvas" | "context">;
+  /** Positive, finite DPR ceiling. Default 2. */
+  maxPixelRatio?: number;
+  /** Positive, finite per-frame delta ceiling in seconds. Default 0.1. */
+  maxDelta?: number;
+}
+
+export interface ThreeAppOptions extends HostOptions {
   camera?: {
     fov?: number;
     near?: number;
     far?: number;
     position?: readonly [number, number, number];
   };
-  renderer?: Omit<WebGLRendererParameters, "canvas" | "context">;
-  /** Positive, finite DPR ceiling. Default 2. */
-  maxPixelRatio?: number;
-  /** Positive, finite per-frame delta ceiling in seconds. Default 0.1. */
-  maxDelta?: number;
+}
+
+export interface OrthographicThreeAppOptions extends HostOptions {
+  camera?: {
+    /** Unzoomed vertical span in scene units. Default 10. */
+    frustumHeight?: number;
+    /** Nonnegative and finite. Default 0. */
+    near?: number;
+    /** Finite and greater than near. Default 1000. */
+    far?: number;
+    /** Default [0, 0, 10], looking at the origin. */
+    position?: readonly [number, number, number];
+  };
 }
 
 export interface ViewportSize {
@@ -40,9 +56,9 @@ function positive(value: number, name: string): number {
 }
 
 /** One browser container, one renderer, one owned frame loop. Construction does not start it. */
-export class ThreeApp {
+abstract class SceneHost<C extends Camera> {
   readonly scene: Scene;
-  readonly camera: PerspectiveCamera;
+  readonly camera: C;
   readonly renderer: WebGLRenderer;
   readonly resources = new ResourceScope();
   #container: HTMLElement;
@@ -65,28 +81,26 @@ export class ThreeApp {
   #inFrame = false;
   #elapsed = 0;
   #contextLost = false;
+  #projectCamera: (aspect: number) => void;
 
-  constructor(container: HTMLElement, options: ThreeAppOptions = {}) {
+  protected constructor(
+    container: HTMLElement,
+    options: HostOptions,
+    createCamera: () => C,
+    projectCamera: (camera: C, aspect: number) => void,
+  ) {
     const view = container?.ownerDocument?.defaultView;
     if (!view || container.nodeType !== 1)
       throw new TypeError("A browser HTMLElement container is required");
     if (typeof view.ResizeObserver !== "function") throw new Error("ResizeObserver is required");
     const maxDelta = positive(options.maxDelta ?? 0.1, "maxDelta");
     this.#maxPixelRatio = positive(options.maxPixelRatio ?? 2, "maxPixelRatio");
-    const { fov = 50, near = 0.1, far = 1000, position = [3, 2, 5] } = options.camera ?? {};
-    positive(fov, "camera.fov");
-    positive(near, "camera.near");
-    positive(far, "camera.far");
-    if (fov >= 180 || far <= near || position.length !== 3 || !position.every(Number.isFinite)) {
-      throw new RangeError("Invalid camera frustum or position");
-    }
     this.#container = container;
     this.#document = container.ownerDocument;
     this.#view = view;
     this.scene = new Scene();
-    this.camera = new PerspectiveCamera(fov, 1, near, far);
-    this.camera.position.set(...position);
-    this.camera.lookAt(0, 0, 0);
+    this.camera = createCamera();
+    this.#projectCamera = (aspect) => projectCamera(this.camera, aspect);
     const canvas = this.#document.createElement("canvas");
     canvas.style.cssText = "display:block;width:100%;height:100%";
     this.renderer = new WebGLRenderer({ antialias: true, ...options.renderer, canvas });
@@ -254,8 +268,7 @@ export class ThreeApp {
         if (this.#pipeline) this.#pipeline.sizeDirty = true;
       }
       if (this.#drawable && this.#bufferDirty) {
-        this.camera.aspect = width / height;
-        this.camera.updateProjectionMatrix();
+        this.#projectCamera(width / height);
         this.renderer.setDrawingBufferSize(width, height, pixelRatio);
         this.#bufferDirty = false;
       }
@@ -376,4 +389,89 @@ export class ThreeApp {
     this.#media = this.#view.matchMedia(`(resolution: ${this.#view.devicePixelRatio}dppx)`);
     this.#media.addEventListener("change", this.#handleDpr);
   }
+}
+
+/** Common host contract accepted by camera-independent optional modules. */
+export type AnyThreeApp = SceneHost<Camera>;
+
+/** Perspective host. Construction is idle; the camera remains precisely typed. */
+export class ThreeApp extends SceneHost<PerspectiveCamera> {
+  constructor(container: HTMLElement, options: ThreeAppOptions = {}) {
+    super(
+      container,
+      options,
+      () => {
+        const { fov = 50, near = 0.1, far = 1000, position = [3, 2, 5] } = options.camera ?? {};
+        positive(fov, "camera.fov");
+        positive(near, "camera.near");
+        positive(far, "camera.far");
+        if (fov >= 180 || far <= near || position.length !== 3 || !position.every(Number.isFinite))
+          throw new RangeError("Invalid camera frustum or position");
+        const camera = new PerspectiveCamera(fov, 1, near, far);
+        camera.position.set(...position);
+        camera.lookAt(0, 0, 0);
+        return camera;
+      },
+      (camera, aspect) => {
+        camera.aspect = aspect;
+        camera.updateProjectionMatrix();
+      },
+    );
+  }
+}
+
+/** Orthographic host. Resize preserves vertical span, frustum center and native zoom. */
+export class OrthographicThreeApp extends SceneHost<OrthographicCamera> {
+  constructor(container: HTMLElement, options: OrthographicThreeAppOptions = {}) {
+    super(
+      container,
+      options,
+      () => {
+        const {
+          frustumHeight = 10,
+          near = 0,
+          far = 1000,
+          position = [0, 0, 10],
+        } = options.camera ?? {};
+        positive(frustumHeight, "camera.frustumHeight");
+        if (
+          !Number.isFinite(near) ||
+          near < 0 ||
+          !Number.isFinite(far) ||
+          far <= near ||
+          position.length !== 3 ||
+          !position.every(Number.isFinite)
+        )
+          throw new RangeError("Invalid orthographic frustum or position");
+        const half = frustumHeight / 2;
+        const camera = new OrthographicCamera(-half, half, half, -half, near, far);
+        validOrthographicProjection(camera);
+        camera.position.set(...position);
+        camera.lookAt(0, 0, 0);
+        return camera;
+      },
+      (camera, aspect) => {
+        const height = positive(camera.top - camera.bottom, "camera vertical span");
+        const center = camera.left / 2 + camera.right / 2;
+        const halfWidth = (height / 2) * aspect;
+        const left = center - halfWidth,
+          right = center + halfWidth;
+        if (!Number.isFinite(left) || !Number.isFinite(right) || right <= left)
+          throw new RangeError("Invalid orthographic horizontal span");
+        camera.left = left;
+        camera.right = right;
+        camera.updateProjectionMatrix();
+        validOrthographicProjection(camera);
+      },
+    );
+  }
+}
+
+function validOrthographicProjection(camera: OrthographicCamera): void {
+  if (
+    !camera.projectionMatrix.elements.every(Number.isFinite) ||
+    !camera.projectionMatrixInverse.elements.every(Number.isFinite) ||
+    camera.projectionMatrixInverse.elements.every((value) => value === 0)
+  )
+    throw new RangeError("Orthographic projection must be finite and invertible");
 }

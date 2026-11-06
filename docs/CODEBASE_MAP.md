@@ -99,6 +99,8 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 [动画通知单测](../packages/three/tests/animation-events.test.ts) 对比原生事件与采样后姿态，覆盖订阅和命令排队；[通知浏览器回归](../tests/browser/animation-events.spec.ts) 验证实际片段串接及模型/宿主清理。实现仍位于 animation.ts，无新增运行时入口。
 
+正交/透视宿主共用 [three-app.ts](../packages/three/src/three-app.ts) 内部 SceneHost；[宿主单测](../packages/three/tests/three-app.test.ts) 包含投影/尺寸/生命周期验证。[orthographic.ts](../apps/website/src/orthographic.ts) 经 bootstrap 的 `?demo=orthographic` 比较两种相机，[浏览器回归](../tests/browser/orthographic.spec.ts) 验证实际像素、原生缩放/拾取/标签及重复 GPU 清理。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

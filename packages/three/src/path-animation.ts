@@ -1,6 +1,6 @@
 import { Quaternion, Vector3 } from "three";
 import type { Curve, Object3D } from "three";
-import type { ThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./three-app.ts";
 import type { ResourceScope } from "./resources.ts";
 
 export type PathMotionState = "running" | "paused" | "completed" | "cancelled" | "failed";
@@ -41,7 +41,7 @@ const writing = new WeakSet<Object3D>();
 
 /** Own a transform-writing subscription, borrow a target/curve. Never start or render the host. */
 export function followPath(
-  app: ThreeApp,
+  app: AnyThreeApp,
   object: Object3D,
   options: FollowPathOptions,
 ): PathMotionHandle {

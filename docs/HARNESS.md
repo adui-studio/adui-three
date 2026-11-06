@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 355 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 363 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 76 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 79 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 正交宿主阶段：共用内部 SceneHost 保留默认透视精确类型，新增 OrthographicThreeApp/AnyThreeApp。八项宿主单测覆盖配置分配前校验、非对称视锥/zoom、零尺寸/双实例、投影与缓冲失败重试、上下文丢失和构造回滚，累计 363 项。ready 通过 13 项文档测试、148 文件格式、89 源文件静态检查与全部构建，十二入口 tarball 和四次严格消费编译通过；具体相机属性及正交不能传入透视取景 API 均编译验证。
+
+浏览器专项 3/3（约 6.3 秒），完整 79/79（约 3.6 分钟），零重试；实际像素验证深度变化保持正交尺寸、透视缩小，原生滚轮/拾取/标签、暂停 resize/零尺寸、移动端和三轮 GPU buffer 回零。投影演示截图已目视检查。首次静态检查纠正演示中错误假设的拾取参数，沿用现有 objects/on API，未扩大库接口或放宽检查。所有通用可选模块通过类型消费，未声称全部正交 GPU 路径均验收；正交自动取景/过渡尚未实现。
 
 2026-11-06 动画通知阶段：新增十二项原生 Mixer 单测，验证采样/末姿态、loopDelta、订阅增删/重复、排队命令、渐变延期、销毁和异常，累计 355 项通过。ready 通过 13 项文档测试、145 文件格式、87 源文件静态检查与全部构建，十二入口 tarball 及四次严格声明/消费编译通过。新增浏览器专项 2/2，验证真实 GLB 完成后接续、独立循环通知和替换/重建计数。
 

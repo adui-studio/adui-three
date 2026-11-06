@@ -6,7 +6,7 @@ import {
   SRGBColorSpace,
   Texture,
 } from "three";
-import type { ThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./three-app.ts";
 import { ResourceScope } from "./resources.ts";
 
 export { loadKTX2 } from "./ktx2-texture.ts";
@@ -41,7 +41,7 @@ function aborted(): DOMException {
   return new DOMException("Texture loading was cancelled", "AbortError");
 }
 
-function asset(app: ThreeApp, texture: Texture<ImageBitmap>): TextureAsset {
+function asset(app: AnyThreeApp, texture: Texture<ImageBitmap>): TextureAsset {
   const resources = new ResourceScope();
   const bitmap = texture.image;
   let disposed = false;
@@ -75,7 +75,7 @@ function asset(app: ThreeApp, texture: Texture<ImageBitmap>): TextureAsset {
 
 /** Independently decode an owned image; no material mutation, automatic render or shared bitmap cache. */
 export function loadTexture(
-  app: ThreeApp,
+  app: AnyThreeApp,
   url: string,
   options: LoadTextureOptions = {},
 ): Promise<TextureAsset> {

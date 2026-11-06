@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import type { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
-import type { ThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./three-app.ts";
 import { collectGLTFResources } from "./gltf-resources.ts";
 import { gltfAssets, SharedGLTFAssets } from "./gltf-assets.ts";
 import { ResourceScope } from "./resources.ts";
@@ -65,7 +65,7 @@ function aborted(): DOMException {
   return new DOMException("Model loading was cancelled", "AbortError");
 }
 
-function modelHandle(app: ThreeApp, gltf: GLTF, closeImages: boolean): GLTFModel {
+function modelHandle(app: AnyThreeApp, gltf: GLTF, closeImages: boolean): GLTFModel {
   const snapshot = collectGLTFResources(gltf, closeImages);
   const assets = new SharedGLTFAssets(snapshot.assets);
   const lease = assets.acquire();
@@ -116,7 +116,7 @@ function modelHandle(app: ThreeApp, gltf: GLTF, closeImages: boolean): GLTFModel
 
 /** Logical cancellation is immediate; transport/decode may finish later and is cleaned up. */
 export function loadGLTF(
-  app: ThreeApp,
+  app: AnyThreeApp,
   url: string,
   options: LoadGLTFOptions = {},
 ): Promise<GLTFModel> {

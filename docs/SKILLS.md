@@ -115,6 +115,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 动画通知阶段继续复用 threejs-animation，核验 r187 Mixer 在 action 更新后才应用 property bindings 的顺序。公共通知放在采样与端点/渐变收尾之后，保持已有控制队列，不将原生 finished 直接转发为“最终姿态已完成”。
 
+正交宿主阶段复用 threejs-fundamentals，核验 r187 OrthographicCamera 的 near=0、原生 zoom/view offset 和 OrbitControls。仅共用既有生命周期，按 CSS 比例保留竖向视锥，不照搬技能中的 r186 版本或第二渲染循环；真实像素和声明消费独立验收。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

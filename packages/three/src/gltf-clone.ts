@@ -2,7 +2,7 @@ import { InstancedMesh, PropertyBinding, TextureSource } from "three";
 import type { AnimationClip, Group, Object3D, Skeleton, SkinnedMesh } from "three";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import type { GLTFModel } from "./loaders.ts";
-import type { ThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./three-app.ts";
 import { ResourceScope } from "./resources.ts";
 import { gltfAssets } from "./gltf-assets.ts";
 
@@ -26,7 +26,7 @@ function skinned(node: Object3D): node is SkinnedMesh {
 
 /** Clone the current default-scene hierarchy. Geometry/material/texture mutations remain shared. */
 export function cloneGLTF(
-  app: ThreeApp,
+  app: AnyThreeApp,
   source: GLTFModel | GLTFInstance,
   options: CloneGLTFOptions = {},
 ): GLTFInstance {

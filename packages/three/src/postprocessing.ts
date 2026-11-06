@@ -6,7 +6,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { OutlinePass } from "three/addons/postprocessing/OutlinePass.js";
 import type { Pass } from "three/addons/postprocessing/Pass.js";
-import type { ThreeApp, ViewportSize } from "./three-app.ts";
+import type { AnyThreeApp, ViewportSize } from "./three-app.ts";
 import { ResourceScope } from "./resources.ts";
 
 export interface BloomOptions {
@@ -97,7 +97,7 @@ function outlineOptions(options: OutlineOptions): OutlineConfiguration {
 }
 
 /** Owned RenderPass → UnrealBloomPass → OutputPass pipeline; no extra scheduler or renderer replacement. */
-export function attachBloom(app: ThreeApp, options: BloomOptions = {}): BloomHandle {
+export function attachBloom(app: AnyThreeApp, options: BloomOptions = {}): BloomHandle {
   const effects = attachPostprocessing(app, { bloom: options });
   return {
     pass: effects.bloom!,
@@ -110,7 +110,7 @@ export function attachBloom(app: ThreeApp, options: BloomOptions = {}): BloomHan
 
 /** One owned linear-space effect chain. At least one effect must be requested. */
 export function attachPostprocessing(
-  app: ThreeApp,
+  app: AnyThreeApp,
   options: PostprocessingOptions,
 ): PostprocessingHandle {
   if (app.state === "disposed" || app.resources.disposed)

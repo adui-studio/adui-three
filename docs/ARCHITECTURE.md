@@ -63,6 +63,8 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 ## 关键取舍
 
+ThreeApp 与 OrthographicThreeApp 共用内部 SceneHost 生命周期，公开保留各自具体相机类型，通用可选模块通过 AnyThreeApp 借用；核心不导出内部基类，不接受外部注入或动态换相机。正交尺寸策略及透视取景边界见 [ADR-0026](adr/0026-orthographic-host.md)。
+
 capture 是不含运行时 Three.js/addon 依赖的可选入口，复用宿主单次绘制、借用 canvas 并拥有独立 Canvas 2D 编码面；完成返回 Blob，预览 URL/下载由消费者管理。默认核心不反向导入，见 [ADR-0021](adr/0021-frame-capture.md)。
 
 拾取入口在 CPU 查询时可刷新蒙皮边界和骨骼矩阵，保持原生 Raycaster、显式借用目标及无额外调度；应用可关闭刷新以使用自有边界策略，见 [ADR-0020](adr/0020-skinned-picking.md)。

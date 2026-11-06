@@ -1,7 +1,7 @@
 import { EquirectangularReflectionMapping, FileLoader, LoadingManager } from "three";
 import type { DataTexture } from "three";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
-import type { ThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./three-app.ts";
 import { ResourceScope } from "./resources.ts";
 
 export interface EnvironmentProgress {
@@ -38,14 +38,14 @@ export interface EnvironmentBinding {
   dispose(this: void): void;
 }
 
-const owners = new WeakMap<HDREnvironment, ThreeApp>();
-const bindings = new WeakMap<ThreeApp, EnvironmentBinding>();
+const owners = new WeakMap<HDREnvironment, AnyThreeApp>();
+const bindings = new WeakMap<AnyThreeApp, EnvironmentBinding>();
 
 function aborted(): DOMException {
   return new DOMException("HDR loading was cancelled", "AbortError");
 }
 
-function asset(app: ThreeApp, texture: DataTexture): HDREnvironment {
+function asset(app: AnyThreeApp, texture: DataTexture): HDREnvironment {
   const resources = new ResourceScope();
   let disposed = false;
   const environment: HDREnvironment = {
@@ -78,7 +78,7 @@ function asset(app: ThreeApp, texture: DataTexture): HDREnvironment {
 
 /** Load without mutating the scene. Cancellation is logical and skips late HDR parsing. */
 export function loadHDR(
-  app: ThreeApp,
+  app: AnyThreeApp,
   url: string,
   options: LoadHDROptions = {},
 ): Promise<HDREnvironment> {
@@ -168,7 +168,7 @@ export function loadHDR(
 
 /** Borrow an owned HDR asset for this app. One explicit binding at a time; no draw or scheduler. */
 export function attachEnvironment(
-  app: ThreeApp,
+  app: AnyThreeApp,
   environment: HDREnvironment,
   options: EnvironmentOptions = {},
 ): EnvironmentBinding {

@@ -3,7 +3,7 @@ import type { CompressedTexture, Texture } from "three";
 import { TaskKTX2Loader } from "./ktx2-task.ts";
 import type { TranscoderPath } from "./ktx2-task.ts";
 import { ResourceScope } from "./resources.ts";
-import type { ThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./three-app.ts";
 import type { TextureProgress } from "./textures.ts";
 
 export interface LoadKTX2Options {
@@ -41,7 +41,7 @@ function is2DBasis(texture: Texture): texture is CompressedTexture {
   );
 }
 
-function owned(app: ThreeApp, texture: CompressedTexture): KTX2TextureAsset {
+function owned(app: AnyThreeApp, texture: CompressedTexture): KTX2TextureAsset {
   const resources = new ResourceScope();
   let disposed = false;
   const handle: KTX2TextureAsset = {
@@ -73,7 +73,7 @@ function owned(app: ThreeApp, texture: CompressedTexture): KTX2TextureAsset {
 
 /** Load an independent 2D Basis KTX2 map. Borrow the renderer only for format detection. */
 export function loadKTX2(
-  app: ThreeApp,
+  app: AnyThreeApp,
   url: string,
   options: LoadKTX2Options,
 ): Promise<KTX2TextureAsset> {

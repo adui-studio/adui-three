@@ -2,7 +2,7 @@
 
 ## 当前实现
 
-核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing、environment、textures、capture、geometry 分别提供控制器/变换、模型加载、拾取、DOM 标签、动画/定位、取景、泛光/描边、HDR 环境、独立图片纹理、画布截图和实例化网格。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
+核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`OrthographicThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing、environment、textures、capture、geometry 分别提供控制器/变换、模型加载、拾取、DOM 标签、动画/定位、取景、泛光/描边、HDR 环境、独立图片纹理、画布截图和实例化网格。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
 
 核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画扩展见 [ADR-0004](adr/0004-animation-lifecycle.md)。完整选项、默认值和示例以 [主包 README](../packages/three/README.md) 与导出类型为准；已通过可选泛光模块接入自有 composer；尚无寻路、框架适配或 WebGPU 实现。
 
@@ -26,6 +26,12 @@ render():void 显式绘制一帧，沿用当前管线或原生 renderer，并派
 | `attachOrbitControls(app)`                              | controls 独立入口，返回原生 controls 与 dispose，随宿主统一更新和释放         |
 
 默认 fov=50、near=0.1、far=1000、position=[3,2,5] 并看向原点，maxPixelRatio=2、maxDelta=0.1 秒；renderer 默认 antialias=true，配置不接受外部 canvas/context。范围数值必须正且有限，fov<180、far>near，位置为三个有限数值。
+
+## 正交宿主契约
+
+OrthographicThreeApp 采用独立 options.camera（frustumHeight=10、near=0、far=1000、position=[0,0,10]），原生 camera 精确类型为 OrthographicCamera，ThreeApp 仍为 PerspectiveCamera。内部泛型 SceneHost 复用所有生命周期/绘制/资源/监听；AnyThreeApp 为可选模块公共借用类型，无额外运行时基类导出或新循环。正交配置及可表示投影在 GPU 分配前验证。
+
+非零尺寸变化保留当前 top/bottom、水平中心和 zoom，按 CSS 比例写 left/right 并更新投影；DPR 仅改缓冲，零尺寸保留有效视锥，失败保留待重试尺寸。原生字段修改仍由消费者 updateProjectionMatrix，view offset 借用。相机无关的所有可选模块接受 AnyThreeApp；camera 子入口取景/过渡本阶段仍要求透视宿主。具体约束见 [ADR-0026](adr/0026-orthographic-host.md)。
 
 ## 模块与关键流程
 
@@ -287,6 +293,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-035  | 模型动画契约                      | animation.ts、循环演示                           | 原生终点/循环/清理单测、骨骼像素与有限循环浏览器、包消费   |
 | FR-036  | 对象路径运动契约                  | path-animation.ts、独立路径演示                  | 曲线/变换/清理单测、像素/拾取/GPU 回归、包消费             |
 | FR-037  | 模型动画契约                      | animation.ts、通知演示                           | 采样/订阅/队列单测、真实片段串接与清理浏览器、包消费       |
+| FR-038  | 正交宿主契约                      | three-app.ts、orthographic.ts                    | 宿主数学/清理单测、投影/缩放/交互/GPU 浏览器、包消费       |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 

@@ -7,7 +7,7 @@
 
 ## 功能
 
-- **场景宿主**：`ThreeApp` 创建独立的 scene、PerspectiveCamera、WebGLRenderer 和 canvas。
+- **场景宿主**：`ThreeApp` / `OrthographicThreeApp` 创建透视/正交相机与独立 scene、WebGLRenderer、canvas，演示比较见 `/?demo=orthographic`。
 - **统一帧循环**：显式 start/stop、按秒更新回调，页面隐藏或容器零尺寸时自动暂停。
 - **尺寸适配**：监听容器变化和 DPR，限制像素比，避免每帧重复调整绘制缓冲。
 - **资源归属**：显式登记自有资源，幂等销毁，保护借用资源。
@@ -188,7 +188,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 355 项主包单元测试和 76 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
+当前有 363 项主包单元测试和 79 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
 
 ## 项目结构
 

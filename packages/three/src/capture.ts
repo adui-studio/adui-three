@@ -1,4 +1,4 @@
-import type { ThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./three-app.ts";
 
 export interface CaptureFrameOptions {
   /** Browser encoding; unsupported formats may fall back to PNG. Inspect Blob.type. Default PNG. */
@@ -14,7 +14,7 @@ function aborted(): DOMException {
 
 /** Draw once and copy the canvas synchronously, then encode an independent image. No DOM overlays. */
 export async function captureFrame(
-  app: ThreeApp,
+  app: AnyThreeApp,
   options: CaptureFrameOptions = {},
 ): Promise<Blob> {
   const { type = "image/png", quality, signal } = options;

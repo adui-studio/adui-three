@@ -1,6 +1,6 @@
 import { Raycaster, Vector2 } from "three";
 import type { Intersection, Object3D, SkinnedMesh } from "three";
-import type { ThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./three-app.ts";
 
 export interface PickingOptions {
   /** Explicit borrowed targets, read again for each pick (e.g. after replacing a model). */
@@ -52,7 +52,7 @@ function visible(object: Object3D): boolean {
 }
 
 /** Canvas-local CPU picking. Does not capture pointers, own targets or start a frame loop. */
-export function attachPicking(app: ThreeApp, options: PickingOptions): PickingHandle {
+export function attachPicking(app: AnyThreeApp, options: PickingOptions): PickingHandle {
   if (app.state === "disposed") throw new Error("ThreeApp has been disposed");
   if (app.resources.disposed) throw new Error("ThreeApp resource scope has been disposed");
   const { objects, recursive = true, updateSkinnedBounds = true, dragThreshold = 4 } = options;

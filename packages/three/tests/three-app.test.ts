@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { BoxGeometry, Mesh, MeshBasicMaterial } from "three";
-import { ThreeApp } from "../src/index.ts";
+import { OrthographicThreeApp, ThreeApp } from "../src/index.ts";
+import type { AnyThreeApp, OrthographicThreeAppOptions } from "../src/index.ts";
 import { attachOrbitControls } from "../src/controls.ts";
 
 vi.mock("three/addons/controls/OrbitControls.js", () => ({
@@ -27,7 +28,7 @@ vi.mock("three", async (importOriginal) => {
   };
 });
 
-const apps: ThreeApp[] = [];
+const apps: AnyThreeApp[] = [];
 
 test("context loss disposes the host, aborts pending work and releases assets without requesting another loss", () => {
   const env = fixture();
@@ -208,6 +209,11 @@ function fixture(width = 640, height = 360) {
   };
   return {
     create,
+    createOrthographic(options: OrthographicThreeAppOptions = {}): OrthographicThreeApp {
+      const app = new OrthographicThreeApp(container as unknown as HTMLElement, options);
+      apps.push(app);
+      return app;
+    },
     frames,
     observer,
     canvas,
@@ -222,6 +228,163 @@ function fixture(width = 640, height = 360) {
     },
   };
 }
+
+test("orthographic construction is idle with a zero near plane and aspect-correct unzoomed span", () => {
+  const env = fixture(800, 400),
+    app = env.createOrthographic();
+  expect(app.camera.isOrthographicCamera).toBe(true);
+  expect(app.camera.near).toBe(0);
+  expect(app.camera.position.toArray()).toEqual([0, 0, 10]);
+  expect([app.camera.left, app.camera.right, app.camera.top, app.camera.bottom]).toEqual([
+    -10, 10, 5, -5,
+  ]);
+  expect(app.state).toBe("ready");
+  expect(env.frames.size).toBe(0);
+  expect(vi.spyOn(app.renderer, "render")).not.toHaveBeenCalled();
+  expect(app.size.pixelRatio).toBe(2);
+});
+
+test("orthographic options are validated before a canvas is allocated", () => {
+  for (const camera of [
+    { frustumHeight: 0 },
+    { frustumHeight: -1 },
+    { frustumHeight: Infinity },
+    { frustumHeight: Number.MIN_VALUE },
+    { near: -1 },
+    { near: NaN },
+    { near: 3, far: 3 },
+    { far: Infinity },
+    { position: [0, NaN, 1] as const },
+  ]) {
+    const env = fixture();
+    const allocate = vi.spyOn(env.document, "createElement");
+    expect(() => env.createOrthographic({ camera })).toThrow(RangeError);
+    expect(allocate).not.toHaveBeenCalled();
+    expect(env.container.appendChild).not.toHaveBeenCalled();
+  }
+  const env = fixture();
+  const app = env.createOrthographic({
+    camera: { frustumHeight: 4, near: 2, far: 80, position: [2, 4, 8] },
+  });
+  expect(app.camera.top - app.camera.bottom).toBe(4);
+  expect(app.camera.position.toArray()).toEqual([2, 4, 8]);
+  expect(app.camera.far).toBe(80);
+});
+
+test("orthographic resize preserves native zoom, user vertical span and the frustum center", () => {
+  const env = fixture(),
+    app = env.createOrthographic();
+  Object.assign(app.camera, { zoom: 2, left: -1, right: 5, top: 8, bottom: 2 });
+  env.container.clientWidth = 300;
+  env.container.clientHeight = 600;
+  app.resize();
+  expect([
+    app.camera.left,
+    app.camera.right,
+    app.camera.top,
+    app.camera.bottom,
+    app.camera.zoom,
+  ]).toEqual([0.5, 3.5, 8, 2, 2]);
+  const point = app.camera.projectionMatrix.clone().multiply(app.camera.projectionMatrixInverse);
+  for (const [index, value] of point.elements.entries())
+    expect(value).toBeCloseTo(index % 5 === 0 ? 1 : 0);
+  env.view.devicePixelRatio = 1;
+  env.media.dispatchEvent(new Event("change"));
+  expect(app.camera.zoom).toBe(2);
+  expect(app.camera.right - app.camera.left).toBe(3);
+});
+
+test("zero-size orthographic hosts suspend and restore only their owned loop", () => {
+  const env = fixture(),
+    app = env.createOrthographic();
+  const other = fixture(),
+    perspective = other.create();
+  app.start();
+  perspective.start();
+  env.container.clientHeight = 0;
+  app.resize();
+  expect(env.frames.size).toBe(0);
+  expect(other.frames.size).toBe(1);
+  expect(app.camera.top).toBe(5);
+  env.container.clientHeight = 800;
+  app.resize();
+  expect(env.frames.size).toBe(1);
+  expect(app.camera.right).toBe(4);
+  env.step(1000);
+  expect(vi.spyOn(app.renderer, "render")).toHaveBeenCalledExactlyOnceWith(app.scene, app.camera);
+  expect(perspective.camera.isPerspectiveCamera).toBe(true);
+});
+
+test("orthographic projection failure stops drawing and retries before the borrowed pipeline", () => {
+  const env = fixture(),
+    app = env.createOrthographic();
+  const pipeline = { resize: vi.fn(), render: vi.fn() };
+  app.setRenderPipeline(pipeline);
+  app.start();
+  app.camera.top = app.camera.bottom;
+  env.container.clientWidth = 320;
+  expect(() => app.resize()).toThrow("vertical span");
+  expect(app.state).toBe("stopped");
+  expect(pipeline.resize).toHaveBeenCalledTimes(1);
+  expect(env.frames.size).toBe(0);
+  app.camera.top = 5;
+  app.render();
+  expect(app.camera.right).toBeCloseTo(40 / 9);
+  expect(pipeline.resize).toHaveBeenCalledTimes(2);
+  expect(pipeline.render).toHaveBeenCalledOnce();
+  expect(env.frames.size).toBe(0);
+});
+
+test("orthographic native buffer failure retains the projection and retries the same dimensions", () => {
+  const env = fixture(),
+    app = env.createOrthographic();
+  const size = vi.spyOn(app.renderer, "setDrawingBufferSize");
+  size.mockImplementationOnce(() => {
+    throw new Error("buffer");
+  });
+  env.container.clientWidth = 180;
+  expect(() => app.resize()).toThrow("buffer");
+  expect(app.camera.right).toBe(2.5);
+  app.render();
+  expect(size).toHaveBeenCalledTimes(3);
+  expect(vi.spyOn(app.renderer, "render")).toHaveBeenCalledOnce();
+});
+
+test("orthographic loss disposes controls, resources and canvas while a perspective peer remains usable", () => {
+  const env = fixture(),
+    app = env.createOrthographic();
+  const other = fixture(),
+    peer = other.create();
+  const controls = attachOrbitControls(app),
+    dispose = vi.spyOn(controls.controls, "dispose");
+  const cleanup = vi.fn();
+  app.resources.track({ dispose: cleanup });
+  app.start();
+  peer.start();
+  env.canvas.dispatchEvent(new Event("webglcontextlost"));
+  expect(app.contextLost).toBe(true);
+  expect(app.state).toBe("disposed");
+  expect(app.signal.aborted).toBe(true);
+  expect(dispose).toHaveBeenCalledOnce();
+  expect(cleanup).toHaveBeenCalledOnce();
+  expect(env.frames.size).toBe(0);
+  expect(other.frames.size).toBe(1);
+  other.step(0);
+  expect(vi.spyOn(peer.renderer, "render")).toHaveBeenCalledOnce();
+  expect(env.canvas.remove).toHaveBeenCalledOnce();
+});
+
+test("orthographic setup rollback releases native and platform resources", () => {
+  const env = fixture(0, 0);
+  const observe = env.observer.observe.mockImplementationOnce(() => {
+    throw new Error("observe");
+  });
+  expect(() => env.createOrthographic()).toThrow("observe");
+  expect(observe).toHaveBeenCalledOnce();
+  expect(env.observer.disconnect).toHaveBeenCalledOnce();
+  expect(env.canvas.remove).toHaveBeenCalledOnce();
+  expect(env.frames.size).toBe(0);
+});
 
 test("constructor is idle; resize caps DPR and skips unchanged drawing buffers", () => {
   const env = fixture();

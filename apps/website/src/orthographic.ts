@@ -1,0 +1,142 @@
+import "./style.css";
+import { OrthographicThreeApp, ThreeApp } from "@adui/three";
+import { attachOrbitControls } from "@adui/three/controls";
+import { attachPicking } from "@adui/three/interaction";
+import { attachDOMLabels } from "@adui/three/labels";
+import { BoxGeometry, Color, Mesh, MeshBasicMaterial } from "three";
+
+const root = document.querySelector<HTMLDivElement>("#app")!;
+root.innerHTML = `<div class="shell">
+  <header class="topbar"><a class="brand" href="/">adui<span>/</span>three</a><span class="version">CAMERA PROJECTION</span><a class="source" href="/">返回主场景 ↗</a></header>
+  <main><section class="intro"><div class="eyebrow"><span class="dot"></span> ORTHOGRAPHIC PLAYGROUND</div><h1>改变距离，<br><span>看见投影差异。</span></h1><p>两个相同的方块，放在不同深度。<br>正交视图保持尺寸，透视视图呈现远近。</p></section>
+  <section class="workspace" aria-label="相机投影比较"></section></main>
+  <footer><span>@adui/three · 本地开发预览，尚未发布</span><span>滚轮缩放 · 右键平移 · 点击方块</span></footer></div>`;
+const teardown: Array<() => void> = [];
+
+for (const orthographic of [true, false]) {
+  const kind = orthographic ? "orthographic" : "perspective";
+  const card = document.createElement("article");
+  card.className = "scene-card";
+  card.dataset.testid = kind;
+  card.innerHTML = `<div class="card-heading"><h2>${orthographic ? "正交相机" : "透视相机"}</h2><span data-testid="projection-state">—</span></div>
+    <div class="stage"><div class="viewport" aria-label="${orthographic ? "正交" : "透视"}画布"><div class="label-overlay"></div></div></div>
+    <div class="metrics"><div><span>ZOOM</span><strong data-testid="projection-zoom">1.000</strong></div><div><span>BLUE Z</span><strong data-testid="projection-depth">-5</strong></div><div><span>WIDTH</span><strong data-testid="projection-width">0</strong></div><div><span>HEIGHT</span><strong data-testid="projection-height">0</strong></div></div>
+    <div class="actions"><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
+    <p class="model-feedback">选中：<span data-testid="projection-picked">—</span> · <span data-testid="projection-error" role="alert"></span></p>`;
+  root.querySelector(".workspace")!.appendChild(card);
+  const viewport = card.querySelector<HTMLDivElement>(".viewport")!;
+  const overlay = viewport.querySelector<HTMLDivElement>(".label-overlay")!;
+  let app: ThreeApp | OrthographicThreeApp | undefined;
+  let blue: Mesh | undefined;
+  let narrow = false,
+    zero = false;
+  const show = (key: string, text: string): void => {
+    card.querySelector<HTMLElement>(`[data-testid="projection-${key}"]`)!.textContent = text;
+  };
+  const refresh = (): void => {
+    show("state", app?.state ?? "—");
+    show("zoom", (app?.camera.zoom ?? 1).toFixed(3));
+    show("depth", String(blue?.position.z ?? -5));
+    show("width", String(app?.size.width ?? 0));
+    show("height", String(app?.size.height ?? 0));
+    for (const button of card.querySelectorAll<HTMLButtonElement>("button"))
+      button.disabled = button.dataset.action !== "rebuild" && (!app || app.state === "disposed");
+  };
+  const rebuild = (): void => {
+    app?.dispose();
+    app = orthographic
+      ? new OrthographicThreeApp(viewport, { camera: { frustumHeight: 6, far: 100 } })
+      : new ThreeApp(viewport, {
+          camera: { fov: 33.4, near: 0.1, far: 100, position: [0, 0, 10] },
+        });
+    app.scene.background = new Color(0x101a20);
+    const geometry = app.resources.track(new BoxGeometry(1.4, 1.4, 1.4));
+    const redMaterial = app.resources.track(new MeshBasicMaterial({ color: 0xff3838 }));
+    const blueMaterial = app.resources.track(new MeshBasicMaterial({ color: 0x3878ff }));
+    const red = new Mesh(geometry, redMaterial);
+    blue = new Mesh(geometry, blueMaterial);
+    red.name = "红色方块";
+    blue.name = "蓝色方块";
+    red.position.set(-1.5, 0, 0);
+    blue.position.set(1.5, 0, -5);
+    app.scene.add(red, blue);
+    const controls = attachOrbitControls(app).controls;
+    controls.enableRotate = false;
+    controls.minZoom = 0.5;
+    controls.maxZoom = 3;
+    const labels = attachDOMLabels(app, overlay);
+    for (const object of [red, blue]) {
+      const element = document.createElement("span");
+      element.className = "object-label";
+      element.dataset.testid = object === red ? "projection-red-label" : "projection-blue-label";
+      element.textContent = object.name;
+      labels.add({ object, element, offset: [0, 0.95, 0], anchor: [0.5, 1] });
+    }
+    attachPicking(app, { objects: () => [red, blue!] }).on("click", ({ intersection }) =>
+      show("picked", intersection?.object.name ?? "—"),
+    );
+    const host = app;
+    const draw = (): void => {
+      host.render();
+      refresh();
+    };
+    controls.addEventListener("change", draw);
+    host.resources.track({ dispose: () => controls.removeEventListener("change", draw) });
+    const observer = new ResizeObserver(() => {
+      if (host.state !== "disposed") draw();
+    });
+    observer.observe(viewport);
+    host.resources.track({ dispose: () => observer.disconnect() });
+    host.signal.addEventListener(
+      "abort",
+      () => {
+        if (app === host) refresh();
+      },
+      { once: true },
+    );
+    show("picked", "—");
+    show("error", "");
+    draw();
+  };
+  card.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
+    if (!button) return;
+    try {
+      if (button.dataset.action === "rebuild") {
+        rebuild();
+        return;
+      }
+      if (!app || app.state === "disposed") return;
+      if (button.dataset.action === "depth" && blue)
+        blue.position.z = blue.position.z === -5 ? -10 : -5;
+      if (button.dataset.action === "zoom") {
+        app.camera.zoom = app.camera.zoom === 1 ? 1.5 : 1;
+        app.camera.updateProjectionMatrix();
+      }
+      if (button.dataset.action === "width") {
+        narrow = !narrow;
+        viewport.style.width = narrow ? "65%" : "100%";
+        app.resize();
+      }
+      if (button.dataset.action === "zero") {
+        zero = !zero;
+        viewport.style.height = zero ? "0px" : "";
+        app.resize();
+      }
+      if (button.dataset.action === "dispose") app.dispose();
+      else app.render();
+      refresh();
+    } catch (error) {
+      show("error", String(error));
+    }
+  });
+  rebuild();
+  teardown.push(() => app?.dispose());
+}
+window.addEventListener(
+  "pagehide",
+  () => {
+    for (const dispose of teardown) dispose();
+  },
+  { once: true },
+);

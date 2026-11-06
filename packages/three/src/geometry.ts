@@ -1,6 +1,6 @@
 import { Color, InstancedMesh, Matrix4, Object3D } from "three";
 import type { BufferGeometry, Material } from "three";
-import type { ThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./three-app.ts";
 import { ResourceScope } from "./resources.ts";
 
 export interface CreateInstancedMeshOptions {
@@ -32,7 +32,7 @@ function materialList(value: Material | readonly Material[]): value is readonly 
 
 /** Own the instance object/buffers, borrow its reusable geometry/material. No updates or rendering. */
 export function createInstancedMesh(
-  app: ThreeApp,
+  app: AnyThreeApp,
   options: CreateInstancedMeshOptions,
 ): InstancedMeshHandle {
   const { geometry, material, capacity, count = 0, addToScene = true } = options;
