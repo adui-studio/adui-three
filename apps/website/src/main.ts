@@ -75,7 +75,7 @@ function mountPanel(id: string, color: number): void {
     <div class="model-actions"><button data-action="clone-model">创建实例</button><button data-action="clone-peer">复制到另一场景</button><button data-action="clone-play">播放实例</button><button data-action="clone-pause">暂停实例</button><button data-action="remove-clone">移除实例</button></div>
     <p class="camera-feedback" role="status">实例：<span data-testid="clone-state">idle</span> · <span data-testid="clone-time">0.000</span> s · 共享几何体与材质</p>
     <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="skin-model">加载骨骼样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-fade">渐变切换</button><button data-action="animation-once">单次播放</button><button data-action="animation-repeat-twice">循环两次</button><button data-action="animation-pingpong">往返一次</button><button data-action="animation-stop">停止动画</button></div>
-    <p class="animation-feedback" role="status">动画：<span data-testid="animation-state">idle</span> · <span data-testid="animation-clip">—</span> · <span data-testid="animation-time">0.000</span> s · 渐变 <span data-testid="animation-blend-progress">0</span>%</p>
+    <p class="animation-feedback" role="status">动画：<span data-testid="animation-state">idle</span> · <span data-testid="animation-clip">—</span> · <span data-testid="animation-time">0.000</span> s · 渐变 <span data-testid="animation-blend-progress">0</span>%<br>循环通知 <span data-testid="animation-loops">0</span> · 播放完成 <span data-testid="animation-completions">0</span> · 最近完成 <span data-testid="animation-last-completion">—</span> <button data-action="animation-chain" aria-pressed="false">完成后切换</button></p>
     <label class="animation-timeline">定位<input type="range" min="0" max="100" step="1" value="0" data-action="animation-seek" aria-label="动画定位"><span data-testid="animation-progress">0</span>%</label>
     <p class="picking-feedback" role="status">悬停：<span data-testid="hovered">—</span> · 选中：<span data-testid="selected">—</span><span class="picking-hint">点击物体选中 · 点击空白清除</span></p>`;
   document.querySelector(".workspace")!.appendChild(card);
@@ -104,6 +104,10 @@ function mountPanel(id: string, color: number): void {
   let labelsVisible = true;
   let animation: GLTFAnimationsHandle | undefined;
   let animationIndex = 0;
+  let animationCompletions = 0,
+    animationLoops = 0,
+    lastAnimationCompletion = "—",
+    chainAnimation = false;
   let orbit: OrbitControlsHandle | undefined;
   let largeModel = false;
   let fittedDistance: number | undefined;
@@ -307,12 +311,19 @@ function mountPanel(id: string, color: number): void {
       animation?.action?.time ?? 0
     ).toFixed(3);
     card.dataset.animationBlending = String(animation?.blending ?? false);
+    card.querySelector('[data-testid="animation-loops"]')!.textContent = String(animationLoops);
+    card.querySelector('[data-testid="animation-completions"]')!.textContent =
+      String(animationCompletions);
+    card.querySelector('[data-testid="animation-last-completion"]')!.textContent =
+      lastAnimationCompletion;
+    button("animation-chain").setAttribute("aria-pressed", String(chainAnimation));
     card.dataset.animationBlendProgress = (animation?.blendProgress ?? 0).toFixed(3);
     card.querySelector('[data-testid="animation-blend-progress"]')!.textContent = String(
       Math.round((animation?.blendProgress ?? 0) * 100),
     );
     const canAnimate =
       !!animation && !animation.disposed && animation.clips.length > 0 && !hasTransform;
+    button("animation-chain").disabled = !canAnimate;
     button("animated-model").disabled = !app || state === "disposed";
     button("skin-model").disabled = !app || state === "disposed";
     for (const action of [
@@ -343,6 +354,10 @@ function mountPanel(id: string, color: number): void {
     animation?.dispose();
     animation = undefined;
     animationIndex = 0;
+    animationCompletions = 0;
+    animationLoops = 0;
+    lastAnimationCompletion = "—";
+    chainAnimation = false;
     clearPicking();
     modelLabel?.dispose();
     modelLabel = undefined;
@@ -615,7 +630,23 @@ function mountPanel(id: string, color: number): void {
       modelState = "loaded";
       modelMessage = `${url.endsWith(".glb") ? "GLB" : "GLTF"} 已加载 · 保留原始材质与尺寸`;
       if (placeholder) placeholder.visible = false;
-      if (loaded.gltf.animations.length) animation = attachGLTFAnimations(owner, loaded);
+      if (loaded.gltf.animations.length) {
+        const handle = attachGLTFAnimations(owner, loaded);
+        animation = handle;
+        handle.on("loop", () => {
+          if (animation === handle) animationLoops++;
+        });
+        handle.on("finished", (event) => {
+          if (animation !== handle) return;
+          animationCompletions++;
+          lastAnimationCompletion = event.clip.name;
+          if (chainAnimation && handle.clips.length > 1) {
+            animationIndex = (animationIndex + 1) % handle.clips.length;
+            handle.play(animationIndex);
+          }
+          refresh();
+        });
+      }
       modelLabel = addLabel(
         loaded.scene.children[0] ?? loaded.scene,
         `原创模型 · 场景 ${id}`,
@@ -874,6 +905,7 @@ function mountPanel(id: string, color: number): void {
       if (action === "animated-model") void requestModel("/models/animated.glb");
       if (action === "skin-model") void requestModel("/models/skin-morph.glb");
       if (action === "animation-play") animation?.play(animationIndex);
+      if (action === "animation-chain") chainAnimation = !chainAnimation;
       if (action === "animation-pause") animation?.pause();
       if (action === "animation-resume") animation?.resume();
       if (action === "animation-next" && animation?.clips.length) {

@@ -154,11 +154,17 @@ test("cross-host clone keeps independent animation and textures after the source
   await a.getByRole("button", { name: "复制到另一场景", exact: true }).click();
   await expect(b).toHaveAttribute("data-clone-state", "ready");
   const label = a.getByTestId("object-label").last();
-  const sourcePose = await label.boundingBox();
+  const relativePose = (): Promise<number> =>
+    label.evaluate(
+      (element) =>
+        element.getBoundingClientRect().top -
+        element.closest(".viewport")!.getBoundingClientRect().top,
+    );
+  const sourcePose = await relativePose();
   await b.getByRole("button", { name: "播放实例", exact: true }).click();
   await b.getByRole("button", { name: "运行", exact: true }).click();
   await expect(b.getByTestId("clone-time")).not.toHaveText("0.000");
-  expect(Math.abs((await label.boundingBox())!.y - sourcePose!.y)).toBeLessThan(0.5);
+  expect(Math.abs((await relativePose()) - sourcePose)).toBeLessThan(0.5);
   await expect(a.getByTestId("animation-time")).toHaveText("1.000");
   await a.getByRole("button", { name: "销毁", exact: true }).click();
   await expect(a.locator("canvas")).toHaveCount(0);

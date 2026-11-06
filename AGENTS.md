@@ -35,6 +35,7 @@
 - [实例化决策](docs/adr/0022-managed-instancing.md)：借用几何体/材质、实例数据上传和专属 buffer 清理。
 - [动画循环决策](docs/adr/0023-animation-loops.md)：有限次数、往返阶段及原生终点采样归一化。
 - [路径运动决策](docs/adr/0024-path-motion.md)：局部曲线采样、变换写入与宿主/模型作用域清理。
+- [动画通知决策](docs/adr/0025-animation-notifications.md)：采样后的循环/完成通知、订阅和控制命令排队。
 
 ## 工作流程与约束
 

@@ -113,6 +113,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 路径运动阶段复用 threejs-animation 与 threejs-geometry，核验原生 Curve.getPointAt/getTangentAt 和 Quaternion.setFromUnitVectors；采用父级局部空间的近似弧长采样与宿主订阅，没有复制旧业务路径、自动运行 Skill 的独立 RAF 或加入导航/碰撞依赖。
 
+动画通知阶段继续复用 threejs-animation，核验 r187 Mixer 在 action 更新后才应用 property bindings 的顺序。公共通知放在采样与端点/渐变收尾之后，保持已有控制队列，不将原生 finished 直接转发为“最终姿态已完成”。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

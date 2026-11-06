@@ -97,6 +97,8 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 对象路径运动在 [path-animation.ts](../packages/three/src/path-animation.ts)，由 animation 公开导出；[单测](../packages/three/tests/path-animation.test.ts) 覆盖曲线数学与生命周期。[path.ts](../apps/website/src/path.ts) 经 bootstrap 的 `?demo=path` 独立消费，[浏览器回归](../tests/browser/path.spec.ts) 核对实际像素、拾取、独立运动和 GPU 释放。
 
+[动画通知单测](../packages/three/tests/animation-events.test.ts) 对比原生事件与采样后姿态，覆盖订阅和命令排队；[通知浏览器回归](../tests/browser/animation-events.spec.ts) 验证实际片段串接及模型/宿主清理。实现仍位于 animation.ts，无新增运行时入口。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

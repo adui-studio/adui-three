@@ -334,6 +334,21 @@ CrossFadeOptions 的 duration 默认 0.3，正有限 Mixer 秒，其他选项同
 
 play/stop 取消渐变，seek 取消其他贡献并定位目标；blendProgress 初始/取消为 0，完成为 1。控制方法仍按原生事件队列依序执行，dispose 立即失效、原生返回后释放全部缓存。不要同时手动控制 native 淡变、action 调度或 Mixer 采样。异常沿用宿主停止/抛出，不承诺回滚已采样姿态；骨骼/morph 等复杂资产仍待验证。
 
+### 动画通知
+
+```ts
+const off = animations.on("finished", ({ clip, direction }) => {
+  console.log("已完成采样", clip.name, direction);
+  animations.play("Slide"); // 在本批通知结束后执行。
+});
+animations.on("loop", ({ loopDelta }) => console.log("跨越循环", loopDelta));
+// off(); // 只解除这一条订阅。
+```
+
+on 的事件 payload 由 GLTFAnimationEvents 按事件名推断，公共 union 为 GLTFAnimationEvent；都有借用的 action/clip。通知发生在当前选中动作采样、往返端点归一化和渐变权重交接完成后，早于宿主 GPU 绘制。渐变目标提前结束时延后 finished，离场动作不派发控制器完成；loop 沿用原生合并的 loopDelta，不保证每轮单独通知。
+
+回调同步执行，不等待异步结果；play/crossFadeTo/seek/stop 在本批通知后按序处理。相同函数可独立订阅，派发中解除会跳过尚未执行的回调，新订阅从后续通知生效；销毁跳过后续通知并清订阅。回调抛错则停止本批、丢弃未执行命令并按宿主异常策略传播。stop/seek/pause 不制造 finished，订阅不回放历史完成；不要在回调里直接 update 原生 Mixer。
+
 ## 对象路径运动
 
 ```ts

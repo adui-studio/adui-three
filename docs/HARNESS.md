@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 343 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 355 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 74 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 76 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 动画通知阶段：新增十二项原生 Mixer 单测，验证采样/末姿态、loopDelta、订阅增删/重复、排队命令、渐变延期、销毁和异常，累计 355 项通过。ready 通过 13 项文档测试、145 文件格式、87 源文件静态检查与全部构建，十二入口 tarball 及四次严格声明/消费编译通过。新增浏览器专项 2/2，验证真实 GLB 完成后接续、独立循环通知和替换/重建计数。
+
+首轮完整 75/76，克隆用例比较视口绝对 y 时相差 21px；保留 trace 确认自动滚动从 904px 变为 883px，源动画时间保持 1.000。改为比较标签相对画布的 y，保留 0.5px 容差及原时限。最终完整 76/76（213785.303ms，约 3.6 分钟），零重试；原失败 trace/上下文/统计保留于忽略目录 playwright-report/diagnostics/animation-notifications。不将页面滚动描述为动画串扰或生产动画修复。
 
 2026-11-06 对象路径阶段：新增 followPath，借用原生三维曲线和目标，局部近似弧长运动、可选切线朝向、暂停、循环/往返、替换、signal 与可选模型 scope 均使用宿主调度。二十项新单测覆盖真实曲线数学、变换、父级/跨宿主、所有权、回调重入/中断和失败清理，累计 343 项通过。最初两项四元数深比较把原生 onChange 回调也纳入差异，改为比较四个数值；测试订阅快照及方法 this:void 注解消除静态提示，未放宽生产检查。
 

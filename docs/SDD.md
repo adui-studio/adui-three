@@ -128,6 +128,8 @@ fitObject 在宿主/scope 存活和非零视口时即时应用；默认 adjustCl
 
 ## 模型动画契约
 
+GLTFAnimationsHandle.on<K extends keyof GLTFAnimationEvents>(type,callback) 返回解除函数，loop payload 为 type/action/clip/loopDelta，finished 为 type/action/clip/direction；公共 union 为 GLTFAnimationEvent。当前选中动作采样、端点归一化及权重交接后派发，尚未绘制 GPU。渐变目标提前结束时延后 finished，忽略离场动作；loopDelta 沿用原生合并通知。通知期间控制方法继续排队，批次结束再执行；订阅快照支持独立重复、增删与销毁，异常终止批次并丢弃未执行命令。无历史回放，不因 stop/seek/pause 合成完成，不等待异步回调；见 [ADR-0025](adr/0025-animation-notifications.md)。
+
 [animation.ts](../packages/three/src/animation.ts) 导出 attachGLTFAnimations、GLTFAnimationsHandle、PlayAnimationOptions、CrossFadeOptions、AnimationState。接收已加载模型或实例，片段引用拍只读数组快照；一个根对象只允许一个活动句柄，同时登记宿主和模型 scopes，任一结束都取消更新并清理自有 Mixer，不释放借用资产。
 
 初始 idle，无自动播放/宿主启动。play 接受合法索引或唯一精确名称，校验正有限 duration、原生 clip.validate、repeat/once/pingpong 和正有限速度后才替换旧 action；立即采样零时刻。切换或重播停止旧 action，reset 当前片段，设置 weight/timeScale/loop/clamp 并 play。暂停跳过采样但保留速率配置；resume 只恢复 paused；finished 不再推进，play 可重播。stop 停止 action、恢复原生绑定属性并清空选择和时间。销毁后控制方法抛错，stop/dispose 幂等。
@@ -284,6 +286,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-034  | 实例化网格契约                    | geometry.ts、独立实例演示                        | 原生数学/资源单测、实际 draw/像素/拾取/buffer 回归、包消费 |
 | FR-035  | 模型动画契约                      | animation.ts、循环演示                           | 原生终点/循环/清理单测、骨骼像素与有限循环浏览器、包消费   |
 | FR-036  | 对象路径运动契约                  | path-animation.ts、独立路径演示                  | 曲线/变换/清理单测、像素/拾取/GPU 回归、包消费             |
+| FR-037  | 模型动画契约                      | animation.ts、通知演示                           | 采样/订阅/队列单测、真实片段串接与清理浏览器、包消费       |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 

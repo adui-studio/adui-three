@@ -50,6 +50,15 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   const labels = attachDOMLabels(app, overlay);
   labels.add({ object: loaded.scene, element: document.createElement("span") });
   const animations = attachGLTFAnimations(app, model);
+  const offLoop = animations.on("loop", (event) => {
+    const traversals: number = event.loopDelta;
+    console.log(event.clip.name, traversals);
+  });
+  const offFinished = animations.on("finished", (event) => {
+    const direction: number = event.direction;
+    console.log(event.action.getClip().name, direction);
+  });
+  offLoop(); offFinished();
   animations.play(0, { loop: "once" });
   const path = followPath(app, loaded.scene, {
     curve: new LineCurve3(new Vector3(), new Vector3(2, 0, 0)), duration: 2,

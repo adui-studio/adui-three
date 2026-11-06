@@ -35,6 +35,22 @@ export interface CrossFadeOptions extends PlayAnimationOptions {
   duration?: number;
 }
 
+export interface GLTFAnimationEvents {
+  loop: {
+    readonly type: "loop";
+    readonly action: AnimationAction;
+    readonly clip: AnimationClip;
+    readonly loopDelta: number;
+  };
+  finished: {
+    readonly type: "finished";
+    readonly action: AnimationAction;
+    readonly clip: AnimationClip;
+    readonly direction: number;
+  };
+}
+export type GLTFAnimationEvent = GLTFAnimationEvents[keyof GLTFAnimationEvents];
+
 export interface GLTFAnimationsHandle {
   readonly mixer: AnimationMixer;
   /** Snapshot of clip references; clips remain borrowed and must not be mutated while playing. */
@@ -45,6 +61,11 @@ export interface GLTFAnimationsHandle {
   readonly blending: boolean;
   /** 0 initially/cancelled, 1 after a completed transition. */
   readonly blendProgress: number;
+  /** After sampling/endpoint normalization, before host drawing. No synthetic loop notices. */
+  on<K extends keyof GLTFAnimationEvents>(
+    type: K,
+    callback: (event: GLTFAnimationEvents[K]) => void,
+  ): () => void;
   /** Select by array index or unique exact name. Always restarts the clip; switching is immediate. */
   play(clip: number | string, options?: PlayAnimationOptions): void;
   /** Blend from current weights; an already active destination retains its clip time. */
@@ -89,6 +110,12 @@ export function attachGLTFAnimations(
     null;
   let blendProgress = 0;
   let targetFinished = false;
+  let completion: GLTFAnimationEvents["finished"] | null = null;
+  const notifications: GLTFAnimationEvent[] = [];
+  const listeners = {
+    loop: new Set<(event: GLTFAnimationEvent) => void>(),
+    finished: new Set<(event: GLTFAnimationEvent) => void>(),
+  };
   const pending: Array<() => void> = [];
   const active = (): void => {
     if (disposed) throw new Error("GLTF animations have been disposed");
@@ -148,6 +175,28 @@ export function attachGLTFAnimations(
         stopOthers(action!);
         if (!disposed && targetFinished) state = "finished";
       }
+      if (!disposed) {
+        if (state === "finished" && completion) {
+          notifications.push(completion);
+          completion = null;
+        }
+        if (notifications.length)
+          for (const event of notifications.splice(0)) {
+            const subscriptions = Array.from(listeners[event.type]);
+            for (const callback of subscriptions) {
+              if (
+                disposed ||
+                app.state === "disposed" ||
+                app.resources.disposed ||
+                model.disposed ||
+                model.resources.disposed
+              )
+                break;
+              if (listeners[event.type].has(callback)) callback(event);
+            }
+            if (disposed) break;
+          }
+      }
     } catch (error) {
       errors.push(error);
     }
@@ -166,6 +215,7 @@ export function attachGLTFAnimations(
     }
     if (errors.length) {
       pending.length = 0;
+      notifications.length = 0;
       if (errors.length === 1) throw errors[0];
       throw new AggregateError(errors, "GLTF animation update and cleanup failed");
     }
@@ -175,7 +225,7 @@ export function attachGLTFAnimations(
     if (updating) pending.push(command);
     else command();
   };
-  const finished = (event: { action: AnimationAction }): void => {
+  const finished = (event: { action: AnimationAction; direction?: number }): void => {
     if (
       !disposed &&
       actions.has(event.action) &&
@@ -186,8 +236,23 @@ export function attachGLTFAnimations(
       terminal.add(event.action);
     if (!disposed && event.action === action) {
       targetFinished = true;
+      completion = {
+        type: "finished",
+        action: event.action,
+        clip: event.action.getClip(),
+        direction: event.direction ?? 1,
+      };
       if (!blend) state = "finished";
     }
+  };
+  const looped = (event: { action: AnimationAction; loopDelta: number }): void => {
+    if (!disposed && updating && event.action === action)
+      notifications.push({
+        type: "loop",
+        action: event.action,
+        clip: event.action.getClip(),
+        loopDelta: event.loopDelta,
+      });
   };
   const stopOthers = (keep: AnimationAction): void => {
     const errors: unknown[] = [];
@@ -279,6 +344,17 @@ export function attachGLTFAnimations(
     get blendProgress(): number {
       return blendProgress;
     },
+    on(type, callback): () => void {
+      active();
+      if ((type !== "loop" && type !== "finished") || typeof callback !== "function")
+        throw new TypeError("A loop/finished event and callback are required");
+      const subscription = (event: GLTFAnimationEvent): void =>
+        callback(event as GLTFAnimationEvents[typeof type]);
+      listeners[type].add(subscription);
+      return () => {
+        listeners[type].delete(subscription);
+      };
+    },
     play(selector, options = {}): void {
       active();
       const { clip, settings } = selection(selector, options);
@@ -286,6 +362,8 @@ export function attachGLTFAnimations(
         blend = null;
         blendProgress = 0;
         targetFinished = false;
+        completion = null;
+        notifications.length = 0;
         terminal.clear();
         mixer.stopAllAction();
         actions.clear();
@@ -331,6 +409,8 @@ export function attachGLTFAnimations(
         weights.set(next, next.getEffectiveWeight());
         action = next;
         targetFinished = false;
+        completion = null;
+        notifications.length = 0;
         terminal.clear();
         blendProgress = 0;
         blend = weights.size > 1 ? { duration, elapsed: 0, weights } : null;
@@ -358,6 +438,8 @@ export function attachGLTFAnimations(
         blend = null;
         blendProgress = 0;
         targetFinished = false;
+        completion = null;
+        notifications.length = 0;
         terminal.clear();
         stopOthers(target);
         target.reset().setEffectiveWeight(weight);
@@ -377,6 +459,8 @@ export function attachGLTFAnimations(
         blend = null;
         blendProgress = 0;
         targetFinished = false;
+        completion = null;
+        notifications.length = 0;
         terminal.clear();
         mixer.stopAllAction();
         actions.clear();
@@ -394,8 +478,13 @@ export function attachGLTFAnimations(
       blendProgress = 0;
       pending.length = 0;
       terminal.clear();
+      completion = null;
+      notifications.length = 0;
+      listeners.loop.clear();
+      listeners.finished.clear();
       unsubscribe();
       mixer.removeEventListener("finished", finished);
+      mixer.removeEventListener("loop", looped);
       app.resources.untrack(handle);
       model.resources.untrack(handle);
       // Native finished/loop handlers run inside mixer.update; finish that stack before touching caches.
@@ -408,6 +497,7 @@ export function attachGLTFAnimations(
     app.resources.track(handle);
     model.resources.track(handle);
     mixer.addEventListener("finished", finished);
+    mixer.addEventListener("loop", looped);
     unsubscribe = app.onUpdate(({ delta }) => {
       if (model.disposed || model.resources.disposed) handle.dispose();
       else if (state === "playing") sample(delta);
