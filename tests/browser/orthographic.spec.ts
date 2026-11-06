@@ -200,3 +200,66 @@ test("orthographic framing reuses the resized frustum and recovers after a zero-
   expect(result.blue.count).toBeGreaterThan(1000);
   expect(result.error).toBe(0);
 });
+
+test("orthographic smooth framing animates native zoom, freezes with the host and completes with real model pixels", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/?demo=orthographic");
+  const a = page.getByTestId("orthographic"),
+    b = page.getByTestId("perspective");
+  await a.getByRole("button", { name: "放大模型", exact: true }).click();
+  await a.getByRole("button", { name: "平滑取景", exact: true }).click();
+  await expect
+    .poll(async () => Number(await a.getByTestId("projection-progress").textContent()))
+    .toBeGreaterThan(0.1);
+  await a.getByRole("button", { name: "暂停场景", exact: true }).click();
+  const progress = await a.getByTestId("projection-progress").textContent();
+  const zoom = await a.getByTestId("projection-zoom").textContent();
+  await pixels(b);
+  await pixels(a);
+  await expect(a.getByTestId("projection-progress")).toHaveText(progress!);
+  await expect(a.getByTestId("projection-zoom")).toHaveText(zoom!);
+  await expect(a.getByTestId("projection-motion")).toHaveText("running");
+  await a.getByRole("button", { name: "运行场景", exact: true }).click();
+  await expect(a.getByTestId("projection-motion")).toHaveText("completed");
+  await expect(a.getByTestId("projection-progress")).toHaveText("1.000");
+  await a.getByRole("button", { name: "暂停场景", exact: true }).click();
+  const frame = await pixels(a);
+  expect(frame.red.count).toBeGreaterThan(1000);
+  expect(frame.blue.count).toBeGreaterThan(1000);
+  expect(frame.error).toBe(0);
+  await expect(b.getByTestId("projection-zoom")).toHaveText("1.000");
+  await expect(a.getByTestId("projection-error")).toBeEmpty();
+  expect(errors).toEqual([]);
+});
+
+test("orthographic smooth framing yields to wheel, resize, instant fit and host reconstruction", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/?demo=orthographic");
+  const a = page.getByTestId("orthographic");
+  await a.getByRole("button", { name: "平滑取景", exact: true }).click();
+  await a.locator("canvas").hover();
+  await page.mouse.wheel(0, -100);
+  await expect(a.getByTestId("projection-motion")).toHaveText("cancelled");
+  await a.getByRole("button", { name: "平滑取景", exact: true }).click();
+  await a.getByRole("button", { name: "收窄容器", exact: true }).click();
+  await expect(a.getByTestId("projection-motion")).toHaveText("cancelled");
+  await a.getByRole("button", { name: "平滑取景", exact: true }).click();
+  await a.getByRole("button", { name: "适配视角", exact: true }).click();
+  await expect(a.getByTestId("projection-motion")).toHaveText("cancelled");
+  await a.getByRole("button", { name: "平滑取景", exact: true }).click();
+  await a.getByRole("button", { name: "销毁", exact: true }).click();
+  await expect(a.locator("canvas")).toHaveCount(0);
+  await expect(a.getByTestId("projection-motion")).toHaveText("cancelled");
+  await a.getByRole("button", { name: "重建", exact: true }).click();
+  await expect(a.getByTestId("projection-motion")).toHaveText("idle");
+  await expect(a.getByTestId("projection-state")).toHaveText("ready");
+  expect((await pixels(a)).red.count).toBeGreaterThan(1000);
+  await expect(a.getByTestId("projection-error")).toBeEmpty();
+  expect(errors).toEqual([]);
+});

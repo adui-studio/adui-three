@@ -103,6 +103,8 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 正交规划/应用在 [camera-orthographic.ts](../packages/three/src/camera-orthographic.ts)，复用 camera-frame 的内部边界准备；[数学/控制器单测](../packages/three/tests/camera-orthographic.test.ts) 覆盖 zoom/裁剪/约束与写锁。orthographic 演示和对应浏览器回归增加放大后取景、窄屏重算及零尺寸恢复。
 
+正交过渡复用 [camera-transition.ts](../packages/three/src/camera-transition.ts) 的泛型执行器与正交准备；[过渡单测](../packages/three/tests/camera-orthographic-transition.test.ts) 验证 zoom/取消/配置和微小终点。orthographic 演示增加过渡、宿主启停和输入/尺寸/重建操作。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

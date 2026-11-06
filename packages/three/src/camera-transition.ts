@@ -1,7 +1,10 @@
 import { Matrix4, Quaternion, Vector3 } from "three";
-import type { Object3D } from "three";
-import type { ThreeApp } from "./three-app.ts";
+import type { Object3D, PerspectiveCamera, OrthographicCamera } from "three";
+import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import type { AnyThreeApp, ThreeApp, OrthographicThreeApp } from "./three-app.ts";
 import { prepareObjectFrame } from "./camera-frame.ts";
+import { prepareOrthographicFrame } from "./camera-orthographic.ts";
+import type { OrthographicObjectFrame } from "./camera-orthographic.ts";
 import type { FitObjectOptions, ObjectFrame } from "./camera-frame.ts";
 import {
   assertCameraWriteAvailable,
@@ -12,8 +15,8 @@ import {
 } from "./camera-runtime.ts";
 
 export type CameraTransitionState = "running" | "completed" | "cancelled" | "failed";
-export type CameraTransitionResult =
-  | { status: "completed"; frame: ObjectFrame }
+export type CameraTransitionResult<F extends ObjectFrame = ObjectFrame> =
+  | { status: "completed"; frame: F }
   | { status: "cancelled" }
   | { status: "failed"; error: unknown };
 
@@ -23,12 +26,12 @@ export interface CameraTransitionOptions extends FitObjectOptions {
   signal?: AbortSignal;
 }
 
-export interface CameraTransitionHandle {
+export interface CameraTransitionHandle<F extends ObjectFrame = ObjectFrame> {
   readonly state: CameraTransitionState;
   /** Uneased progress in [0, 1]. */
   readonly progress: number;
   /** Always resolves, including cancellation and update/cleanup failure. */
-  readonly finished: Promise<CameraTransitionResult>;
+  readonly finished: Promise<CameraTransitionResult<F>>;
   cancel(this: void): void;
   dispose(this: void): void;
 }
@@ -47,13 +50,45 @@ export function transitionToObject(
   object: Object3D,
   options: CameraTransitionOptions = {},
 ): CameraTransitionHandle {
+  return transitionFrame(app, options, () => prepareObjectFrame(app, object, options));
+}
+
+/** Orthographic variant: interpolate native zoom alongside the shared camera motion. */
+export function transitionOrthographicToObject(
+  app: OrthographicThreeApp,
+  object: Object3D,
+  options: CameraTransitionOptions = {},
+): CameraTransitionHandle<OrthographicObjectFrame> {
+  return transitionFrame(
+    app,
+    options,
+    () => prepareOrthographicFrame(app, object, options),
+    (frame) => frame.zoom,
+  );
+}
+
+interface PreparedFrame<F extends ObjectFrame> {
+  camera: PerspectiveCamera | OrthographicCamera;
+  frame: F;
+  controls: OrbitControls | undefined;
+  adjustClipping: boolean;
+  active(this: void): void;
+  ownedCamera(this: void): void;
+}
+
+function transitionFrame<F extends ObjectFrame>(
+  app: AnyThreeApp,
+  options: CameraTransitionOptions,
+  prepare: () => PreparedFrame<F>,
+  zoomTarget?: (frame: F) => number,
+): CameraTransitionHandle<F> {
   assertCameraWriteAvailable(app.camera);
   const { duration = 0.8, signal } = options;
   if (!Number.isFinite(duration) || duration <= 0)
     throw new RangeError("duration must be positive and finite");
   if (app.state === "disposed" || app.resources.disposed)
     throw new Error("ThreeApp has been disposed");
-  const cancelled = (): CameraTransitionHandle => ({
+  const cancelled = (): CameraTransitionHandle<F> => ({
     state: "cancelled",
     progress: 0,
     finished: Promise.resolve({ status: "cancelled" }),
@@ -61,18 +96,23 @@ export function transitionToObject(
     dispose(): void {},
   });
   if (signal?.aborted) return cancelled();
-  const { camera, frame, controls, adjustClipping, active, ownedCamera } = prepareObjectFrame(
-    app,
-    object,
-    options,
-  );
+  const endPreparation = beginCameraWrite(app.camera);
+  let prepared: PreparedFrame<F>;
+  try {
+    prepared = prepare();
+  } finally {
+    endPreparation();
+  }
+  const { camera, frame, controls, adjustClipping, active, ownedCamera } = prepared;
+  const orthographic = "isOrthographicCamera" in camera;
+  const validNear = (value: number): boolean =>
+    Number.isFinite(value) && (orthographic ? value >= 0 : value > 0);
   if (signal?.aborted) return cancelled();
   if (
     !camera.position.toArray().every(Number.isFinite) ||
     !camera.quaternion.toArray().every(Number.isFinite) ||
     Math.abs(camera.quaternion.lengthSq() - 1) > 1e-6 ||
-    !Number.isFinite(camera.near) ||
-    camera.near <= 0 ||
+    !validNear(camera.near) ||
     !Number.isFinite(camera.far) ||
     camera.far <= camera.near
   )
@@ -87,12 +127,12 @@ export function transitionToObject(
   let state: CameraTransitionState = "running";
   let progress = 0;
   let elapsed = 0;
-  let resolve!: (result: CameraTransitionResult) => void;
-  const finished = new Promise<CameraTransitionResult>((complete) => {
+  let resolve!: (result: CameraTransitionResult<F>) => void;
+  const finished = new Promise<CameraTransitionResult<F>>((complete) => {
     resolve = complete;
   });
   const cleanup: Array<() => void> = [];
-  const finish = (result: CameraTransitionResult): void => {
+  const finish = (result: CameraTransitionResult<F>): void => {
     if (state !== "running") return;
     state = result.status;
     removeCameraMotion(camera, handle);
@@ -114,7 +154,7 @@ export function transitionToObject(
       });
     } else resolve(result);
   };
-  const handle: CameraTransitionHandle = {
+  const handle: CameraTransitionHandle<F> = {
     get state() {
       return state;
     },
@@ -166,6 +206,9 @@ export function transitionToObject(
       }
     }
     const startPosition = camera.position.clone();
+    const startZoom = camera.zoom;
+    const endZoom = zoomTarget?.(frame);
+    let lastZoom = startZoom;
     const startRotation = camera.quaternion.clone();
     const endRotation = new Quaternion().setFromRotationMatrix(
       new Matrix4().lookAt(frame.position, frame.center, camera.up),
@@ -187,12 +230,18 @@ export function transitionToObject(
     const lastTarget = controls?.target.clone();
     const up = camera.up.clone();
     const viewport = { ...app.size };
-    const view = [camera.aspect, camera.fov, camera.zoom, camera.filmOffset];
+    const viewState = (): number[] =>
+      "isOrthographicCamera" in camera
+        ? [camera.left, camera.right, camera.top, camera.bottom]
+        : [camera.aspect, camera.fov, camera.filmOffset];
+    const view = viewState();
     const constraintState = (): number[] =>
       controls
         ? [
             controls.minDistance,
             controls.maxDistance,
+            controls.minZoom,
+            controls.maxZoom,
             controls.minTargetRadius,
             controls.maxTargetRadius,
             controls.minPolarAngle,
@@ -216,7 +265,7 @@ export function transitionToObject(
             frame.radius * 2,
         )
       : camera.far;
-    if (!Number.isFinite(near) || near <= 0 || !Number.isFinite(far) || far <= near)
+    if (!validNear(near) || !Number.isFinite(far) || far <= near)
       throw new RangeError("Invalid transition clipping range");
     if (adjustClipping) {
       camera.near = near;
@@ -227,12 +276,13 @@ export function transitionToObject(
     cleanup.push(
       app.onUpdate(({ delta }) => {
         if (state !== "running") return;
-        const currentView = [camera.aspect, camera.fov, camera.zoom, camera.filmOffset];
+        const currentView = viewState();
         const rotationDot = Math.abs(camera.quaternion.dot(lastRotation));
         if (
           app.size.width !== viewport.width ||
           app.size.height !== viewport.height ||
           currentView.some((value, index) => value !== view[index]) ||
+          camera.zoom !== lastZoom ||
           camera.view?.enabled ||
           camera.parent ||
           !camera.matrixAutoUpdate ||
@@ -262,6 +312,10 @@ export function transitionToObject(
           elapsed = Math.min(duration, elapsed + delta);
           progress = elapsed / duration;
           const t = progress * progress * (3 - 2 * progress);
+          if (endZoom !== undefined) {
+            camera.zoom = (1 - t) * startZoom + t * endZoom;
+            camera.updateProjectionMatrix();
+          }
           if (controls) {
             controls.target.lerpVectors(startTarget!, frame.center, t);
             interpolatedRotation.identity().slerp(orbitRotation, t);
@@ -284,6 +338,7 @@ export function transitionToObject(
           camera.updateWorldMatrix(true, false);
           lastPosition.copy(camera.position);
           lastRotation.copy(camera.quaternion);
+          lastZoom = camera.zoom;
           if (controls) lastTarget!.copy(controls.target);
           if (progress === 1) {
             if (adjustClipping) {

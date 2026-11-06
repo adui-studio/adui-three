@@ -63,6 +63,8 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 ## 关键取舍
 
+透视/正交过渡共用 camera-transition 的内部泛型执行器，正交规划与即时应用共用 prepareOrthographicFrame。生命周期与输入租约保持单一实现，核心无反向依赖，见 [ADR-0028](adr/0028-orthographic-transition.md)。
+
 正交取景在 camera 子入口以独立函数提供，两种相机共享内部精确世界边界/蒙皮准备与相机写锁；默认核心不依赖规划。应用只写原生姿态/zoom/裁剪面，控件借用且不改变约束，不增加调度，见 [ADR-0027](adr/0027-orthographic-framing.md)。
 
 ThreeApp 与 OrthographicThreeApp 共用内部 SceneHost 生命周期，公开保留各自具体相机类型，通用可选模块通过 AnyThreeApp 借用；核心不导出内部基类，不接受外部注入或动态换相机。正交尺寸策略及透视取景边界见 [ADR-0026](adr/0026-orthographic-host.md)。

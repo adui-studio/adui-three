@@ -97,86 +97,109 @@ export function computeOrthographicFrame(
   return { bounds, center, position, radius, distance, near, far, zoom };
 }
 
+interface PreparedOrthographicFrame {
+  camera: OrthographicCamera;
+  frame: OrthographicObjectFrame;
+  controls: OrbitControls | undefined;
+  adjustClipping: boolean;
+  active(this: void): void;
+  ownedCamera(this: void): void;
+}
+
+/** Internal preparation shared by immediate fitting and host-driven transitions. */
+export function prepareOrthographicFrame(
+  app: OrthographicThreeApp,
+  object: Object3D,
+  options: FitObjectOptions = {},
+): PreparedOrthographicFrame {
+  const camera = app.camera;
+  const { controls, adjustClipping = true } = options;
+  const ownedCamera = (): void => {
+    if (controls && controls.object !== camera)
+      throw new Error("Controls belong to a different camera");
+  };
+  const active = (): void => {
+    if (app.state === "disposed" || app.resources.disposed)
+      throw new Error("ThreeApp has been disposed");
+    if (app.size.width <= 0 || app.size.height <= 0)
+      throw new Error("A nonzero viewport is required");
+    ownedCamera();
+  };
+  active();
+  if (typeof adjustClipping !== "boolean") throw new TypeError("adjustClipping must be boolean");
+  let minimumDistance = options.minimumDistance ?? 0;
+  if (!Number.isFinite(minimumDistance) || minimumDistance < 0)
+    throw new RangeError("Invalid minimumDistance");
+  if (controls) {
+    if (!Number.isFinite(controls.minDistance) || controls.minDistance < 0)
+      throw new RangeError("Invalid OrbitControls distance constraints");
+    minimumDistance = Math.max(minimumDistance, controls.minDistance);
+  }
+  const frame = computeOrthographicFrame(camera, object, {
+    padding: options.padding,
+    direction: options.direction,
+    minimumDistance,
+  });
+  if (controls) {
+    const targetRadius = frame.center.distanceTo(controls.cursor);
+    if (
+      ![
+        controls.minZoom,
+        controls.minTargetRadius,
+        controls.minPolarAngle,
+        controls.maxPolarAngle,
+        ...controls.cursor.toArray(),
+      ].every(Number.isFinite) ||
+      controls.minZoom < 0 ||
+      Number.isNaN(controls.maxZoom) ||
+      controls.maxZoom < controls.minZoom ||
+      frame.zoom < controls.minZoom ||
+      frame.zoom > controls.maxZoom ||
+      Number.isNaN(controls.maxDistance) ||
+      frame.distance > controls.maxDistance ||
+      controls.minTargetRadius < 0 ||
+      Number.isNaN(controls.maxTargetRadius) ||
+      !Number.isFinite(targetRadius) ||
+      targetRadius < controls.minTargetRadius ||
+      targetRadius > controls.maxTargetRadius ||
+      controls.minPolarAngle < 0 ||
+      controls.maxPolarAngle > Math.PI ||
+      controls.minPolarAngle > controls.maxPolarAngle ||
+      Number.isNaN(controls.minAzimuthAngle) ||
+      Number.isNaN(controls.maxAzimuthAngle)
+    )
+      throw new RangeError("OrbitControls constraints cannot contain the requested frame");
+  }
+  if (
+    !adjustClipping &&
+    (![camera.near, camera.far].every(Number.isFinite) ||
+      camera.near < 0 ||
+      camera.near >= frame.distance - frame.radius ||
+      camera.far <= frame.distance + frame.radius)
+  )
+    throw new RangeError("Existing clipping planes cannot contain the requested frame");
+  active();
+  return { camera, frame, controls, adjustClipping, active, ownedCamera };
+}
+
 /** Apply a validated orthographic fit without rendering, starting or scheduling the host. */
 export function fitOrthographicObject(
   app: OrthographicThreeApp,
   object: Object3D,
   options: FitObjectOptions = {},
 ): OrthographicObjectFrame {
-  const camera = app.camera,
-    endWrite = beginCameraWrite(camera);
+  const endWrite = beginCameraWrite(app.camera);
   let controls: OrbitControls | undefined;
   let damping = false,
-    autoRotate = false;
-  let controlsChanged = false;
-  const active = (): void => {
-    if (app.state === "disposed" || app.resources.disposed)
-      throw new Error("ThreeApp has been disposed");
-    if (app.size.width <= 0 || app.size.height <= 0)
-      throw new Error("A nonzero viewport is required");
-    if (controls && controls.object !== camera)
-      throw new Error("Controls belong to a different camera");
-  };
+    autoRotate = false,
+    controlsChanged = false;
   try {
-    const { adjustClipping = true } = options;
-    controls = options.controls;
+    const prepared = prepareOrthographicFrame(app, object, options);
+    controls = prepared.controls;
+    const { camera, frame, adjustClipping, active } = prepared;
+    cancelCameraMotion(camera);
     damping = controls?.enableDamping ?? false;
     autoRotate = controls?.autoRotate ?? false;
-    active();
-    if (typeof adjustClipping !== "boolean") throw new TypeError("adjustClipping must be boolean");
-    let minimumDistance = options.minimumDistance ?? 0;
-    if (!Number.isFinite(minimumDistance) || minimumDistance < 0)
-      throw new RangeError("Invalid minimumDistance");
-    if (controls) {
-      if (!Number.isFinite(controls.minDistance) || controls.minDistance < 0)
-        throw new RangeError("Invalid OrbitControls distance constraints");
-      minimumDistance = Math.max(minimumDistance, controls.minDistance);
-    }
-    const frame = computeOrthographicFrame(camera, object, {
-      padding: options.padding,
-      direction: options.direction,
-      minimumDistance,
-    });
-    if (controls) {
-      const targetRadius = frame.center.distanceTo(controls.cursor);
-      if (
-        ![
-          controls.minZoom,
-          controls.minTargetRadius,
-          controls.minPolarAngle,
-          controls.maxPolarAngle,
-          ...controls.cursor.toArray(),
-        ].every(Number.isFinite) ||
-        controls.minZoom < 0 ||
-        Number.isNaN(controls.maxZoom) ||
-        controls.maxZoom < controls.minZoom ||
-        frame.zoom < controls.minZoom ||
-        frame.zoom > controls.maxZoom ||
-        Number.isNaN(controls.maxDistance) ||
-        frame.distance > controls.maxDistance ||
-        controls.minTargetRadius < 0 ||
-        Number.isNaN(controls.maxTargetRadius) ||
-        !Number.isFinite(targetRadius) ||
-        targetRadius < controls.minTargetRadius ||
-        targetRadius > controls.maxTargetRadius ||
-        controls.minPolarAngle < 0 ||
-        controls.maxPolarAngle > Math.PI ||
-        controls.minPolarAngle > controls.maxPolarAngle ||
-        Number.isNaN(controls.minAzimuthAngle) ||
-        Number.isNaN(controls.maxAzimuthAngle)
-      )
-        throw new RangeError("OrbitControls constraints cannot contain the requested frame");
-    }
-    if (
-      !adjustClipping &&
-      (![camera.near, camera.far].every(Number.isFinite) ||
-        camera.near < 0 ||
-        camera.near >= frame.distance - frame.radius ||
-        camera.far <= frame.distance + frame.radius)
-    )
-      throw new RangeError("Existing clipping planes cannot contain the requested frame");
-    active();
-    cancelCameraMotion(camera);
     if (controls) {
       controlsChanged = true;
       controls.enableDamping = false;

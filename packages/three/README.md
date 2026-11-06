@@ -19,7 +19,7 @@ OrthographicThreeApp.camera 精确为 OrthographicCamera；默认 ThreeApp.camer
 
 改变容器尺寸时保留当前 top/bottom、水平中心和 zoom，仅按 CSS 宽高比更新左右边界；DPR 不改变取景。直接修改相机后仍需 updateProjectionMatrix，未变尺寸的 resize 不负责更新修改。零尺寸暂停，投影/缓冲失败可在修复参数后 resize/render 重试。原生 view offset 由应用管理。
 
-通用扩展可用 AnyThreeApp 借用两种宿主；controls、模型/纹理加载、动画、拾取/标签、后处理、截图与实例化入口均接受此类型。camera 的正交自动取景采用独立命名接口，既有透视接口保持原类型；正交平滑过渡尚未实现。演示服务 `/?demo=orthographic` 比较深度、缩放、拾取/标签和放大模型后的自动取景。
+通用扩展可用 AnyThreeApp 借用两种宿主；controls、模型/纹理加载、动画、拾取/标签、后处理、截图与实例化入口均接受此类型。camera 的正交即时/平滑取景采用独立命名接口，既有透视接口保持原类型。演示服务 `/?demo=orthographic` 比较深度、缩放、拾取/标签和放大模型后的取景。
 
 ### 正交自动取景
 
@@ -35,6 +35,24 @@ app.render();
 这里 app 为 OrthographicThreeApp，object 为借用 Object3D，orbit 为可选 OrbitControls 句柄。规划不写相机；应用设置位置/朝向、zoom 和默认推荐裁剪面，不改未缩放视锥、不绘制或启动场景。返回 OrthographicObjectFrame，包含世界边界、包围球、中心、位置、距离、near/far 及 zoom。采用保守包围球以容纳任意朝向，可能比最紧凑取景留白更多。
 
 默认 padding=1.2（>=1）、minimumDistance=0；可指定世界 direction。相机需未挂父级、无缩放、自动矩阵且视锥居中，不支持 view offset；无效/空/退化边界拒绝。蒙皮准备包含子树外骨骼和当前绑定逆矩阵。控件必须属于该相机；不兼容的缩放、距离和目标限制先拒绝，保留调用方配置。adjustClipping=false 保留原生 near/far（near 可为 0），范围不足则拒绝。回调异常释放准备/应用写锁，恢复控件配置，但不回滚原生副作用。尺寸/对象改变后自行重新取景；shader 位移不属于 CPU 边界保证。
+
+### 正交平滑取景
+
+```ts
+import { transitionOrthographicToObject } from "@adui/three/camera";
+
+const motion = transitionOrthographicToObject(app, object, {
+  controls: orbit.controls,
+  duration: 0.8,
+});
+app.start(); // 消费者明确决定运行；宿主暂停时过渡也暂停。
+const result = await motion.finished;
+if (result.status === "completed") console.log(result.frame.zoom);
+```
+
+沿用正交即时规划，按宿主 delta 插值姿态/轨道与 zoom，返回 CameraTransitionHandle<OrthographicObjectFrame>；原句柄/结果默认类型仍为 ObjectFrame。每相机最多一个过渡，无自动启动/绘制或独立时钟，finished 始终 resolve completed/cancelled/failed。支持 cancel/dispose、signal、替换、即时 fit、宿主/scope 结束及带控件的输入取消。
+
+尺寸、视锥/zoom、姿态或控件缩放约束改写在下次更新取消；默认先扩裁剪、完成后收紧，near=0 有效，取消保留当前姿态/zoom。控件配置按值租用/恢复，即时取景先完成旧租约交接。目标改变后自行取消并重新规划，不保证过渡中全部可见或避障。
 
 ## 最小示例
 

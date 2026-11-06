@@ -3,7 +3,13 @@ import { OrthographicThreeApp, ThreeApp } from "@adui/three";
 import { attachOrbitControls } from "@adui/three/controls";
 import { attachPicking } from "@adui/three/interaction";
 import { attachDOMLabels } from "@adui/three/labels";
-import { fitObject, fitOrthographicObject } from "@adui/three/camera";
+import {
+  fitObject,
+  fitOrthographicObject,
+  transitionToObject,
+  transitionOrthographicToObject,
+} from "@adui/three/camera";
+import type { CameraTransitionHandle } from "@adui/three/camera";
 import { BoxGeometry, Color, Group, Mesh, MeshBasicMaterial } from "three";
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
@@ -22,14 +28,15 @@ for (const orthographic of [true, false]) {
   card.innerHTML = `<div class="card-heading"><h2>${orthographic ? "正交相机" : "透视相机"}</h2><span data-testid="projection-state">—</span></div>
     <div class="stage"><div class="viewport" aria-label="${orthographic ? "正交" : "透视"}画布"><div class="label-overlay"></div></div></div>
     <div class="metrics"><div><span>ZOOM</span><strong data-testid="projection-zoom">1.000</strong></div><div><span>BLUE Z</span><strong data-testid="projection-depth">-5</strong></div><div><span>WIDTH</span><strong data-testid="projection-width">0</strong></div><div><span>HEIGHT</span><strong data-testid="projection-height">0</strong></div></div>
-    <div class="actions"><button data-action="fit">适配视角</button><button data-action="large">放大模型</button><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
-    <p class="model-feedback">选中：<span data-testid="projection-picked">—</span> · <span data-testid="projection-error" role="alert"></span></p>`;
+    <div class="actions"><button data-action="fit">适配视角</button><button data-action="smooth">平滑取景</button><button data-action="cancel">取消过渡</button><button data-action="pause-host">暂停场景</button><button data-action="start-host">运行场景</button><button data-action="large">放大模型</button><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
+    <p class="model-feedback">过渡：<span data-testid="projection-motion">idle</span> · <span data-testid="projection-progress">0.000</span></p><p class="model-feedback">选中：<span data-testid="projection-picked">—</span> · <span data-testid="projection-error" role="alert"></span></p>`;
   root.querySelector(".workspace")!.appendChild(card);
   const viewport = card.querySelector<HTMLDivElement>(".viewport")!;
   const overlay = viewport.querySelector<HTMLDivElement>(".label-overlay")!;
   let app: ThreeApp | OrthographicThreeApp | undefined;
   let blue: Mesh | undefined;
   let content: Group | undefined, fit: (() => void) | undefined;
+  let transition: (() => void) | undefined, motion: CameraTransitionHandle | undefined;
   let fitting = false,
     large = false;
   let narrow = false,
@@ -43,11 +50,14 @@ for (const orthographic of [true, false]) {
     show("depth", String(blue?.position.z ?? -5));
     show("width", String(app?.size.width ?? 0));
     show("height", String(app?.size.height ?? 0));
+    show("motion", motion?.state ?? "idle");
+    show("progress", (motion?.progress ?? 0).toFixed(3));
     for (const button of card.querySelectorAll<HTMLButtonElement>("button"))
       button.disabled = button.dataset.action !== "rebuild" && (!app || app.state === "disposed");
   };
   const rebuild = (): void => {
     app?.dispose();
+    motion = undefined;
     app = orthographic
       ? new OrthographicThreeApp(viewport, { camera: { frustumHeight: 6, far: 100 } })
       : new ThreeApp(viewport, {
@@ -97,9 +107,27 @@ for (const orthographic of [true, false]) {
         fitting = false;
       }
     };
-    const changed = (): void => {
-      if (!fitting) draw();
+    transition = () => {
+      fitting = true;
+      try {
+        const current =
+          host instanceof OrthographicThreeApp
+            ? transitionOrthographicToObject(host, content!, { controls, duration: 1.2 })
+            : transitionToObject(host, content!, { controls, duration: 1.2 });
+        motion = current;
+        void current.finished.then((result) => {
+          if (motion !== current) return;
+          if (result.status === "failed") show("error", String(result.error));
+          refresh();
+        });
+      } finally {
+        fitting = false;
+      }
     };
+    const changed = (): void => {
+      if (!fitting && host.state !== "running") draw();
+    };
+    host.onAfterRender(refresh);
     controls.addEventListener("change", changed);
     host.resources.track({ dispose: () => controls.removeEventListener("change", changed) });
     const observer = new ResizeObserver(() => {
@@ -127,13 +155,23 @@ for (const orthographic of [true, false]) {
         return;
       }
       if (!app || app.state === "disposed") return;
+      if (button.dataset.action === "smooth") {
+        transition?.();
+        app.start();
+      }
+      if (button.dataset.action === "cancel") motion?.cancel();
+      if (button.dataset.action === "pause-host") app.stop();
+      if (button.dataset.action === "start-host") app.start();
       if (button.dataset.action === "fit") fit?.();
       if (button.dataset.action === "large" && content) {
+        motion?.cancel();
         large = !large;
         content.scale.setScalar(large ? 20 : 1);
       }
-      if (button.dataset.action === "depth" && blue)
+      if (button.dataset.action === "depth" && blue) {
+        motion?.cancel();
         blue.position.z = blue.position.z === -5 ? -10 : -5;
+      }
       if (button.dataset.action === "zoom") {
         app.camera.zoom = app.camera.zoom === 1 ? 1.5 : 1;
         app.camera.updateProjectionMatrix();

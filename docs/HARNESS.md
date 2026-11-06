@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 376 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 388 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 81 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 83 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,10 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 正交过渡阶段：复用内部泛型过渡执行器，新增十二项单测，累计 388 项通过；原十七项透视过渡测试保持。新增失败单测发现即时正交 fit 在取消过渡前保存租用 false，修正为取消恢复后保存；另一个异常夹具最初在宿主较早的 controls 更新中抛错，改为在过渡自身更新抛错，验证 failed/传播与清理，无时限调整。
+
+ready 通过 13 项文档测试、153 文件格式、92 源文件静态检查与全部构建；十二入口 tarball 和四次严格消费通过，completed.frame.zoom 自动收窄。正交/透视过渡浏览器专项 10/10（约 23.9 秒），完整 83/83（约 3.7 分钟），零重试，验证真实放大模型、暂停/继续、对侧隔离、wheel/resize/即时应用/销毁重建。无新入口、依赖、CI 或发布。
 
 2026-11-06 正交取景阶段：新增 computeOrthographicFrame/fitOrthographicObject，十三项数学/控件单测覆盖世界角点、窄幅/边距、子树外骨骼/父级缩放、原生约束、near=0、无调度、生命周期和准备期重入/异常，累计 376 项。ready 通过 13 项文档测试、151 文件格式、91 源文件静态检查与全部构建；十二入口 tarball 新增两项 camera 命名导出，四次严格声明/消费编译通过。
 

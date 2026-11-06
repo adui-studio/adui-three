@@ -37,7 +37,13 @@ OrthographicThreeApp 采用独立 options.camera（frustumHeight=10、near=0、f
 
 computeOrthographicFrame(OrthographicCamera,Object3D,ObjectFrameOptions?) 返回 OrthographicObjectFrame，包含 ObjectFrame 全字段与 zoom；fitOrthographicObject(OrthographicThreeApp,Object3D,FitObjectOptions?) 应用计划，无绘制/启动/订阅。未缩放视锥保持，zoom 根据两轴最小跨度、世界 AABB 包围球与 padding 计算，距离及裁剪面保守容纳深度。边界准备与透视共享，包含子树外骨骼及更新绑定逆矩阵。
 
-仅接受居中、无父级/缩放、自动矩阵且无 view offset 的相机，拒绝不可表示/空/退化边界。校验控件归属、zoom/distance/target 约束；保留约束并临时关闭/恢复 damping 与 autoRotate。adjustClipping=false 允许 near=0，但不足的原裁剪面拒绝。准备期起持有相机写锁，getter/顶点/控件异常也释放；不回滚原生副作用，不自动跟踪尺寸或目标。详见 [ADR-0027](adr/0027-orthographic-framing.md)，正交平滑过渡尚未实现。
+仅接受居中、无父级/缩放、自动矩阵且无 view offset 的相机，拒绝不可表示/空/退化边界。校验控件归属、zoom/distance/target 约束；保留约束并临时关闭/恢复 damping 与 autoRotate。adjustClipping=false 允许 near=0，但不足的原裁剪面拒绝。准备期起持有相机写锁，getter/顶点/控件异常也释放；不回滚原生副作用，不自动跟踪尺寸或目标。详见 [ADR-0027](adr/0027-orthographic-framing.md)。
+
+## 正交过渡契约
+
+transitionOrthographicToObject(OrthographicThreeApp,Object3D,CameraTransitionOptions?) 返回 CameraTransitionHandle<OrthographicObjectFrame>；句柄/结果新增默认 ObjectFrame 的泛型参数，不改既有透视调用。复用内部执行器的宿主 delta、smoothstep 姿态/轨道和输入租约；正交额外对 zoom 作凸组合并更新投影，near=0 可作为起始/保留裁剪面。
+
+准备/应用持有写锁；外部视锥/zoom 或 min/maxZoom 改写在有效更新取消，暂停/零尺寸不轮询，目标不自动跟踪。scope/signal/替换/即时应用与错误清理沿用既有过渡。即时正交 fit 在取消旧过渡之后保存恢复配置。默认先扩裁剪再收紧，取消保留当前状态。见 [ADR-0028](adr/0028-orthographic-transition.md)。
 
 ## 模块与关键流程
 
@@ -301,6 +307,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-037  | 模型动画契约                      | animation.ts、通知演示                           | 采样/订阅/队列单测、真实片段串接与清理浏览器、包消费       |
 | FR-038  | 正交宿主契约                      | three-app.ts、orthographic.ts                    | 宿主数学/清理单测、投影/缩放/交互/GPU 浏览器、包消费       |
 | FR-039  | 正交取景契约                      | camera-orthographic.ts、共享边界准备             | 角点/蒙皮/控件/重入单测、放大与窄屏浏览器、包消费          |
+| FR-040  | 正交过渡契约                      | camera-transition.ts、共享正交准备               | 缩放/控件/取消单测、真实过渡浏览器、泛型包消费             |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 

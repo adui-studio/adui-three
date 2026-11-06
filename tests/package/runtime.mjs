@@ -22,6 +22,7 @@ const expected = {
     "transitionToObject",
     "computeOrthographicFrame",
     "fitOrthographicObject",
+    "transitionOrthographicToObject",
   ],
   "@adui/three/postprocessing": ["attachBloom", "attachPostprocessing"],
   "@adui/three/environment": ["loadHDR", "attachEnvironment"],
