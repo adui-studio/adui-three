@@ -37,6 +37,7 @@
 - [路径运动决策](docs/adr/0024-path-motion.md)：局部曲线采样、变换写入与宿主/模型作用域清理。
 - [动画通知决策](docs/adr/0025-animation-notifications.md)：采样后的循环/完成通知、订阅和控制命令排队。
 - [正交宿主决策](docs/adr/0026-orthographic-host.md)：具体相机类型、共用生命周期和视锥尺寸策略。
+- [正交取景决策](docs/adr/0027-orthographic-framing.md)：世界包围球缩放、原生约束与准备期写锁。
 
 ## 工作流程与约束
 

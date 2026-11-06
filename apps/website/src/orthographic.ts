@@ -3,7 +3,8 @@ import { OrthographicThreeApp, ThreeApp } from "@adui/three";
 import { attachOrbitControls } from "@adui/three/controls";
 import { attachPicking } from "@adui/three/interaction";
 import { attachDOMLabels } from "@adui/three/labels";
-import { BoxGeometry, Color, Mesh, MeshBasicMaterial } from "three";
+import { fitObject, fitOrthographicObject } from "@adui/three/camera";
+import { BoxGeometry, Color, Group, Mesh, MeshBasicMaterial } from "three";
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
 root.innerHTML = `<div class="shell">
@@ -21,13 +22,16 @@ for (const orthographic of [true, false]) {
   card.innerHTML = `<div class="card-heading"><h2>${orthographic ? "正交相机" : "透视相机"}</h2><span data-testid="projection-state">—</span></div>
     <div class="stage"><div class="viewport" aria-label="${orthographic ? "正交" : "透视"}画布"><div class="label-overlay"></div></div></div>
     <div class="metrics"><div><span>ZOOM</span><strong data-testid="projection-zoom">1.000</strong></div><div><span>BLUE Z</span><strong data-testid="projection-depth">-5</strong></div><div><span>WIDTH</span><strong data-testid="projection-width">0</strong></div><div><span>HEIGHT</span><strong data-testid="projection-height">0</strong></div></div>
-    <div class="actions"><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
+    <div class="actions"><button data-action="fit">适配视角</button><button data-action="large">放大模型</button><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
     <p class="model-feedback">选中：<span data-testid="projection-picked">—</span> · <span data-testid="projection-error" role="alert"></span></p>`;
   root.querySelector(".workspace")!.appendChild(card);
   const viewport = card.querySelector<HTMLDivElement>(".viewport")!;
   const overlay = viewport.querySelector<HTMLDivElement>(".label-overlay")!;
   let app: ThreeApp | OrthographicThreeApp | undefined;
   let blue: Mesh | undefined;
+  let content: Group | undefined, fit: (() => void) | undefined;
+  let fitting = false,
+    large = false;
   let narrow = false,
     zero = false;
   const show = (key: string, text: string): void => {
@@ -59,10 +63,13 @@ for (const orthographic of [true, false]) {
     blue.name = "蓝色方块";
     red.position.set(-1.5, 0, 0);
     blue.position.set(1.5, 0, -5);
-    app.scene.add(red, blue);
+    content = new Group();
+    content.add(red, blue);
+    app.scene.add(content);
+    large = false;
     const controls = attachOrbitControls(app).controls;
     controls.enableRotate = false;
-    controls.minZoom = 0.5;
+    controls.minZoom = 0.001;
     controls.maxZoom = 3;
     const labels = attachDOMLabels(app, overlay);
     for (const object of [red, blue]) {
@@ -80,8 +87,21 @@ for (const orthographic of [true, false]) {
       host.render();
       refresh();
     };
-    controls.addEventListener("change", draw);
-    host.resources.track({ dispose: () => controls.removeEventListener("change", draw) });
+    fit = () => {
+      fitting = true;
+      try {
+        if (host instanceof OrthographicThreeApp)
+          fitOrthographicObject(host, content!, { controls });
+        else fitObject(host, content!, { controls });
+      } finally {
+        fitting = false;
+      }
+    };
+    const changed = (): void => {
+      if (!fitting) draw();
+    };
+    controls.addEventListener("change", changed);
+    host.resources.track({ dispose: () => controls.removeEventListener("change", changed) });
     const observer = new ResizeObserver(() => {
       if (host.state !== "disposed") draw();
     });
@@ -107,6 +127,11 @@ for (const orthographic of [true, false]) {
         return;
       }
       if (!app || app.state === "disposed") return;
+      if (button.dataset.action === "fit") fit?.();
+      if (button.dataset.action === "large" && content) {
+        large = !large;
+        content.scale.setScalar(large ? 20 : 1);
+      }
       if (button.dataset.action === "depth" && blue)
         blue.position.z = blue.position.z === -5 ? -10 : -5;
       if (button.dataset.action === "zoom") {

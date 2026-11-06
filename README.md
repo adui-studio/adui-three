@@ -19,7 +19,7 @@
 - **模型动画**：独立 Mixer，复用宿主循环，播放/暂停/切换、有限循环与往返，随模型或宿主清理。
 - **路径运动**：借用原生三维曲线，驱动对象位置和可选切线朝向，支持独立暂停、替换与所有者清理；见[路径 API](packages/three/README.md#对象路径运动) 和 `/?demo=path` 演示。
 - **泛光后处理**：可选 HDR 效果链，复用宿主绘制、跟随尺寸，显式关闭或释放资源。
-- **相机取景**：按模型世界边界、画布比例与 zoom 计算视角，支持原生 OrbitControls 同步。
+- **相机取景**：透视与正交分别按世界边界、画布比例规划距离或 zoom，支持原生 OrbitControls 约束与同步。
 - **画布截图**：复用当前管线导出 PNG/JPEG/WebP Blob，支持取消，不推进场景时间。
 - **实例化网格**：借用几何体/材质，管理固定容量的矩阵、颜色、活动数量和专属 buffer，见[实例 API](packages/three/README.md#实例化网格)。开发服务的 `/?demo=instances` 提供独立演示。
 
@@ -188,7 +188,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 363 项主包单元测试和 79 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
+当前有 376 项主包单元测试和 81 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
 
 ## 项目结构
 

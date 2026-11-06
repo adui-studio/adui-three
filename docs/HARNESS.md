@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 363 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 376 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 79 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 81 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR 环境                                   |
@@ -60,6 +60,12 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 正交取景阶段：新增 computeOrthographicFrame/fitOrthographicObject，十三项数学/控件单测覆盖世界角点、窄幅/边距、子树外骨骼/父级缩放、原生约束、near=0、无调度、生命周期和准备期重入/异常，累计 376 项。ready 通过 13 项文档测试、151 文件格式、91 源文件静态检查与全部构建；十二入口 tarball 新增两项 camera 命名导出，四次严格声明/消费编译通过。
+
+首轮四个单测断在未连接 DOM 的原生 OrbitControls.dispose；这些数学夹具从未连接或分配平台/GPU 资源，取消不适用的 disconnect 调用后完整通过。选项 getter 的抛错返回类型改为显式声明，另补异常后再次取景验证写锁释放；未修改原生控件或放宽断言。浏览器专项 5/5（约 7.5 秒），包含原有正交宿主及新增放大 20 倍后像素/拾取/标签、对侧隔离、窄屏重新取景和零尺寸失败恢复。
+
+增强窄屏用例后首轮完整 80/81：390px 页面实际画布为 340px，测试在收窄前误等 <300。改为先确认小于桌面宽度，再执行收窄并严格验证 zoom 下降，保留原时限。最终完整 81/81（约 3.7 分钟），零重试；原 trace/上下文/统计保留于忽略目录 playwright-report/diagnostics/orthographic-framing。不将等待条件修正描述为生产取景修复。
 
 2026-11-06 正交宿主阶段：共用内部 SceneHost 保留默认透视精确类型，新增 OrthographicThreeApp/AnyThreeApp。八项宿主单测覆盖配置分配前校验、非对称视锥/zoom、零尺寸/双实例、投影与缓冲失败重试、上下文丢失和构造回滚，累计 363 项。ready 通过 13 项文档测试、148 文件格式、89 源文件静态检查与全部构建，十二入口 tarball 和四次严格消费编译通过；具体相机属性及正交不能传入透视取景 API 均编译验证。
 

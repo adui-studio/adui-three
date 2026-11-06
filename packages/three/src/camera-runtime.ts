@@ -1,16 +1,16 @@
-import type { PerspectiveCamera } from "three";
+import type { Camera } from "three";
 
 interface CameraMotion {
   cancel(): void;
 }
-const writing = new WeakSet<PerspectiveCamera>();
-const motions = new WeakMap<PerspectiveCamera, CameraMotion>();
+const writing = new WeakSet<Camera>();
+const motions = new WeakMap<Camera, CameraMotion>();
 
-export function assertCameraWriteAvailable(camera: PerspectiveCamera): void {
+export function assertCameraWriteAvailable(camera: Camera): void {
   if (writing.has(camera)) throw new Error("Camera framing is already in progress");
 }
 
-export function beginCameraWrite(camera: PerspectiveCamera): () => void {
+export function beginCameraWrite(camera: Camera): () => void {
   assertCameraWriteAvailable(camera);
   writing.add(camera);
   return () => {
@@ -18,14 +18,14 @@ export function beginCameraWrite(camera: PerspectiveCamera): () => void {
   };
 }
 
-export function cancelCameraMotion(camera: PerspectiveCamera): void {
+export function cancelCameraMotion(camera: Camera): void {
   motions.get(camera)?.cancel();
 }
 
-export function registerCameraMotion(camera: PerspectiveCamera, motion: CameraMotion): void {
+export function registerCameraMotion(camera: Camera, motion: CameraMotion): void {
   motions.set(camera, motion);
 }
 
-export function removeCameraMotion(camera: PerspectiveCamera, motion: CameraMotion): void {
+export function removeCameraMotion(camera: Camera, motion: CameraMotion): void {
   if (motions.get(camera) === motion) motions.delete(camera);
 }

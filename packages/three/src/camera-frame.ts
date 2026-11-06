@@ -33,6 +33,23 @@ function finite(values: readonly number[]): boolean {
   return values.every(Number.isFinite);
 }
 
+/** Internal common world-bound preparation, including bones outside the framed subtree. */
+export function computeFrameBounds(object: Object3D): Box3 {
+  object.updateWorldMatrix(true, true);
+  object.traverse((node) => {
+    const mesh = node as SkinnedMesh;
+    if (!mesh.isSkinnedMesh) return;
+    // Precise Box3 sampling does not refresh bones outside the requested subtree.
+    for (const bone of mesh.skeleton.bones) bone.updateWorldMatrix(true, false);
+    // Unlike updateWorldMatrix, this path refreshes SkinnedMesh.bindMatrixInverse.
+    mesh.updateMatrixWorld(true);
+  });
+  const bounds = new Box3().setFromObject(object, true);
+  if (bounds.isEmpty() || !finite([...bounds.min.toArray(), ...bounds.max.toArray()]))
+    throw new RangeError("Object has no finite bounds");
+  return bounds;
+}
+
 /** Conservative world AABB sphere fit, accounting for zoom and both axes of a centered frustum. */
 export function computeObjectFrame(
   camera: PerspectiveCamera,
@@ -73,18 +90,7 @@ export function computeObjectFrame(
   if (!Number.isFinite(magnitude) || magnitude === 0)
     throw new RangeError("Invalid view direction");
   outward.divideScalar(magnitude).normalize();
-  object.updateWorldMatrix(true, true);
-  object.traverse((node) => {
-    const mesh = node as SkinnedMesh;
-    if (!mesh.isSkinnedMesh) return;
-    // Bones can live outside the framed subtree. Box3's precise vertex path does not update them.
-    for (const bone of mesh.skeleton.bones) bone.updateWorldMatrix(true, false);
-    // SkinnedMesh refreshes its bind inverse in this method, not in updateWorldMatrix().
-    mesh.updateMatrixWorld(true);
-  });
-  const bounds = new Box3().setFromObject(object, true);
-  if (bounds.isEmpty() || !finite([...bounds.min.toArray(), ...bounds.max.toArray()]))
-    throw new RangeError("Object has no finite bounds");
+  const bounds = computeFrameBounds(object);
   const size = bounds.getSize(new Vector3());
   const radius = Math.hypot(size.x, size.y, size.z) / 2;
   const center = bounds.getCenter(new Vector3());

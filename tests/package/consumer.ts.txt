@@ -11,7 +11,7 @@ import { attachPicking } from "@adui/three/interaction";
 import { attachDOMLabels } from "@adui/three/labels";
 import { attachGLTFAnimations, followPath } from "@adui/three/animation";
 import { attachBloom, attachPostprocessing } from "@adui/three/postprocessing";
-import { computeObjectFrame, fitObject, transitionToObject } from "@adui/three/camera";
+import { computeObjectFrame, fitObject, transitionToObject, computeOrthographicFrame, fitOrthographicObject } from "@adui/three/camera";
 import type { CameraTransitionResult } from "@adui/three/camera";
 import { BoxGeometry, Color, LineCurve3, Matrix4, Mesh, MeshBasicMaterial, Vector3 } from "three";
 
@@ -20,6 +20,9 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   const app = new ThreeApp(container, { maxPixelRatio: 2 });
   const orthographic = new OrthographicThreeApp(container, { camera: { frustumHeight: 8, near: 0 } });
   const span: number = orthographic.camera.top - orthographic.camera.bottom;
+  const orthographicFrame = computeOrthographicFrame(orthographic.camera, model.scene);
+  const fittedZoom: number = fitOrthographicObject(orthographic, model.scene).zoom;
+  void [orthographicFrame, fittedZoom];
   const aspect: number = app.camera.aspect;
   const shared: AnyThreeApp = orthographic;
   attachOrbitControls(shared);

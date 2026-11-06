@@ -117,6 +117,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 正交宿主阶段复用 threejs-fundamentals，核验 r187 OrthographicCamera 的 near=0、原生 zoom/view offset 和 OrbitControls。仅共用既有生命周期，按 CSS 比例保留竖向视锥，不照搬技能中的 r186 版本或第二渲染循环；真实像素和声明消费独立验收。
 
+正交取景继续使用 threejs-fundamentals，核验精确 Box3 和 r187 OrbitControls 对正交距离/zoom 的分别约束。复用既有蒙皮边界准备，新增保守 zoom 规划和准备期写锁；不复用透视 FOV 算法或自动创建渲染循环。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

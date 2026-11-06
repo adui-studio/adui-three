@@ -31,7 +31,13 @@ render():void 显式绘制一帧，沿用当前管线或原生 renderer，并派
 
 OrthographicThreeApp 采用独立 options.camera（frustumHeight=10、near=0、far=1000、position=[0,0,10]），原生 camera 精确类型为 OrthographicCamera，ThreeApp 仍为 PerspectiveCamera。内部泛型 SceneHost 复用所有生命周期/绘制/资源/监听；AnyThreeApp 为可选模块公共借用类型，无额外运行时基类导出或新循环。正交配置及可表示投影在 GPU 分配前验证。
 
-非零尺寸变化保留当前 top/bottom、水平中心和 zoom，按 CSS 比例写 left/right 并更新投影；DPR 仅改缓冲，零尺寸保留有效视锥，失败保留待重试尺寸。原生字段修改仍由消费者 updateProjectionMatrix，view offset 借用。相机无关的所有可选模块接受 AnyThreeApp；camera 子入口取景/过渡本阶段仍要求透视宿主。具体约束见 [ADR-0026](adr/0026-orthographic-host.md)。
+非零尺寸变化保留当前 top/bottom、水平中心和 zoom，按 CSS 比例写 left/right 并更新投影；DPR 仅改缓冲，零尺寸保留有效视锥，失败保留待重试尺寸。原生字段修改仍由消费者 updateProjectionMatrix，view offset 借用。相机无关模块接受 AnyThreeApp；正交自动取景为独立函数，既有透视取景/过渡保持原类型。具体宿主约束见 [ADR-0026](adr/0026-orthographic-host.md)。
+
+## 正交取景契约
+
+computeOrthographicFrame(OrthographicCamera,Object3D,ObjectFrameOptions?) 返回 OrthographicObjectFrame，包含 ObjectFrame 全字段与 zoom；fitOrthographicObject(OrthographicThreeApp,Object3D,FitObjectOptions?) 应用计划，无绘制/启动/订阅。未缩放视锥保持，zoom 根据两轴最小跨度、世界 AABB 包围球与 padding 计算，距离及裁剪面保守容纳深度。边界准备与透视共享，包含子树外骨骼及更新绑定逆矩阵。
+
+仅接受居中、无父级/缩放、自动矩阵且无 view offset 的相机，拒绝不可表示/空/退化边界。校验控件归属、zoom/distance/target 约束；保留约束并临时关闭/恢复 damping 与 autoRotate。adjustClipping=false 允许 near=0，但不足的原裁剪面拒绝。准备期起持有相机写锁，getter/顶点/控件异常也释放；不回滚原生副作用，不自动跟踪尺寸或目标。详见 [ADR-0027](adr/0027-orthographic-framing.md)，正交平滑过渡尚未实现。
 
 ## 模块与关键流程
 
@@ -294,6 +300,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-036  | 对象路径运动契约                  | path-animation.ts、独立路径演示                  | 曲线/变换/清理单测、像素/拾取/GPU 回归、包消费             |
 | FR-037  | 模型动画契约                      | animation.ts、通知演示                           | 采样/订阅/队列单测、真实片段串接与清理浏览器、包消费       |
 | FR-038  | 正交宿主契约                      | three-app.ts、orthographic.ts                    | 宿主数学/清理单测、投影/缩放/交互/GPU 浏览器、包消费       |
+| FR-039  | 正交取景契约                      | camera-orthographic.ts、共享边界准备             | 角点/蒙皮/控件/重入单测、放大与窄屏浏览器、包消费          |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 

@@ -149,3 +149,54 @@ test("orthographic resize and zero recovery preserve zoom and repeated disposal 
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);
 });
+
+test("orthographic framing restores a twenty-times larger model and keeps paused picking and labels aligned", async ({
+  page,
+}) => {
+  await page.goto("/?demo=orthographic");
+  const a = page.getByTestId("orthographic"),
+    b = page.getByTestId("perspective");
+  const peer = await pixels(b);
+  await a.getByRole("button", { name: "放大模型", exact: true }).click();
+  await a.getByRole("button", { name: "适配视角", exact: true }).click();
+  await expect(a.getByTestId("projection-error")).toBeEmpty();
+  const zoom = Number(await a.getByTestId("projection-zoom").textContent());
+  expect(zoom).toBeGreaterThan(0);
+  expect(zoom).toBeLessThan(0.1);
+  const frame = await pixels(a);
+  expect(frame.red.count).toBeGreaterThan(1000);
+  expect(frame.blue.count).toBeGreaterThan(1000);
+  expect(frame.error).toBe(0);
+  await page.mouse.click(frame.blue.x, frame.blue.y);
+  await expect(a.getByTestId("projection-picked")).toHaveText("蓝色方块");
+  const label = await a.getByTestId("projection-blue-label").boundingBox();
+  expect(Math.abs(label!.x + label!.width / 2 - frame.blue.x)).toBeLessThan(1);
+  expect((await pixels(b)).blue.count).toBe(peer.blue.count);
+  await expect(a.getByTestId("projection-state")).toHaveText("ready");
+});
+
+test("orthographic framing reuses the resized frustum and recovers after a zero-size rejection", async ({
+  page,
+}) => {
+  await page.goto("/?demo=orthographic");
+  const a = page.getByTestId("orthographic");
+  await a.getByRole("button", { name: "适配视角", exact: true }).click();
+  const zoom = Number(await a.getByTestId("projection-zoom").textContent());
+  const desktopWidth = Number(await a.getByTestId("projection-width").textContent());
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect
+    .poll(async () => Number(await a.getByTestId("projection-width").textContent()))
+    .toBeLessThan(desktopWidth);
+  await a.getByRole("button", { name: "收窄容器", exact: true }).click();
+  await a.getByRole("button", { name: "适配视角", exact: true }).click();
+  expect(Number(await a.getByTestId("projection-zoom").textContent())).toBeLessThan(zoom);
+  await a.getByRole("button", { name: "零高度", exact: true }).click();
+  await a.getByRole("button", { name: "适配视角", exact: true }).click();
+  await expect(a.getByTestId("projection-error")).toContainText("nonzero");
+  await a.getByRole("button", { name: "零高度", exact: true }).click();
+  await a.getByRole("button", { name: "适配视角", exact: true }).click();
+  const result = await pixels(a);
+  expect(result.red.count).toBeGreaterThan(1000);
+  expect(result.blue.count).toBeGreaterThan(1000);
+  expect(result.error).toBe(0);
+});

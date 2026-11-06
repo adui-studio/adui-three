@@ -9,6 +9,8 @@ import {
 } from "./camera-runtime.ts";
 
 export { computeObjectFrame } from "./camera-frame.ts";
+export { computeOrthographicFrame, fitOrthographicObject } from "./camera-orthographic.ts";
+export type { OrthographicObjectFrame } from "./camera-orthographic.ts";
 export type { ObjectFrameOptions, FitObjectOptions, ObjectFrame } from "./camera-frame.ts";
 export { transitionToObject } from "./camera-transition.ts";
 export type {

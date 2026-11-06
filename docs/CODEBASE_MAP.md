@@ -101,6 +101,8 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 正交/透视宿主共用 [three-app.ts](../packages/three/src/three-app.ts) 内部 SceneHost；[宿主单测](../packages/three/tests/three-app.test.ts) 包含投影/尺寸/生命周期验证。[orthographic.ts](../apps/website/src/orthographic.ts) 经 bootstrap 的 `?demo=orthographic` 比较两种相机，[浏览器回归](../tests/browser/orthographic.spec.ts) 验证实际像素、原生缩放/拾取/标签及重复 GPU 清理。
 
+正交规划/应用在 [camera-orthographic.ts](../packages/three/src/camera-orthographic.ts)，复用 camera-frame 的内部边界准备；[数学/控制器单测](../packages/three/tests/camera-orthographic.test.ts) 覆盖 zoom/裁剪/约束与写锁。orthographic 演示和对应浏览器回归增加放大后取景、窄屏重算及零尺寸恢复。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。
