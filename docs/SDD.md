@@ -220,6 +220,8 @@ controls 入口的 attachTransformControls(app, TransformControlsOptions) 允许
 
 ## HDR 环境契约
 
+配置读取完成后再次检查宿主、资产/扩展 scope 和绑定独占状态；选项 getter 引发的同步销毁或嵌套绑定会使外层调用在场景写入前失败。getter 自身产生的副作用由调用者负责，不撤销有效嵌套绑定。
+
 environment 可选入口提供 loadHDR、HDREnvironment、LoadHDROptions、EnvironmentProgress，以及 attachEnvironment、EnvironmentOptions、EnvironmentBinding。loadHDR 返回 Promise，非空 URL、signal 与宿主资源存活校验；options 支持 signal、onProgress 和 onCleanupError。原生 FileLoader 只下载 ArrayBuffer，活动任务通过 HDRLoader.createDataTexture 解析并设置反射映射。保留默认 HalfFloat/LinearSRGB，不改变 scene；同 URL 原生运输共享，解析结果独立，不中止运输。取消立即拒绝 AbortError，迟到数据跳过解码，解析中取消则清理结果。进度回调错误拒绝本任务，异步清理错误报告；详见 [ADR-0012](adr/0012-hdr-environment.md)。
 
 资产拥有原生 DataTexture、前置 ResourceScope、disposed 和幂等 dispose；宿主登记资产，清理先解绑再纹理释放，错误继续处理。attachEnvironment 只接受本宿主活动资产，单宿主独占；background=false、intensity=1，强度非负有限。借用 scene 原值，按纹理身份恢复 environment/background，强度仍为写入值才恢复；不销毁前值、不覆盖可观察外部修改。解绑不销毁资产，双范围登记使资产和宿主清理都解除绑定。

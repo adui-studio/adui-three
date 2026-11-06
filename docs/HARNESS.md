@@ -18,7 +18,7 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 411 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 413 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
 | `pnpm run test:browser`         | 构建演示并执行 90 项真实 Chromium 多步骤回归                       |
@@ -60,6 +60,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 环境绑定准备期补查：两项先行失败测试复现 getter 结束宿主后仍写入已释放纹理，以及 getter 内新绑定被外层覆盖。读取并校验选项后重新检查宿主、资产/扩展 scope 与独占绑定，写入前拒绝失效外层操作。HDR/EXR 定向 21/21 通过，覆盖三种所有者结束及嵌套绑定原状态恢复；ready 通过 413 项单测、13 项文档测试、162 文件格式、99 源文件静态检查与全部构建；完整浏览器 90/90（约 5.5 分钟），零重试。没有公共接口/导出/打包变更，沿用上一阶段十二入口消费验证，不重复 package 检查。
 
 2026-11-06 EXR 环境阶段：loadEXR 复用既有 HDR 任务/资产/绑定生命周期，固定原生首 part、半浮点 RGBA 并复制解码输入。七项新单测覆盖真实解析、方向/颜色空间、共享运输输入隔离、取消/迟到纹理、错误及重试，累计 411 项；旧 HDR 十二项保持通过。ready 通过 13 项文档测试、162 文件格式、99 源文件静态检查与全部构建，十二入口 tarball 和四次严格声明/消费通过。
 

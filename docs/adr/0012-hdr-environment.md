@@ -19,6 +19,8 @@ attachEnvironment(app, environment, { background=false, intensity=1 }) 借用本
 
 ## 原生环境转换
 
+配置读取完成后再次检查宿主、资产/扩展 scope 和绑定独占状态；选项 getter 引发的同步销毁或嵌套绑定会使外层调用在场景写入前失败。getter 自身产生的副作用由调用者负责，不撤销有效嵌套绑定。
+
 r187 WebGLEnvironments 会为等距柱状纹理生成立方背景和 PMREM 照明结果，并监听源纹理 dispose 回收对应目标。封装不重复生成 PMREM，不访问或接管 renderer 私有缓存。PMREMGenerator 的共享 scratch 资源保留到 renderer.dispose；单资产清理验收以预热后的 renderer 基线比较，不能误报首次预热留存为泄漏。宿主仍负责最终 renderer 释放。
 
 ## 验证与边界

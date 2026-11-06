@@ -205,6 +205,60 @@ test("cancellation during synchronous native decoding disposes the late texture 
   env.dispose();
 });
 
+test("binding preparation cannot restore disposed assets after an options getter ends an owner", async () => {
+  for (const end of ["host", "asset", "scope"] as const) {
+    const env = await loaded();
+    const previous = new Texture();
+    const background = new Color("red");
+    env.value.scene.environment = previous;
+    env.value.scene.background = background;
+    env.value.scene.environmentIntensity = 0.5;
+    expect(() =>
+      attachEnvironment(env.app, env.map, {
+        get background() {
+          if (end === "host") env.dispose();
+          else if (end === "asset") env.map.dispose();
+          else env.map.resources.dispose();
+          return true;
+        },
+        intensity: 2,
+      }),
+    ).toThrow();
+    expect(env.value.scene.environment).toBe(previous);
+    expect(env.value.scene.background).toBe(background);
+    expect(env.value.scene.environmentIntensity).toBe(0.5);
+    env.dispose();
+  }
+});
+
+test("a nested options binding keeps its exclusive ownership when the outer preparation resumes", async () => {
+  const env = await loaded();
+  const previous = new Texture();
+  const background = new Color("red");
+  env.value.scene.environment = previous;
+  env.value.scene.background = background;
+  env.value.scene.environmentIntensity = 0.5;
+  let nested: ReturnType<typeof attachEnvironment> | undefined;
+  expect(() =>
+    attachEnvironment(env.app, env.map, {
+      get background() {
+        nested = attachEnvironment(env.app, env.map, { background: true, intensity: 3 });
+        return false;
+      },
+      intensity: 2,
+    }),
+  ).toThrow("already attached");
+  expect(nested?.disposed).toBe(false);
+  expect(env.value.scene.environment).toBe(env.map.texture);
+  expect(env.value.scene.background).toBe(env.map.texture);
+  expect(env.value.scene.environmentIntensity).toBe(3);
+  nested!.dispose();
+  expect(env.value.scene.environment).toBe(previous);
+  expect(env.value.scene.background).toBe(background);
+  expect(env.value.scene.environmentIntensity).toBe(0.5);
+  env.dispose();
+});
+
 test("binding restores borrowed scene properties before source texture disposal", async () => {
   const env = await loaded();
   const previous = new Texture();

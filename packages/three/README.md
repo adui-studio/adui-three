@@ -700,6 +700,8 @@ LoadKTX2Options 必须显式配置匹配 Three.js r187 的转码器目录（以 
 
 ## HDR 环境
 
+配置读取完成后再次检查宿主、资产/扩展 scope 和绑定独占状态；选项 getter 引发的同步销毁或嵌套绑定会使外层调用在场景写入前失败。getter 自身产生的副作用由调用者负责，不撤销有效嵌套绑定。
+
 ```ts
 import { loadHDR, attachEnvironment } from "@adui/three/environment";
 

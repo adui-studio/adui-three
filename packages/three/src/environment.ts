@@ -208,13 +208,18 @@ export function attachEnvironment(
   environment: HDREnvironment,
   options: EnvironmentOptions = {},
 ): EnvironmentBinding {
-  if (app.signal.aborted || app.resources.disposed) throw new Error("ThreeApp has been disposed");
-  if (owners.get(environment) !== app || environment.disposed || environment.resources.disposed)
-    throw new Error("An active HDR environment owned by this app is required");
-  if (bindings.has(app)) throw new Error("An environment binding is already attached");
+  const assertAvailable = (): void => {
+    if (app.signal.aborted || app.resources.disposed) throw new Error("ThreeApp has been disposed");
+    if (owners.get(environment) !== app || environment.disposed || environment.resources.disposed)
+      throw new Error("An active HDR environment owned by this app is required");
+    if (bindings.has(app)) throw new Error("An environment binding is already attached");
+  };
+  assertAvailable();
   const { background = false, intensity = 1 } = options;
   if (typeof background !== "boolean" || !Number.isFinite(intensity) || intensity < 0)
     throw new RangeError("Invalid environment options");
+  // Option getters can synchronously end an owner or attach another exclusive binding.
+  assertAvailable();
   const scene = app.scene;
   const previous = {
     environment: scene.environment,
