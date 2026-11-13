@@ -43,6 +43,7 @@
 - [EXR 环境决策](docs/adr/0030-exr-environment.md)：原生半浮点解析、输入隔离与共用环境生命周期。
 - [区域截图决策](docs/adr/0031-capture-region.md)：画布像素坐标、最终缓冲边界与独立编码。
 - [世界边界决策](docs/adr/0032-object-bounds.md)：CPU 姿态测量、独立快照与共享取景准备。
+- [路径定位决策](docs/adr/0033-path-seek.md)：弧长进度采样、正向重置、暂停及写入竞争。
 
 ## 工作流程与约束
 

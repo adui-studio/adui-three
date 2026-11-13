@@ -344,6 +344,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-042  | EXR 环境契约                      | environment.ts、原创 EXR fixture                 | 原生半浮点/隔离单测、实际照明/GPU 回归、包消费             |
 | FR-043  | 画布截图契约                      | capture.ts、区域类型及演示选择                   | 坐标/边界/尺寸/取消单测、PNG 区域像素、包消费              |
 | FR-044  | 对象世界边界契约                  | object-bounds.ts、geometry 导出及测量演示        | CPU 姿态/缓存/重入单测、无绘制测量回归、无 DOM 包消费      |
+| FR-045  | 对象路径运动契约                  | path-animation.ts、独立时间轴演示                | 弧长/端点/命令竞争单测、像素/拾取/重建回归、包消费         |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
@@ -368,6 +369,10 @@ geometry 入口导出 computeObjectBounds(object:Object3D):Box3，独立于宿�
 包括隐藏子树，普通 Mesh 包含当前 CPU 骨骼和形变；实例/批次保留原生保守盒，不保证逐实例形变紧边界。忽略可见性/layers/drawRange 和 shader 位移；扫描成本由数据规模决定。只更新原生矩阵、bindMatrixInverse 和包围盒缓存，不写 needsUpdate、不推进 Mixer、绘制或接管资源。非对象 TypeError，空/非有限 RangeError；零尺寸允许，同根准备重入拒绝，异常后解锁但不回滚原生准备副作用，见 [ADR-0032](adr/0032-object-bounds.md)。
 
 ## 对象路径运动契约
+
+PathMotionHandle.seek(progress:number):void 对 running/paused 句柄按 [0,1] 有限弧长比例立即采样，成功后暂停并将循环 phase 归到首个正向阶段；朝向采用正向切线，无绘制/启停或 finished 事件。非法值拒绝且不改当前运动，已结束句柄拒绝。seek(1) 只暂停预览，resume 后 once 完成、repeat 回绕、pingpong 开始返回。
+
+定位使用共享写锁及两阶段准备/应用；采样期间的控制状态变化用命令版本识别，连同取消/所有者/目标变化中断旧候选。异常终结 failed、解除登记并同步抛出；已发生的自定义原生变换写入不回滚。曲线、宿主和 scope 继续沿用既有生命周期，见 [ADR-0033](adr/0033-path-seek.md)。
 
 animation 入口导出 followPath(app,object,FollowPathOptions):PathMotionHandle 和 PathMotionState/Result。options 必填 curve:Curve<Vector3>、duration>0，loop 默认 once（另可 repeat/pingpong）、orientToPath 默认 false，可选 signal 和 scope:ResourceScope。句柄 state 为 running/paused/completed/cancelled/failed；progress 为当前路径比例，回程递减；finished 始终 resolve。cancel/dispose 和终态下 pause/resume 幂等，不回退姿态。
 

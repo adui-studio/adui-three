@@ -445,6 +445,187 @@ test("a reparented target can transfer to another host without retaining the pre
   next.dispose();
 });
 
+test("seek samples local arc length, pauses without drawing or settling, and resumes from the sample", async () => {
+  const env = fixture(),
+    handle = env.start(),
+    settled = vi.fn();
+  void handle.finished.then(settled);
+  env.parent.position.set(10, 20, 30);
+  env.parent.scale.set(2, 3, 4);
+  handle.seek(0.75);
+  expect(handle.progress).toBe(0.75);
+  expect(handle.state).toBe("paused");
+  expect(env.object.position.toArray()).toEqual([3, 0, 0]);
+  expect(env.value.state).toBe("ready");
+  expect(env.value.start).not.toHaveBeenCalled();
+  expect(env.value.renderer.render).not.toHaveBeenCalled();
+  env.value.state = "running";
+  env.tick(0.25);
+  expect(handle.progress).toBe(0.75);
+  await Promise.resolve();
+  expect(settled).not.toHaveBeenCalled();
+  handle.resume();
+  env.tick(0.25);
+  expect(handle.progress).toBeCloseTo(0.875);
+  handle.dispose();
+});
+
+test("seek resets ping-pong return direction and an explicit repeat endpoint wraps only after resume", () => {
+  for (const loop of ["pingpong", "repeat"] as const) {
+    const env = fixture();
+    const handle = followPath(env.app, env.object, {
+      curve: env.curve,
+      duration: 2,
+      loop,
+      orientToPath: true,
+    });
+    env.value.state = "running";
+    env.tick(2.5);
+    handle.seek(0.25);
+    expect(env.object.position.x).toBe(1);
+    expect(new Vector3(0, 0, 1).applyQuaternion(env.object.quaternion).x).toBeCloseTo(1);
+    handle.resume();
+    env.tick(0.5);
+    expect(handle.progress).toBeCloseTo(0.5);
+    handle.seek(1);
+    expect(env.object.position.x).toBe(4);
+    expect(handle.state).toBe("paused");
+    handle.resume();
+    env.tick(0);
+    expect(handle.progress).toBe(loop === "repeat" ? 0 : 1);
+    handle.dispose();
+  }
+});
+
+test("seek at the once endpoint stays live until resumed, then settles and cannot resurrect", async () => {
+  const env = fixture(),
+    handle = env.start();
+  env.value.state = "running";
+  handle.seek(1);
+  env.tick(1);
+  expect(handle.state).toBe("paused");
+  expect(env.updates.size).toBe(1);
+  handle.resume();
+  env.tick(0);
+  expect(await handle.finished).toEqual({ status: "completed" });
+  expect(env.updates.size).toBe(0);
+  expect(() => handle.seek(0)).toThrow("ended");
+});
+
+test("invalid seek values preserve pose, active motion and its subscription", () => {
+  const env = fixture(),
+    handle = env.start();
+  env.value.state = "running";
+  env.tick(0.5);
+  for (const value of [-0.01, 1.01, NaN, Infinity, -Infinity])
+    expect(() => handle.seek(value)).toThrow(RangeError);
+  expect(env.object.position.x).toBe(1);
+  expect(handle.progress).toBe(0.25);
+  expect(handle.state).toBe("running");
+  expect(env.updates.size).toBe(1);
+  handle.dispose();
+  expect(() => handle.seek(0.5)).toThrow("ended");
+  const signal = AbortSignal.abort();
+  const early = followPath(env.app, env.object, { curve: env.curve, duration: 1, signal });
+  expect(() => early.seek(0)).toThrow("ended");
+});
+
+test.each(["pause", "resume", "cancel"] as const)(
+  "a %s command during seek sampling discards the old candidate",
+  async (command) => {
+    const env = fixture(),
+      handle = env.start();
+    if (command === "resume") handle.pause();
+    vi.spyOn(env.curve, "getPointAt").mockImplementationOnce((_u, target = new Vector3()) => {
+      handle[command]();
+      return target.set(3, 0, 0);
+    });
+    handle.seek(0.75);
+    expect(env.object.position.x).toBe(0);
+    expect(handle.progress).toBe(0);
+    expect(handle.state).toBe(
+      command === "cancel" ? "cancelled" : command === "pause" ? "paused" : "running",
+    );
+    if (command === "cancel")
+      expect(await handle.finished).toEqual({ status: "cancelled", reason: "cancelled" });
+    else {
+      handle.seek(0.5);
+      expect(handle.progress).toBe(0.5);
+      handle.dispose();
+    }
+  },
+);
+
+test.each(["scope", "target"] as const)(
+  "seek observes %s changes during sampling without committing a candidate",
+  async (change) => {
+    const env = fixture(),
+      scope = new ResourceScope();
+    const handle = followPath(env.app, env.object, { curve: env.curve, duration: 2, scope });
+    vi.spyOn(env.curve, "getPointAt").mockImplementationOnce((_u, target = new Vector3()) => {
+      if (change === "scope") scope.dispose();
+      else env.object.removeFromParent();
+      return target.set(3, 0, 0);
+    });
+    handle.seek(0.75);
+    expect(env.object.position.x).toBe(0);
+    expect(await handle.finished).toEqual({
+      status: "cancelled",
+      reason: change === "scope" ? "disposed" : "target-changed",
+    });
+    expect(env.updates.size).toBe(0);
+    scope.dispose();
+  },
+);
+
+test("seek sampling failures settle the motion, release hooks and leave the write guard reusable", async () => {
+  const env = fixture(),
+    handle = env.start(),
+    error = new Error("bad path sample");
+  vi.spyOn(env.curve, "getPointAt").mockImplementationOnce(() => {
+    throw error;
+  });
+  expect(() => handle.seek(0.75)).toThrow(error);
+  expect(await handle.finished).toEqual({ status: "failed", error });
+  expect(env.object.position.x).toBe(0);
+  expect(env.updates.size).toBe(0);
+  const next = env.start();
+  next.seek(0.5);
+  expect(env.object.position.x).toBe(2);
+  next.dispose();
+});
+
+test("seek shares the path write lock with nested seeks and replacement, then releases it", () => {
+  const env = fixture(),
+    handle = env.start();
+  vi.spyOn(env.curve, "getPointAt").mockImplementationOnce((_u, target = new Vector3()) => {
+    expect(() => handle.seek(0.5)).toThrow("in progress");
+    expect(() => env.start()).toThrow("in progress");
+    return target.set(3, 0, 0);
+  });
+  handle.seek(0.75);
+  expect(handle.progress).toBe(0.75);
+  handle.seek(0);
+  expect(env.object.position.x).toBe(0);
+  handle.dispose();
+});
+
+test("seek validates the tangent before writing either position or orientation", async () => {
+  const env = fixture();
+  const handle = followPath(env.app, env.object, {
+    curve: env.curve,
+    duration: 2,
+    orientToPath: true,
+  });
+  const orientation = env.object.quaternion.clone();
+  vi.spyOn(env.curve, "getTangentAt").mockReturnValueOnce(new Vector3());
+  expect(() => handle.seek(0.5)).toThrow("nonzero");
+  expect(env.object.position.x).toBe(0);
+  expect(env.object.quaternion.equals(orientation)).toBe(true);
+  expect((await handle.finished).status).toBe("failed");
+  expect(env.updates.size).toBe(0);
+});
+
 test("2D and zero tangent curves reject orientation before touching target rotation", () => {
   const env = fixture();
   const curve = env.curve.clone();

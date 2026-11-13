@@ -30,6 +30,8 @@ export interface PathMotionHandle {
   /** Current arc-length fraction [0,1], decreasing on a return traversal. */
   readonly progress: number;
   readonly finished: Promise<PathMotionResult>;
+  /** Sample arc-length fraction [0,1] in the first forward traversal and pause. Live handles only. */
+  seek(this: void, progress: number): void;
   pause(this: void): void;
   resume(this: void): void;
   cancel(this: void): void;
@@ -73,6 +75,9 @@ export function followPath(
       state: "cancelled",
       progress: 0,
       finished: Promise.resolve({ status: "cancelled", reason: "aborted" }),
+      seek(): never {
+        throw new Error("Path motion has ended");
+      },
       pause(): void {},
       resume(): void {},
       cancel(): void {},
@@ -102,15 +107,19 @@ export function followPath(
       rotation = new Quaternion();
     const forward = new Vector3(0, 0, 1);
     let samplingAllowed = (): boolean => ownerAlive() && !signal?.aborted;
-    const prepare = (progress: number, direction: number): boolean => {
+    const prepare = (
+      progress: number,
+      direction: number,
+      allowed: () => boolean = samplingAllowed,
+    ): boolean => {
       const sampled = curve.getPointAt(progress, point);
-      if (!samplingAllowed()) return false;
+      if (!allowed()) return false;
       if (!sampled?.isVector3 || !sampled.toArray().every(Number.isFinite))
         throw new RangeError("Path sample must be a finite Vector3");
       point.copy(sampled);
       if (orientToPath) {
         const value = curve.getTangentAt(progress, tangent);
-        if (!samplingAllowed()) return false;
+        if (!allowed()) return false;
         if (!value?.isVector3 || !value.toArray().every(Number.isFinite))
           throw new RangeError("Path tangent must be a finite nonzero Vector3");
         const magnitude = Math.max(Math.abs(value.x), Math.abs(value.y), Math.abs(value.z));
@@ -134,6 +143,7 @@ export function followPath(
     let state: PathMotionState = "running",
       progress = 0,
       phase = 0;
+    let commandRevision = 0;
     let outcome: PathMotionResult | undefined;
     samplingAllowed = (): boolean =>
       ownerAlive() && !signal?.aborted && !outcome && state === "running";
@@ -178,13 +188,15 @@ export function followPath(
       }
       return true;
     };
-    const apply = (): boolean => {
-      if (!retained() || state !== "running") return false;
+    const running = (): boolean => state === "running";
+    const apply = (allowed: () => boolean = running): boolean => {
+      if (!retained() || !allowed()) return false;
       object.position.copy(point);
       if (!ownerAlive() || outcome) {
         if (!outcome) finish({ status: "cancelled", reason: "disposed" });
         return false;
       }
+      if (!allowed()) return false;
       if (
         !attached() ||
         !object.position.equals(point) ||
@@ -196,7 +208,7 @@ export function followPath(
       if (orientToPath) object.quaternion.copy(rotation);
       lastPosition.copy(object.position);
       lastRotation.copy(object.quaternion);
-      return retained() && state === "running";
+      return retained() && allowed();
     };
     const abort = (): void => {
       finish({ status: "cancelled", reason: "aborted" });
@@ -209,11 +221,43 @@ export function followPath(
         return progress;
       },
       finished,
+      seek(value): void {
+        if (outcome) throw new Error("Path motion has ended");
+        if (!Number.isFinite(value) || value < 0 || value > 1)
+          throw new RangeError("Path progress must be finite and within [0,1]");
+        if (writing.has(object))
+          throw new Error("A path update is already in progress for this object");
+        if (!retained()) throw new Error("Path motion has ended");
+        const revision = commandRevision;
+        const allowed = (): boolean =>
+          ownerAlive() && !signal?.aborted && !outcome && revision === commandRevision;
+        writing.add(object);
+        try {
+          if (!prepare(value, 1, allowed) || !apply(allowed)) {
+            retained();
+            return;
+          }
+          progress = phase = value;
+          state = "paused";
+          commandRevision++;
+        } catch (error) {
+          const result = finish({ status: "failed", error });
+          throw result.status === "failed" ? result.error : error;
+        } finally {
+          writing.delete(object);
+        }
+      },
       pause(): void {
-        if (state === "running") state = "paused";
+        if (state === "running") {
+          state = "paused";
+          commandRevision++;
+        }
       },
       resume(): void {
-        if (state === "paused") state = "running";
+        if (state === "paused") {
+          state = "running";
+          commandRevision++;
+        }
       },
       cancel(): void {
         finish({ status: "cancelled", reason: "cancelled" });

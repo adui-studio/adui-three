@@ -102,7 +102,7 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
     curve: new LineCurve3(new Vector3(), new Vector3(2, 0, 0)), duration: 2,
     loop: "pingpong", orientToPath: true, scope: loaded.resources, signal: app.signal,
   });
-  path.pause(); path.resume(); path.cancel();
+  path.seek(0.5); path.pause(); path.resume(); path.cancel();
   const pathResult = await path.finished;
   if (pathResult.status === "failed") console.error(pathResult.error);
   animations.play(0, { loop: "pingpong", repetitions: 2 });

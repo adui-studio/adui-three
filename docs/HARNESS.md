@@ -18,7 +18,7 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 447 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 459 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
 | `pnpm run test:browser`         | 构建演示并执行 99 项真实 Chromium 多步骤回归                       |
@@ -60,6 +60,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-13 路径定位：PathMotionHandle.seek 以弧长进度采样并暂停，重置首个正向阶段；共享写锁、候选与命令版本，保留结束/错误/所有权边界。新增十二项单测，路径定向 32/32；ready 通过 459 单测、16 文档测试、174 文件格式、108 源文件静态检查及全部构建。浏览器路径专项 4/4（约 11.5 秒）通过，新增滑块验证真实箭头像素/拾取、另一目标进度、端点继续、目标/宿主重建。十二入口 tarball 和四次严格声明/消费通过，含 seek 方法；完整浏览器 103/103（约 5.0 分钟）通过，零重试、零跳过。
 
 2026-11-13 截图绘制中断：四项先行失败用例确认 render 未返回调用结果及 capture 忽略未绘制结果仍分配编码画布。render 现在同步返回 boolean，true 仅表示绘制方法已正常调用，完成通知中暂停不会抹掉已发生的绘制。capture 在 false 时拒绝并清理，不分配临时画布。宿主/截图定向 84/84 通过，ready 通过 447 单测、16 文档测试、173 文件格式、108 源文件静态检查及全部构建。原截图与管线浏览器专项 8/8（约 16.6 秒）通过；其中两类宿主实际验证中断时零编码画布、原生 PNG 重试得到绿色几何体、对侧像素保持。十二入口独立 tarball 与四次严格消费通过，验证两类宿主的 boolean 返回声明；完整浏览器 102/102（约 4.5 分钟）通过，零重试、零跳过。
 

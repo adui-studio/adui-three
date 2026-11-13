@@ -40,6 +40,52 @@ async function arrow(page: Page) {
   });
 }
 
+test("path timeline samples paused native pixels, retains picking and resumes or rebuilds independently", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/?demo=path");
+  await expect(page.getByTestId("path-state")).toHaveText("running");
+  await page.getByRole("button", { name: "暂停场景", exact: true }).click();
+  await page.getByRole("button", { name: "播放一次", exact: true }).click();
+  const first = await arrow(page),
+    peer = await page.getByTestId("path-peer-progress").textContent();
+  const slider = page.getByRole("slider", { name: "路径 A 定位" });
+  await slider.fill("50");
+  await expect(page.getByTestId("path-state")).toHaveText("paused");
+  await expect(page.getByTestId("path-progress")).toHaveText("0.500");
+  await expect(page.getByTestId("path-host")).toHaveText("stopped");
+  await expect(page.getByTestId("path-peer-progress")).toHaveText(peer!);
+  const sampled = await arrow(page);
+  expect(sampled.count).toBeGreaterThan(15);
+  expect(sampled.error).toBe(0);
+  expect(Math.hypot(first.x - sampled.x, first.y - sampled.y)).toBeGreaterThan(5);
+  await page.mouse.click(sampled.x, sampled.y);
+  await expect(page.getByTestId("path-picked")).toHaveText("路径 A");
+  await slider.fill("0");
+  const reset = await arrow(page);
+  expect(Math.hypot(first.x - reset.x, first.y - reset.y)).toBeLessThan(1);
+  await slider.fill("100");
+  await expect(page.getByTestId("path-state")).toHaveText("paused");
+  await expect(page.getByTestId("path-result")).toHaveText("—");
+  await page.getByRole("button", { name: "继续路径", exact: true }).click();
+  await page.getByRole("button", { name: "运行场景", exact: true }).click();
+  await expect(page.getByTestId("path-result")).toHaveText("completed");
+  await expect(slider).toBeDisabled();
+  await page.getByRole("button", { name: "暂停场景", exact: true }).click();
+  await page.getByRole("button", { name: "重建目标", exact: true }).click();
+  await expect(slider).toBeEnabled();
+  await slider.fill("25");
+  await expect(page.getByTestId("path-progress")).toHaveText("0.250");
+  await page.getByRole("button", { name: "销毁场景", exact: true }).click();
+  await expect(slider).toBeDisabled();
+  await page.getByRole("button", { name: "重建场景", exact: true }).click();
+  await expect(slider).toBeEnabled();
+  await expect(page.getByTestId("path-error")).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
 test("real path pixels move, per-object pause retains picking and another target continues", async ({
   page,
 }) => {
