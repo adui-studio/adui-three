@@ -408,6 +408,22 @@ capture 不写相机、取消过渡或推进时间，零尺寸可用；restore �
 
 带控件保存会记录 target，并要求无 roll、单位 up；带控件恢复需已有 target、同相机与相同 up。距离、正交缩放和目标限制先校验，原生角度限制可调整最终姿态。控件惯性通过公开 update 消耗，配置与共享写锁在异常后恢复；原生副作用不回滚。演示“保存视角 / 恢复视角”使用内存 JSON，库不访问 localStorage 或业务 Store。
 
+平滑返回书签时使用同一 camera 入口：
+
+```ts
+import { transitionToCameraView } from "@adui/three/camera";
+
+const motion = transitionToCameraView(app, saved, { controls: orbit.controls, duration: 1 });
+app.start(); // 消费者决定何时运行；宿主暂停时过渡也暂停。
+const result = await motion.finished;
+if (result.status === "completed") console.log(result.view); // 原生约束后的实际独立快照。
+// motion.cancel(); // 保留当前状态，立即解除控件租约。
+```
+
+只支持同类相机。输入与源配置验证后才替换原运动，与取景和即时恢复共用一份相机租约；不自动启动或绘制。smoothstep 插值位置/朝向、zoom 与镜头，借用控件时同步 target 和原生限制。near/far 开始扩展、完成恢复，取消保留当前投影；无控件 up 仅在完成恢复。有控件仍要求相同单位 up、无 roll，原生角度限制可能改变终点。
+
+scope/signal/输入/新相机命令可结束过渡；CSS 尺寸、外部姿态/投影/控件约束变化在下次有效更新取消。结束按值恢复 enabled/damping/autoRotate，不释放借用对象。原生回调副作用不回滚，错误同步传播且 finished resolve failed。`/?demo=orthographic` 同时提供立即恢复、平滑恢复、取消和进度。
+
 ## KTX2 纹理模型
 
 ```ts

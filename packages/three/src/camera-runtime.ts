@@ -1,4 +1,24 @@
-import type { Camera } from "three";
+import type { Camera, Vector3 } from "three";
+
+export function mixCameraNumber(a: number, b: number, t: number): number {
+  return (1 - t) * a + t * b;
+}
+
+export function mixCameraVector(a: Vector3, b: Vector3, t: number, target: Vector3): Vector3 {
+  return target.set(
+    mixCameraNumber(a.x, b.x, t),
+    mixCameraNumber(a.y, b.y, t),
+    mixCameraNumber(a.z, b.z, t),
+  );
+}
+
+export function nearCameraVector(a: Vector3, b: Vector3): boolean {
+  return (["x", "y", "z"] as const).every(
+    (axis) =>
+      Number.isFinite(a[axis]) &&
+      Math.abs(a[axis] - b[axis]) <= 1e-9 * Math.max(1, Math.abs(b[axis])),
+  );
+}
 
 interface CameraMotion {
   cancel(): void;

@@ -248,6 +248,23 @@ test("orthographic motion may retain existing zero-near clipping and does not ti
   expect([env.camera.near, env.camera.far]).toEqual([0, 1000]);
 });
 
+test("orthographic orbit transitions retain a tiny positive endpoint distance", async () => {
+  const env = fixture(true);
+  env.object.position.set(0, 0, 0);
+  env.object.scale.setScalar(1e-18);
+  const motion = env.start();
+  env.env.state = "running";
+  env.tick(1);
+  const result = await motion.finished;
+  expect(result.status).toBe("completed");
+  if (result.status === "completed") {
+    const delta = env.camera.position.clone().sub(result.frame.center);
+    expect(Math.hypot(...delta.toArray())).toBeGreaterThan(0);
+    expect(Math.hypot(...delta.toArray()) / result.frame.distance).toBeCloseTo(1, 8);
+  }
+  env.env.resources.dispose();
+});
+
 test("orthographic transitions keep tiny target zoom positive and exact at completion", async () => {
   const env = fixture();
   env.object.scale.setScalar(1e6);

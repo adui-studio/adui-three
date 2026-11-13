@@ -131,4 +131,6 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 管线 getter 的真实生命周期回归见 [pipeline-getters.spec.ts](../tests/browser/pipeline-getters.spec.ts)，覆盖两类宿主在挂接/绘制/尺寸读取时销毁，验证旧调用跳过和独立实例像素。
 
+视角平滑恢复位于 [camera-view-transition.ts](../packages/three/src/camera-view-transition.ts)，复用 camera-view 预检和 camera-runtime 写锁/登记；[专项单测](../packages/three/tests/camera-view-transition.test.ts) 覆盖插值/租约/异常。投影演示和既有 camera-view 浏览器回归增加书签平滑恢复、暂停、输入及重建验证，独立包消费覆盖公开导出。
+
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

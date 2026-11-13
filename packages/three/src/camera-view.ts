@@ -121,11 +121,20 @@ function projection(
       throw new RangeError("Camera view exceeds the supported numeric range");
     camera = new OrthographicCamera(left, right, view.top, view.bottom, view.near, view.far);
   }
-  camera.coordinateSystem = source.coordinateSystem;
   camera.zoom = view.zoom;
   camera.position.fromArray(view.position);
   camera.quaternion.fromArray(view.quaternion);
   camera.up.fromArray(view.up);
+  updateCameraViewProjection(camera, source);
+  return camera;
+}
+
+/** Internal CPU-only projection validation; preserves the host's readonly depth mode. */
+export function updateCameraViewProjection(
+  camera: PerspectiveCamera | OrthographicCamera,
+  source: Camera,
+): void {
+  camera.coordinateSystem = source.coordinateSystem;
   camera.updateProjectionMatrix();
   if (source.reversedDepth) {
     // The native flag is readonly. Build only the temporary projection through public Matrix4 APIs.
@@ -171,7 +180,6 @@ function projection(
   ])
     if (!matrix.elements.every(Number.isFinite) || matrix.elements.every((value) => value === 0))
       throw new RangeError("Camera view matrices must be finite and invertible");
-  return camera;
 }
 function orbitPose(view: CameraView): void {
   if (Math.abs(Math.hypot(...view.up) - 1) > 1e-6)
@@ -231,6 +239,78 @@ export function captureCameraView(app: AnyThreeApp, options: CameraViewOptions =
   return view;
 }
 
+export interface PreparedCameraView {
+  camera: PerspectiveCamera | OrthographicCamera;
+  candidate: PerspectiveCamera | OrthographicCamera;
+  view: CameraView;
+  controls: OrbitControls | undefined;
+  owned(this: void): void;
+}
+
+/** Internal common preflight. Call under the camera write lock; no host or control writes. */
+export function prepareCameraView(
+  app: AnyThreeApp,
+  input: CameraView,
+  options: CameraViewOptions = {},
+): PreparedCameraView {
+  active(app);
+  const camera = supported(app.camera),
+    view = readView(input);
+  if (camera instanceof PerspectiveCamera !== (view.kind === "perspective"))
+    throw new TypeError("Camera view kind does not match the host");
+  if (app.size.width <= 0 || app.size.height <= 0)
+    throw new Error("A nonzero viewport is required");
+  const candidate = projection(view, app.size.width / app.size.height, camera);
+  const controls = options.controls;
+  const owned = (): void => {
+    active(app);
+    if (app.camera !== camera) throw new Error("ThreeApp camera changed during view preparation");
+    if (controls && controls.object !== camera)
+      throw new Error("Controls belong to a different camera");
+  };
+  owned();
+  if (controls) {
+    orbitPose(view);
+    if (!camera.up.equals(candidate.up))
+      throw new RangeError("Restore orbit views with the controls' current up vector");
+    const distance = candidate.position.distanceTo(new Vector3().fromArray(view.target!));
+    const radius = new Vector3().fromArray(view.target!).distanceTo(controls.cursor);
+    if (
+      ![
+        controls.minDistance,
+        controls.minTargetRadius,
+        controls.minPolarAngle,
+        controls.maxPolarAngle,
+        ...controls.cursor.toArray(),
+      ].every(Number.isFinite) ||
+      controls.minDistance < 0 ||
+      Number.isNaN(controls.maxDistance) ||
+      controls.maxDistance < controls.minDistance ||
+      distance < controls.minDistance ||
+      distance > controls.maxDistance ||
+      controls.minTargetRadius < 0 ||
+      Number.isNaN(controls.maxTargetRadius) ||
+      !Number.isFinite(radius) ||
+      radius < controls.minTargetRadius ||
+      radius > controls.maxTargetRadius ||
+      controls.minPolarAngle < 0 ||
+      controls.maxPolarAngle > Math.PI ||
+      controls.minPolarAngle > controls.maxPolarAngle ||
+      Number.isNaN(controls.minAzimuthAngle) ||
+      Number.isNaN(controls.maxAzimuthAngle) ||
+      (view.kind === "orthographic" &&
+        (!Number.isFinite(controls.minZoom) ||
+          controls.minZoom < 0 ||
+          Number.isNaN(controls.maxZoom) ||
+          view.zoom < controls.minZoom ||
+          view.zoom > controls.maxZoom))
+    )
+      throw new RangeError("OrbitControls constraints cannot contain the camera view");
+  }
+  owned();
+  return { camera, candidate, view, controls, owned };
+}
+
 /** Restore for the current CSS aspect. Native orbit angle limits may adjust the resulting pose. */
 export function restoreCameraView(
   app: AnyThreeApp,
@@ -243,61 +323,11 @@ export function restoreCameraView(
     autoRotate = false,
     leased = false;
   try {
-    active(app);
-    const camera = supported(app.camera),
-      view = readView(input);
-    if (camera instanceof PerspectiveCamera !== (view.kind === "perspective"))
-      throw new TypeError("Camera view kind does not match the host");
-    if (app.size.width <= 0 || app.size.height <= 0)
-      throw new Error("A nonzero viewport is required");
-    const candidate = projection(view, app.size.width / app.size.height, camera);
-    controls = options.controls;
-    const owned = (): void => {
-      active(app);
-      if (controls && controls.object !== camera)
-        throw new Error("Controls belong to a different camera");
-    };
-    owned();
-    if (controls) {
-      orbitPose(view);
-      if (!camera.up.equals(candidate.up))
-        throw new RangeError("Restore orbit views with the controls' current up vector");
-      const distance = candidate.position.distanceTo(new Vector3().fromArray(view.target!));
-      const radius = new Vector3().fromArray(view.target!).distanceTo(controls.cursor);
-      if (
-        ![
-          controls.minDistance,
-          controls.minTargetRadius,
-          controls.minPolarAngle,
-          controls.maxPolarAngle,
-          ...controls.cursor.toArray(),
-        ].every(Number.isFinite) ||
-        controls.minDistance < 0 ||
-        Number.isNaN(controls.maxDistance) ||
-        controls.maxDistance < controls.minDistance ||
-        distance < controls.minDistance ||
-        distance > controls.maxDistance ||
-        controls.minTargetRadius < 0 ||
-        Number.isNaN(controls.maxTargetRadius) ||
-        !Number.isFinite(radius) ||
-        radius < controls.minTargetRadius ||
-        radius > controls.maxTargetRadius ||
-        controls.minPolarAngle < 0 ||
-        controls.maxPolarAngle > Math.PI ||
-        controls.minPolarAngle > controls.maxPolarAngle ||
-        Number.isNaN(controls.minAzimuthAngle) ||
-        Number.isNaN(controls.maxAzimuthAngle) ||
-        (view.kind === "orthographic" &&
-          (!Number.isFinite(controls.minZoom) ||
-            controls.minZoom < 0 ||
-            Number.isNaN(controls.maxZoom) ||
-            view.zoom < controls.minZoom ||
-            view.zoom > controls.maxZoom))
-      )
-        throw new RangeError("OrbitControls constraints cannot contain the camera view");
-    }
-    owned();
+    const prepared = prepareCameraView(app, input, options);
+    const { camera, candidate, view, owned } = prepared;
+    controls = prepared.controls;
     cancelCameraMotion(camera);
+    owned();
     damping = controls?.enableDamping ?? false;
     autoRotate = controls?.autoRotate ?? false;
     if (controls) {

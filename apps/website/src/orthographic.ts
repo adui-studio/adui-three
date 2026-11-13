@@ -10,8 +10,13 @@ import {
   transitionOrthographicToObject,
   captureCameraView,
   restoreCameraView,
+  transitionToCameraView,
 } from "@adui/three/camera";
-import type { CameraTransitionHandle, CameraView } from "@adui/three/camera";
+import type {
+  CameraTransitionHandle,
+  CameraView,
+  CameraViewTransitionHandle,
+} from "@adui/three/camera";
 import { attachPostprocessing } from "@adui/three/postprocessing";
 import type { PostprocessingHandle } from "@adui/three/postprocessing";
 import { ACESFilmicToneMapping, BoxGeometry, Color, Group, Mesh, MeshBasicMaterial } from "three";
@@ -33,8 +38,8 @@ for (const orthographic of [true, false]) {
   card.innerHTML = `<div class="card-heading"><h2>${orthographic ? "正交相机" : "透视相机"}</h2><span data-testid="projection-state">—</span></div>
     <div class="stage"><div class="viewport" aria-label="${orthographic ? "正交" : "透视"}画布"><div class="label-overlay"></div></div></div>
     <div class="metrics"><div><span>ZOOM</span><strong data-testid="projection-zoom">1.000</strong></div><div><span>BLUE Z</span><strong data-testid="projection-depth">-5</strong></div><div><span>WIDTH</span><strong data-testid="projection-width">0</strong></div><div><span>HEIGHT</span><strong data-testid="projection-height">0</strong></div></div>
-    <div class="actions projection-actions"><button data-action="save-view">保存视角</button><button data-action="restore-view">恢复视角</button><button data-action="effects">组合效果</button><button data-action="bloom">泛光开关</button><button data-action="outline">描边开关</button><button data-action="fit">适配视角</button><button data-action="smooth">平滑取景</button><button data-action="cancel">取消过渡</button><button data-action="pause-host">暂停场景</button><button data-action="start-host">运行场景</button><button data-action="large">放大模型</button><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
-    <p class="model-feedback">视图：<span data-testid="projection-view">未保存</span></p><p class="model-feedback">效果：<span data-testid="projection-effects">idle</span> · 泛光 <span data-testid="projection-bloom">off</span> · 描边 <span data-testid="projection-outline">off</span></p><p class="model-feedback">过渡：<span data-testid="projection-motion">idle</span> · <span data-testid="projection-progress">0.000</span></p><p class="model-feedback">选中：<span data-testid="projection-picked">—</span> · <span data-testid="projection-error" role="alert"></span></p>`;
+    <div class="actions projection-actions"><button data-action="save-view">保存视角</button><button data-action="restore-view">恢复视角</button><button data-action="smooth-view">平滑恢复视角</button><button data-action="cancel-view">取消视角恢复</button><button data-action="effects">组合效果</button><button data-action="bloom">泛光开关</button><button data-action="outline">描边开关</button><button data-action="fit">适配视角</button><button data-action="smooth">平滑取景</button><button data-action="cancel">取消过渡</button><button data-action="pause-host">暂停场景</button><button data-action="start-host">运行场景</button><button data-action="large">放大模型</button><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
+    <p class="model-feedback">视图：<span data-testid="projection-view">未保存</span></p><p class="model-feedback">视角恢复：<span data-testid="projection-view-motion">idle</span> · <span data-testid="projection-view-progress">0.000</span></p><p class="model-feedback">效果：<span data-testid="projection-effects">idle</span> · 泛光 <span data-testid="projection-bloom">off</span> · 描边 <span data-testid="projection-outline">off</span></p><p class="model-feedback">过渡：<span data-testid="projection-motion">idle</span> · <span data-testid="projection-progress">0.000</span></p><p class="model-feedback">选中：<span data-testid="projection-picked">—</span> · <span data-testid="projection-error" role="alert"></span></p>`;
   root.querySelector(".workspace")!.appendChild(card);
   const viewport = card.querySelector<HTMLDivElement>(".viewport")!;
   const overlay = viewport.querySelector<HTMLDivElement>(".label-overlay")!;
@@ -42,6 +47,7 @@ for (const orthographic of [true, false]) {
   let blue: Mesh | undefined;
   let content: Group | undefined, fit: (() => void) | undefined;
   let transition: (() => void) | undefined, motion: CameraTransitionHandle | undefined;
+  let viewMotion: CameraViewTransitionHandle | undefined, smoothView: (() => void) | undefined;
   let effects: PostprocessingHandle | undefined, selected: Object3D | undefined;
   let savedView: string | undefined,
     saveView: (() => void) | undefined,
@@ -61,6 +67,8 @@ for (const orthographic of [true, false]) {
     show("height", String(app?.size.height ?? 0));
     show("motion", motion?.state ?? "idle");
     show("progress", (motion?.progress ?? 0).toFixed(3));
+    show("view-motion", viewMotion?.state ?? "idle");
+    show("view-progress", (viewMotion?.progress ?? 0).toFixed(3));
     show("effects", effects && !effects.disposed ? "active" : "idle");
     show("bloom", effects && !effects.disposed && effects.bloom?.enabled ? "on" : "off");
     show("outline", effects && !effects.disposed && effects.outline?.enabled ? "on" : "off");
@@ -69,12 +77,14 @@ for (const orthographic of [true, false]) {
       button.disabled = button.dataset.action !== "rebuild" && (!app || app.state === "disposed");
       if (["bloom", "outline"].includes(button.dataset.action ?? ""))
         button.disabled ||= !effects || effects.disposed;
-      if (button.dataset.action === "restore-view") button.disabled ||= !savedView;
+      if (["restore-view", "smooth-view"].includes(button.dataset.action ?? ""))
+        button.disabled ||= !savedView;
     }
   };
   const rebuild = (): void => {
     app?.dispose();
     motion = undefined;
+    viewMotion = undefined;
     effects = undefined;
     selected = undefined;
     app = orthographic
@@ -125,6 +135,24 @@ for (const orthographic of [true, false]) {
       fitting = true;
       try {
         restoreCameraView(host, JSON.parse(savedView) as CameraView, { controls });
+      } finally {
+        fitting = false;
+      }
+    };
+    smoothView = () => {
+      if (!savedView) return;
+      fitting = true;
+      try {
+        const current = transitionToCameraView(host, JSON.parse(savedView) as CameraView, {
+          controls,
+          duration: 1.2,
+        });
+        viewMotion = current;
+        void current.finished.then((result) => {
+          if (viewMotion !== current) return;
+          if (result.status === "failed") show("error", String(result.error));
+          refresh();
+        });
       } finally {
         fitting = false;
       }
@@ -193,6 +221,11 @@ for (const orthographic of [true, false]) {
       if (!app || app.state === "disposed") return;
       if (button.dataset.action === "save-view") saveView?.();
       if (button.dataset.action === "restore-view") restoreView?.();
+      if (button.dataset.action === "smooth-view") {
+        smoothView?.();
+        app.start();
+      }
+      if (button.dataset.action === "cancel-view") viewMotion?.cancel();
       if (button.dataset.action === "effects") {
         if (effects && !effects.disposed) {
           effects.dispose();
@@ -222,11 +255,13 @@ for (const orthographic of [true, false]) {
       if (button.dataset.action === "fit") fit?.();
       if (button.dataset.action === "large" && content) {
         motion?.cancel();
+        viewMotion?.cancel();
         large = !large;
         content.scale.setScalar(large ? 20 : 1);
       }
       if (button.dataset.action === "depth" && blue) {
         motion?.cancel();
+        viewMotion?.cancel();
         blue.position.z = blue.position.z === -5 ? -10 : -5;
       }
       if (button.dataset.action === "zoom") {

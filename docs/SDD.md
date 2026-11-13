@@ -57,6 +57,10 @@ captureCameraView(AnyThreeApp,CameraViewOptions?) 返回 CameraView，restoreCam
 
 借用 controls 时保存 target，要求无 roll/单位 up；恢复要求同相机、当前 up 一致及已有 target，校验距离/正交 zoom/目标范围，原生角度限制仍可调整实际姿态。先取消旧租约再暂存配置，通过公开 update 清惯性并同步，finally 恢复 damping/autoRotate 与写锁；错误不回滚原生副作用。详见 [ADR-0029](adr/0029-camera-views.md)。
 
+transitionToCameraView(app:AnyThreeApp,view:CameraView,options?:CameraViewTransitionOptions):CameraViewTransitionHandle 平滑恢复同类书签。options 含 controls、正有限 duration（默认 0.8 秒）、signal；句柄 state/progress/finished/cancel/dispose，完成结果携带实际 view，取消/失败结果分别携带 status/error。源/终点复制验证后才替换旧租约；当前 CSS 比例规划终点，不自动绘制或启动。
+
+仅复用宿主更新，smoothstep 位置/四元数/zoom/镜头插值；带控件时插值 target、单位球面方向和正距离，原生 update 可按角度约束调整姿态。开始扩 near/far、完成收紧，取消保留当前状态；无控件 up 仅在结束恢复。准备/应用写锁和每相机唯一登记与取景共用；输入、所有者、尺寸、姿态、投影和约束变化结束租约，控件标志按值恢复。原生副作用不回滚，清理失败独立聚合。详见 [ADR-0035](adr/0035-camera-view-transition.md)。
+
 ## EXR 环境契约
 
 environment 新增 loadEXR(AnyThreeApp,url,LoadHDROptions?):Promise<HDREnvironment>，复用既有资产/绑定与清理；loadHDR 继续为 RGBE，EXR 固定原生 part=0、HalfFloat RGBA，保留原生色彩空间/flipY/过滤并设置环境映射。显式 URL/格式，不自动曝光或绑定。
@@ -347,6 +351,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-043  | 画布截图契约                      | capture.ts、区域类型及演示选择                   | 坐标/边界/尺寸/取消单测、PNG 区域像素、包消费              |
 | FR-044  | 对象世界边界契约                  | object-bounds.ts、geometry 导出及测量演示        | CPU 姿态/缓存/重入单测、无绘制测量回归、无 DOM 包消费      |
 | FR-045  | 对象路径运动契约                  | path-animation.ts、独立时间轴演示                | 弧长/端点/命令竞争单测、像素/拾取/重建回归、包消费         |
+| FR-047  | 相机视图平滑恢复契约              | camera-view-transition.ts、投影演示              | 插值/取消/租约/重入单测、GPU 书签恢复、严格包消费          |
 | FR-046  | 对象路径运动契约                  | path-animation.ts、有限循环演示                  | 计数/端点/精度/竞争单测、完成像素/拾取回归、包消费         |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |

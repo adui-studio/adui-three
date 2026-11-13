@@ -25,6 +25,7 @@ const expected = {
     "transitionOrthographicToObject",
     "captureCameraView",
     "restoreCameraView",
+    "transitionToCameraView",
   ],
   "@adui/three/postprocessing": ["attachBloom", "attachPostprocessing"],
   "@adui/three/environment": ["loadHDR", "loadEXR", "attachEnvironment"],
@@ -109,7 +110,7 @@ if (!development) {
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");
   assert.ok(
-    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath/.test(
+    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|transitionToCameraView|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath/.test(
       core,
     ),
   );

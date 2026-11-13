@@ -7,6 +7,12 @@ import { beginCameraWrite, cancelCameraMotion } from "./camera-runtime.ts";
 
 export { computeObjectFrame } from "./camera-frame.ts";
 export { captureCameraView, restoreCameraView } from "./camera-view.ts";
+export { transitionToCameraView } from "./camera-view-transition.ts";
+export type {
+  CameraViewTransitionOptions,
+  CameraViewTransitionHandle,
+  CameraViewTransitionResult,
+} from "./camera-view-transition.ts";
 export type {
   CameraView,
   PerspectiveCameraView,

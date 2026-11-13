@@ -75,7 +75,7 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 环境入口的 loadHDR/loadEXR 共用任务与资产生命周期，仅原生解码器不同；EXR 为每任务复制输入，绑定/原生转换缓存仍由既有所有权管理。不创建格式服务或新入口，见 [ADR-0030](adr/0030-exr-environment.md)。
 
-camera-view 仅保存与恢复相机的数值配置，复用相机写锁和过渡取消；不创建调度、存储服务或场景序列化。快照不拥有原宿主/控件/模型，细节见 [ADR-0029](adr/0029-camera-views.md)。
+camera-view 保存与恢复相机的数值配置，camera-view-transition 复用其预检，并与取景过渡共享 camera-runtime 写锁/单相机登记。平滑恢复订阅既有宿主更新；不创建第二调度、存储服务或场景序列化。快照不拥有原宿主/控件/模型，细节见 [ADR-0029](adr/0029-camera-views.md) 和 [ADR-0035](adr/0035-camera-view-transition.md)。
 
 透视/正交过渡共用 camera-transition 的内部泛型执行器，正交规划与即时应用共用 prepareOrthographicFrame。生命周期与输入租约保持单一实现，核心无反向依赖，见 [ADR-0028](adr/0028-orthographic-transition.md)。
 

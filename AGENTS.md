@@ -42,6 +42,7 @@
 - [正交过渡决策](docs/adr/0028-orthographic-transition.md)：共享过渡调度、缩放插值与控件配置交接。
 - [视图快照决策](docs/adr/0029-camera-views.md)：独立数值视图、当前比例恢复与轨道状态交接。
 - [EXR 环境决策](docs/adr/0030-exr-environment.md)：原生半浮点解析、输入隔离与共用环境生命周期。
+- [视角过渡决策](docs/adr/0035-camera-view-transition.md)：保存视角平滑恢复、原生控件与共用相机租约。
 - [区域截图决策](docs/adr/0031-capture-region.md)：画布像素坐标、最终缓冲边界与独立编码。
 - [世界边界决策](docs/adr/0032-object-bounds.md)：CPU 姿态测量、独立快照与共享取景准备。
 - [路径定位决策](docs/adr/0033-path-seek.md)：弧长进度采样、正向重置、暂停及写入竞争。

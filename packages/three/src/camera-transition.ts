@@ -12,6 +12,8 @@ import {
   cancelCameraMotion,
   registerCameraMotion,
   removeCameraMotion,
+  mixCameraNumber,
+  nearCameraVector,
 } from "./camera-runtime.ts";
 
 export type CameraTransitionState = "running" | "completed" | "cancelled" | "failed";
@@ -34,14 +36,6 @@ export interface CameraTransitionHandle<F extends ObjectFrame = ObjectFrame> {
   readonly finished: Promise<CameraTransitionResult<F>>;
   cancel(this: void): void;
   dispose(this: void): void;
-}
-
-function nearVector(a: Vector3, b: Vector3): boolean {
-  return (["x", "y", "z"] as const).every(
-    (axis) =>
-      Number.isFinite(a[axis]) &&
-      Math.abs(a[axis] - b[axis]) <= 1e-9 * Math.max(1, Math.abs(b[axis])),
-  );
 }
 
 /** Snapshot-based transition driven only by ThreeApp.onUpdate, with one motion per camera. */
@@ -291,7 +285,7 @@ function transitionFrame<F extends ObjectFrame>(
           !camera.up.equals(up) ||
           camera.near !== near ||
           camera.far !== far ||
-          !nearVector(camera.position, lastPosition) ||
+          !nearCameraVector(camera.position, lastPosition) ||
           !Number.isFinite(rotationDot) ||
           Math.abs(1 - rotationDot) > 1e-10 ||
           (controls &&
@@ -299,7 +293,7 @@ function transitionFrame<F extends ObjectFrame>(
               controls.enabled ||
               controls.enableDamping ||
               controls.autoRotate ||
-              !nearVector(controls.target, lastTarget!) ||
+              !nearCameraVector(controls.target, lastTarget!) ||
               constraintState().some((value, index) => value !== constraints[index])))
         ) {
           handle.cancel();
@@ -324,7 +318,7 @@ function transitionFrame<F extends ObjectFrame>(
               .copy(controls.target)
               .addScaledVector(
                 interpolatedDirection,
-                startRadius + (frame.distance - startRadius) * t,
+                mixCameraNumber(startRadius, frame.distance, t),
               );
             camera.lookAt(controls.target);
             controls.update(0);
