@@ -61,6 +61,10 @@ export interface GLTFAnimationsHandle {
   readonly blending: boolean;
   /** 0 initially/cancelled, 1 after a completed transition. */
   readonly blendProgress: number;
+  /** Model-wide native mixer time scale. Starts at 1; 0 freezes sampling time without changing state. */
+  readonly playbackRate: number;
+  /** Nonnegative finite model-wide speed. Preserves pose, clip/loop progress and blend weights. */
+  setPlaybackRate(rate: number): void;
   /** After sampling/endpoint normalization, before host drawing. No synthetic loop notices. */
   on<K extends keyof GLTFAnimationEvents>(
     type: K,
@@ -343,6 +347,17 @@ export function attachGLTFAnimations(
     },
     get blendProgress(): number {
       return blendProgress;
+    },
+    get playbackRate(): number {
+      return mixer.timeScale;
+    },
+    setPlaybackRate(rate): void {
+      active();
+      if (!Number.isFinite(rate) || rate < 0)
+        throw new RangeError("Playback rate must be nonnegative and finite");
+      execute(() => {
+        mixer.timeScale = rate;
+      });
     },
     on(type, callback): () => void {
       active();

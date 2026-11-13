@@ -71,6 +71,8 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 ## 关键取舍
 
+模型级运行倍速使用现有 Mixer.timeScale，GLTFAnimationsHandle 的 setter 复用播放命令队列；全部动作和渐变使用同一模型时钟，不增加调度或动作所有者。动作级 timeScale 仍独立，见 [ADR-0036](adr/0036-animation-playback-rate.md)。
+
 区域截图只改变 capture 的同步复制矩形，使用相同宿主绘制、pending 所有权和编码流程；不增加渲染目标、调度器或图像服务，见 [ADR-0031](adr/0031-capture-region.md)。
 
 环境入口的 loadHDR/loadEXR 共用任务与资产生命周期，仅原生解码器不同；EXR 为每任务复制输入，绑定/原生转换缓存仍由既有所有权管理。不创建格式服务或新入口，见 [ADR-0030](adr/0030-exr-environment.md)。

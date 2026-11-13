@@ -95,6 +95,8 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   const labels = attachDOMLabels(app, overlay);
   labels.add({ object: loaded.scene, element: document.createElement("span") });
   const animations = attachGLTFAnimations(app, model);
+  animations.setPlaybackRate(0.5);
+  const playbackRate: number = animations.playbackRate; void playbackRate;
   const offLoop = animations.on("loop", (event) => {
     const traversals: number = event.loopDelta;
     console.log(event.clip.name, traversals);

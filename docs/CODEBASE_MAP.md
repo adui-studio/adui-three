@@ -133,4 +133,6 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 视角平滑恢复位于 [camera-view-transition.ts](../packages/three/src/camera-view-transition.ts)，复用 camera-view 预检和 camera-runtime 写锁/登记；[专项单测](../packages/three/tests/camera-view-transition.test.ts) 覆盖插值/租约/异常。投影演示和既有 camera-view 浏览器回归增加书签平滑恢复、暂停、输入及重建验证，独立包消费覆盖公开导出。
 
+模型级倍速在 animation.ts 复用 Mixer 与命令队列，原有动画/通知单测覆盖速度、权重和排队；[倍速浏览器专项](../tests/browser/animation-rate.spec.ts) 核验真实冻结像素、独立实例和有限结束。
+
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

@@ -251,3 +251,48 @@ test("invalid subscriptions fail early and teardown makes unsubscribe harmless b
   expect(() => env.handle.on("loop", callback)).toThrow("disposed");
   expect(callback).not.toHaveBeenCalled();
 });
+
+test("playback rate requests wait until all sampled notifications finish", () => {
+  const env = fixture();
+  const snapshots: number[] = [];
+  env.handle.on("loop", () => {
+    env.handle.setPlaybackRate(2);
+    snapshots.push(env.handle.playbackRate);
+  });
+  env.handle.on("loop", () => snapshots.push(env.handle.playbackRate));
+  env.handle.play(0);
+  env.tick(1.25);
+  expect(snapshots).toEqual([1, 1]);
+  expect(env.handle.playbackRate).toBe(2);
+  expect(env.handle.action!.time).toBeCloseTo(0.25);
+  env.tick(0.25);
+  expect(env.handle.action!.time).toBeCloseTo(0.75);
+});
+
+test("native mixer event rate changes are queued and a later callback failure discards them", () => {
+  const env = fixture();
+  const failure = new Error("rate callback failure");
+  const listener = () => {
+    env.handle.setPlaybackRate(0);
+    expect(env.handle.playbackRate).toBe(1);
+    throw failure;
+  };
+  env.handle.mixer.addEventListener("loop", listener);
+  env.handle.play(0);
+  expect(() => env.tick(1.25)).toThrow(failure);
+  expect(env.handle.playbackRate).toBe(1);
+  env.handle.mixer.removeEventListener("loop", listener);
+  env.handle.setPlaybackRate(0.5);
+  expect(env.handle.playbackRate).toBe(0.5);
+});
+
+test("model teardown discards a queued rate change and a fresh controller starts at normal speed", () => {
+  const env = fixture();
+  env.handle.on("loop", () => env.handle.setPlaybackRate(2));
+  env.handle.on("loop", () => env.model.dispose());
+  env.handle.play(0);
+  env.tick(1.25);
+  expect(env.handle.disposed).toBe(true);
+  expect(env.handle.playbackRate).toBe(1);
+  expect(fixture().handle.playbackRate).toBe(1);
+});

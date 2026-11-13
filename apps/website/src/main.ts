@@ -80,6 +80,7 @@ function mountPanel(id: string, color: number): void {
     <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="skin-model">加载骨骼样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-fade">渐变切换</button><button data-action="animation-once">单次播放</button><button data-action="animation-repeat-twice">循环两次</button><button data-action="animation-pingpong">往返一次</button><button data-action="animation-stop">停止动画</button></div>
     <p class="animation-feedback" role="status">动画：<span data-testid="animation-state">idle</span> · <span data-testid="animation-clip">—</span> · <span data-testid="animation-time">0.000</span> s · 渐变 <span data-testid="animation-blend-progress">0</span>%<br>循环通知 <span data-testid="animation-loops">0</span> · 播放完成 <span data-testid="animation-completions">0</span> · 最近完成 <span data-testid="animation-last-completion">—</span> <button data-action="animation-chain" aria-pressed="false">完成后切换</button></p>
     <label class="animation-timeline">定位<input type="range" min="0" max="100" step="1" value="0" data-action="animation-seek" aria-label="动画定位"><span data-testid="animation-progress">0</span>%</label>
+    <label class="animation-timeline">倍速<input type="range" min="0" max="2" step="0.25" value="1" data-action="animation-rate" aria-label="动画倍速"><span data-testid="animation-rate">1.00</span>×（0 冻结动画）</label>
     <p class="picking-feedback" role="status">悬停：<span data-testid="hovered">—</span> · 选中：<span data-testid="selected">—</span><span class="picking-hint">点击物体选中 · 点击空白清除</span></p>`;
   document.querySelector(".workspace")!.appendChild(card);
   const viewport = card.querySelector<HTMLDivElement>(".viewport")!;
@@ -347,6 +348,13 @@ function mountPanel(id: string, color: number): void {
     button("animation-pause").disabled = !canAnimate || animationState !== "playing";
     button("animation-resume").disabled = !canAnimate || animationState !== "paused";
     button("animation-stop").disabled = !canAnimate || !animation?.action;
+    const rate = card.querySelector<HTMLInputElement>('[data-action="animation-rate"]')!;
+    rate.disabled = !canAnimate;
+    rate.value = String(animation?.playbackRate ?? 1);
+    card.querySelector('[data-testid="animation-rate"]')!.textContent = (
+      animation?.playbackRate ?? 1
+    ).toFixed(2);
+    card.dataset.animationRate = (animation?.playbackRate ?? 1).toFixed(3);
     const timeline = card.querySelector<HTMLInputElement>('[data-action="animation-seek"]')!;
     timeline.disabled = !canAnimate || !animation?.action;
     const duration = animation?.action?.getClip().duration ?? 0;
@@ -1048,29 +1056,34 @@ function mountPanel(id: string, color: number): void {
     }
   };
   card.addEventListener("click", click);
-  const seek = (event: Event): void => {
+  const controlAnimation = (event: Event): void => {
     const input = event.target;
     if (
       !(input instanceof HTMLInputElement) ||
-      input.dataset.action !== "animation-seek" ||
-      !animation?.action
+      !["animation-seek", "animation-rate"].includes(input.dataset.action ?? "") ||
+      !animation ||
+      animation.disposed
     )
       return;
     try {
-      animation.seek((input.valueAsNumber / 100) * animation.action.getClip().duration);
-      if (app?.state !== "running") app?.render();
+      if (input.dataset.action === "animation-rate") animation.setPlaybackRate(input.valueAsNumber);
+      else {
+        if (!animation.action) return;
+        animation.seek((input.valueAsNumber / 100) * animation.action.getClip().duration);
+        if (app?.state !== "running") app?.render();
+      }
       refresh();
     } catch (error) {
       report(error);
     }
   };
-  card.addEventListener("input", seek);
+  card.addEventListener("input", controlAnimation);
   const interval = window.setInterval(refresh, 150);
   rebuild();
   teardown.push(() => {
     window.clearInterval(interval);
     card.removeEventListener("click", click);
-    card.removeEventListener("input", seek);
+    card.removeEventListener("input", controlAnimation);
     app?.dispose();
     clearInstance();
     clearModel();

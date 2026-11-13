@@ -174,6 +174,8 @@ fitObject 在宿主/scope 存活和非零视口时即时应用；默认 adjustCl
 
 ## 模型动画契约
 
+GLTFAnimationsHandle.playbackRate 反映原生 mixer.timeScale，初始 1；setPlaybackRate(rate:number):void 接受非负有限数，0 冻结模型时钟而不改变状态。对全部贡献动作及渐变生效，动作级 timeScale 仍相乘；保留姿态、片段/循环时间和权重，不采样/绘制/启动。跨 pause/resume/seek/stop/play 保留，新控制器默认 1。参数调用时校验，通知/原生事件内命令排队，异常或销毁丢弃未执行设置；详见 [ADR-0036](adr/0036-animation-playback-rate.md)。
+
 GLTFAnimationsHandle.on<K extends keyof GLTFAnimationEvents>(type,callback) 返回解除函数，loop payload 为 type/action/clip/loopDelta，finished 为 type/action/clip/direction；公共 union 为 GLTFAnimationEvent。当前选中动作采样、端点归一化及权重交接后派发，尚未绘制 GPU。渐变目标提前结束时延后 finished，忽略离场动作；loopDelta 沿用原生合并通知。通知期间控制方法继续排队，批次结束再执行；订阅快照支持独立重复、增删与销毁，异常终止批次并丢弃未执行命令。无历史回放，不因 stop/seek/pause 合成完成，不等待异步回调；见 [ADR-0025](adr/0025-animation-notifications.md)。
 
 [animation.ts](../packages/three/src/animation.ts) 导出 attachGLTFAnimations、GLTFAnimationsHandle、PlayAnimationOptions、CrossFadeOptions、AnimationState。接收已加载模型或实例，片段引用拍只读数组快照；一个根对象只允许一个活动句柄，同时登记宿主和模型 scopes，任一结束都取消更新并清理自有 Mixer，不释放借用资产。
@@ -351,6 +353,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-043  | 画布截图契约                      | capture.ts、区域类型及演示选择                   | 坐标/边界/尺寸/取消单测、PNG 区域像素、包消费              |
 | FR-044  | 对象世界边界契约                  | object-bounds.ts、geometry 导出及测量演示        | CPU 姿态/缓存/重入单测、无绘制测量回归、无 DOM 包消费      |
 | FR-045  | 对象路径运动契约                  | path-animation.ts、独立时间轴演示                | 弧长/端点/命令竞争单测、像素/拾取/重建回归、包消费         |
+| FR-048  | 模型动画契约                      | animation.ts、模型倍速滑块                       | 速度/渐变/通知排队单测、GPU 冻结与完成、严格包消费         |
 | FR-047  | 相机视图平滑恢复契约              | camera-view-transition.ts、投影演示              | 插值/取消/租约/重入单测、GPU 书签恢复、严格包消费          |
 | FR-046  | 对象路径运动契约                  | path-animation.ts、有限循环演示                  | 计数/端点/精度/竞争单测、完成像素/拾取回归、包消费         |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |

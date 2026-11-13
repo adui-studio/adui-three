@@ -459,6 +459,7 @@ import { attachGLTFAnimations } from "@adui/three/animation";
 const model = await loadGLTF(app, "/models/animated.glb");
 const animations = attachGLTFAnimations(app, model);
 animations.play("Lift", { loop: "repeat", timeScale: 1 });
+animations.setPlaybackRate(0.5); // 模型内全部动作与渐变半速；0 冻结时钟。
 // animations.pause(); animations.resume();
 // animations.seek(0.5); // 精确定位到片段第 0.5 秒后暂停。
 // animations.play("Slide", { loop: "once", clampWhenFinished: true });
@@ -467,6 +468,8 @@ animations.play("Lift", { loop: "repeat", timeScale: 1 });
 ```
 
 返回 `GLTFAnimationsHandle`，包含 mixer、clips、action、state、disposed 和 play/crossFadeTo/seek/pause/resume/stop/dispose。构造时不自动播放或启动宿主；clips 是原生片段引用的只读数组快照，空列表也可创建。play 按非负整数索引或唯一完整名称选择，未知/歧义名称、越界、非正有限 duration、无效 tracks 拒绝并保留原播放；原生 clip.validate 可能输出诊断。播放期间不要修改片段数据。
+
+模型级运行倍速用 `animations.setPlaybackRate(rate)`，`playbackRate` 读取当前原生 mixer.timeScale，初始 1；允许非负有限数，0 冻结该模型动作和渐变时钟，宿主/其他模型继续。它与 play 的动作级 timeScale 相乘，保留片段、循环预算、当前姿态与混合权重；不会恢复 paused 或 finished 状态，不采样/绘制/启动。速度跨 seek/stop/play 保留，新控制器默认 1；通知内设置沿用命令队列，失败/销毁丢弃待执行设置。原生 mixer 仍公开，直接写入不受本 setter 校验。
 
 play 选项：loop="repeat"（默认）、"once" 或 "pingpong"；repetitions 为正安全整数或 Infinity（repeat/pingpong 默认 Infinity，once 默认且只接受 1）；clampWhenFinished=true（默认）；timeScale=1（正有限倍速）。重复播放同一片段也从零开始；play 切换立即停止旧 action；需要渐变时使用 crossFadeTo。调用时采样首帧，后续由宿主 onUpdate(delta) 驱动；宿主停止/隐藏/零尺寸期间不前进，恢复首帧 delta=0。pause/resume 保持姿态、时间和配置的速度，不改变宿主或 mixer.timeScale；idle/finished 时无操作。
 

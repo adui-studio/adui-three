@@ -93,6 +93,110 @@ test("finite repeat counts traversals, finishes once, holds its endpoint and res
   expect(env.animation.state).toBe("playing");
 });
 
+test("controller playback rate preserves the current pose, action rate and loop budget", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  expect(env.animation.playbackRate).toBe(1);
+  env.animation.play(0, { timeScale: 0.5, repetitions: 2 });
+  env.tick(0.5);
+  const action = env.animation.action!,
+    time = action.time,
+    mixerTime = env.animation.mixer.time;
+  env.animation.setPlaybackRate(2);
+  expect(env.animation.action).toBe(action);
+  expect(action.time).toBe(time);
+  expect(env.animation.mixer.time).toBe(mixerTime);
+  expect(env.scene.position.y).toBeCloseTo(0.5);
+  expect(action.getEffectiveTimeScale()).toBe(0.5);
+  env.tick(0.5);
+  expect(action.time).toBeCloseTo(0.75);
+  env.tick(1.25);
+  expect(env.animation.state).toBe("finished");
+  expect(env.scene.position.y).toBe(2);
+});
+
+test("zero playback rate freezes one mixer while its host and peer continue", async () => {
+  const env = await fixture(),
+    peer = await fixture();
+  env.state.state = peer.state.state = "running";
+  env.animation.play(0);
+  peer.animation.play(0);
+  env.tick(0.25);
+  peer.tick(0.25);
+  env.animation.setPlaybackRate(0);
+  const actionTime = env.animation.action!.time,
+    mixerTime = env.animation.mixer.time;
+  env.tick(0.5);
+  peer.tick(0.5);
+  expect(env.animation.state).toBe("playing");
+  expect(env.animation.action!.time).toBe(actionTime);
+  expect(env.animation.mixer.time).toBe(mixerTime);
+  expect(env.scene.position.y).toBeCloseTo(0.5);
+  expect(peer.scene.position.y).toBeCloseTo(1.5);
+  env.animation.setPlaybackRate(0.5);
+  env.tick(0.5);
+  expect(env.animation.action!.time).toBeCloseTo(0.5);
+});
+
+test("playback rate scales both native actions and their crossfade clock without resetting weights", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.play(0);
+  env.animation.crossFadeTo(1, { duration: 1 });
+  env.tick(0.25);
+  const pose = env.scene.position.clone(),
+    action = env.animation.action!,
+    weight = action.getEffectiveWeight();
+  env.animation.setPlaybackRate(0);
+  env.tick(10);
+  expect(env.animation.blendProgress).toBe(0.25);
+  expect(action.getEffectiveWeight()).toBe(weight);
+  expect(env.scene.position.equals(pose)).toBe(true);
+  env.animation.setPlaybackRate(2);
+  env.tick(0.25);
+  expect(env.animation.blendProgress).toBe(0.75);
+  env.tick(0.125);
+  expect(env.animation.blending).toBe(false);
+  expect(env.animation.blendProgress).toBe(1);
+});
+
+test("rate changes preserve paused state, seek time and selection, and persist across stop and play", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.setPlaybackRate(2);
+  expect(env.animation.state).toBe("idle");
+  env.animation.play(0);
+  env.animation.seek(0.25);
+  env.animation.setPlaybackRate(0.5);
+  env.tick(1);
+  expect(env.animation.state).toBe("paused");
+  expect(env.animation.action!.time).toBe(0.25);
+  env.animation.resume();
+  env.tick(0.5);
+  expect(env.animation.action!.time).toBeCloseTo(0.5);
+  env.animation.stop();
+  env.animation.play(1);
+  expect(env.animation.playbackRate).toBe(0.5);
+  env.tick(0.5);
+  expect(env.animation.action!.time).toBeCloseTo(0.25);
+  env.model.dispose();
+  expect(() => env.animation.setPlaybackRate(1)).toThrow(/disposed/);
+});
+
+test.each([-1, NaN, Infinity, -Infinity, undefined, null, "2"])(
+  "invalid controller playback rate is rejected before mutation: %s",
+  async (rate) => {
+    const env = await fixture();
+    env.animation.play(0);
+    env.animation.setPlaybackRate(0.5);
+    const action = env.animation.action!;
+    expect(() => env.animation.setPlaybackRate(rate as number)).toThrow(RangeError);
+    expect(env.animation.playbackRate).toBe(0.5);
+    expect(env.animation.action).toBe(action);
+    expect(env.animation.state).toBe("playing");
+  },
+);
+
 test("ping-pong reverses the native pose while retaining native local time", async () => {
   const env = await fixture();
   env.state.state = "running";
