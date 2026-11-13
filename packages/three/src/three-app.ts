@@ -7,6 +7,7 @@ import { ResourceScope } from "./resources.ts";
 export type ThreeAppState = "ready" | "running" | "stopped" | "disposed";
 
 interface HostOptions {
+  /** Only scalar/configuration options. Non-null external canvas/context are rejected at runtime. */
   renderer?: Omit<WebGLRendererParameters, "canvas" | "context">;
   /** Positive, finite DPR ceiling. Default 2. */
   maxPixelRatio?: number;
@@ -55,6 +56,17 @@ function positive(value: number, name: string): number {
   return value;
 }
 
+function rendererSettings(value: HostOptions["renderer"]): NonNullable<HostOptions["renderer"]> {
+  if (value === undefined) return {};
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new TypeError("Renderer options must be an object");
+  // Omit only restricts object literals: wider native parameter objects can still be passed.
+  const { canvas, context, ...settings } = value as WebGLRendererParameters;
+  if (canvas != null || context != null)
+    throw new TypeError("ThreeApp does not accept an external canvas or context");
+  return settings;
+}
+
 /** One browser container, one renderer, one owned frame loop. Construction does not start it. */
 abstract class SceneHost<C extends Camera> {
   readonly scene: Scene;
@@ -95,6 +107,7 @@ abstract class SceneHost<C extends Camera> {
     if (typeof view.ResizeObserver !== "function") throw new Error("ResizeObserver is required");
     const maxDelta = positive(options.maxDelta ?? 0.1, "maxDelta");
     this.#maxPixelRatio = positive(options.maxPixelRatio ?? 2, "maxPixelRatio");
+    const renderer = rendererSettings(options.renderer);
     this.#container = container;
     this.#document = container.ownerDocument;
     this.#view = view;
@@ -103,7 +116,7 @@ abstract class SceneHost<C extends Camera> {
     this.#projectCamera = (aspect) => projectCamera(this.camera, aspect);
     const canvas = this.#document.createElement("canvas");
     canvas.style.cssText = "display:block;width:100%;height:100%";
-    this.renderer = new WebGLRenderer({ antialias: true, ...options.renderer, canvas });
+    this.renderer = new WebGLRenderer({ antialias: true, ...renderer, canvas });
     this.#loop = new FrameLoop(
       {
         request: (callback) => view.requestAnimationFrame(callback),

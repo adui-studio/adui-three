@@ -2,7 +2,7 @@
 
 ## 目标与当前阶段
 
-更新日期：2026-11-13。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。最近交付实例局部上传 58c2568、文档覆盖补查 8e5f81e；本轮补充 Chromium 模拟触摸的拾取/标签和变换交接验收。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
+更新日期：2026-11-13。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。最近交付触摸验收 f35bd15；本轮修复更宽原生 renderer 配置可注入外部上下文的所有权边界缺口。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
 
 用户授权持续封装、分步提交推送；提交描述和正文使用中文，格式 type(scope): emoji 中文描述。不得改写已有提交或擅自发布 npm。用户明确“不做任何 CI”：不新增/启用工作流，不调整组织或仓库 Actions 设置。历史工作流已由 e6ea2c2 移除，保留当时的本地输入回归修复。
 
@@ -10,7 +10,7 @@
 
 - 单主包 packages/three 与演示 apps/website，保留 Vite+/TypeScript/pnpm；初始化 utils、计数器及品牌模板已清理。库不反向依赖应用、Store、私有资产或固定 DOM。
 - ESM/ES2022 与声明；Three.js 和 @types/three 开发基准 0.187.0，peer >=0.187.0 <0.188.0。Three.js/addons 外部化，development 指向随包 src。
-- 核心 ThreeApp、OrthographicThreeApp、ResourceScope：透视/正交具体相机类型，共用内部 SceneHost 的单 RAF、启停/隐藏/零尺寸、DPR、显式所有权、异步 signal、独占借用 RenderPipeline 与单次 render。正交保留竖向跨度、中心和 zoom；通用模块接受 AnyThreeApp。原生缓冲/投影和管线尺寸失败分别保留待重试状态；尺寸处理中拒绝递归绘制/resize/重挂接。
+- 核心 ThreeApp、OrthographicThreeApp、ResourceScope：透视/正交具体相机类型，共用内部 SceneHost 的单 RAF、启停/隐藏/零尺寸、DPR、显式所有权、异步 signal、独占借用 RenderPipeline 与单次 render。正交保留竖向跨度、中心和 zoom；通用模块接受 AnyThreeApp。运行时预检 renderer 配置，拒绝非空外部 canvas/context，保证自有上下文边界。原生缓冲/投影和管线尺寸失败分别保留待重试状态；尺寸处理中拒绝递归绘制/resize/重挂接。
 - controls：OrbitControls；TransformControls 负责 helper/初始 GPU 快照，借用模型与轨道控制，拖拽/取消按值恢复配置，无第二循环。
 - loaders：GLTF/GLB 逻辑取消、迟到清理、模型资源快照/扩展 scope，显式 Draco/Meshopt/KTX2。cloneGLTF 复制默认树与独立动画数据，共享资产租约到最后一个使用者结束。任务自有解码器，运输可能继续，运行资源本地托管。
 - interaction / labels：原生 Raycaster 点击/悬停、动态目标及事件清理，默认按需刷新蒙皮边界/骨骼矩阵并防 pick 重入；DOM 标签在完成阶段投影，明确元素和模型借用边界；标签按原生反向/普通 NDC 深度区间裁剪，两类相机的真实 EXT_clip_control 专项已验证。
@@ -29,7 +29,7 @@
 
 ## 验证状态
 
-当前 ready 通过：16 项文档检查器测试、424 项主包单测、格式/Lint/类型及全部构建。十二入口 tarball 和四次严格消费通过，capture 的 CaptureRegion 类型与区域选项已独立消费验证。截图浏览器专项 7/7 通过，完整 97/97 通过（约 4.7 分钟），另增触摸手柄 1/1 通过，零重试。EXR 仅以原创单 part 未压缩 RGB 样例验收，不外推所有编码格式。反向深度数值探针和历史证据见 [Harness](HARNESS.md)，未将数学用例外推为完整硬件兼容。
+当前 ready 通过：16 项文档检查器测试、428 项主包单测、格式/Lint/类型及全部构建。十二入口 tarball 和四次严格消费通过，capture 的 CaptureRegion 类型与区域选项已独立消费验证。截图浏览器专项 7/7 通过，完整 99/99 通过（约 4.4 分钟），零重试。EXR 仅以原创单 part 未压缩 RGB 样例验收，不外推所有编码格式。反向深度数值探针和历史证据见 [Harness](HARNESS.md)，未将数学用例外推为完整硬件兼容。
 
 浏览器环境是 Chromium/SwiftShader，单 worker、零自动重试；完整设备/格式/浏览器矩阵、长期 GPU 泄漏和性能基准尚未完成。保留 TypeScript 7 API 实验性和演示大 chunk 构建提示，不将本地通过称为远端 CI 通过。失败诊断、历史统计和阶段未提交记录统一保留在 Harness，不在接手入口复制过期状态。
 

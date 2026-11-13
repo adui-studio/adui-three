@@ -119,6 +119,8 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 触摸输入的浏览器集成见 [touch-picking.spec.ts](../tests/browser/touch-picking.spec.ts) 和 [touch-transform.spec.ts](../tests/browser/touch-transform.spec.ts)：单文件模拟移动上下文、可信触摸点按/双指/取消及标签隔离，不修改默认浏览器配置。
 
+宿主 renderer 所有权的原生回归见 [renderer-ownership.spec.ts](../tests/browser/renderer-ownership.spec.ts)：两类宿主拒绝外部句柄，借用来源宿主的像素保持且未丢失上下文。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

@@ -48,6 +48,8 @@ window.addEventListener(
 
 ## API
 
+renderer 配置在 DOM/GPU 分配前快照。类型 Omit 不阻止更宽的原生参数变量，运行时同样拒绝非空 canvas/context，null/undefined 字段丢弃且不修改原对象；renderer 本身不能是 null、数组或非对象。其他 getter 各读取一次，其后输入改写不进入 native 构造。两类宿主均只拥有自己创建的 canvas/WebGL 上下文；见 ADR-0002 的补充。
+
 | API                                   | 契约                                                                                                             |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `new ThreeApp(container, options?)`   | 同步创建自有 scene / PerspectiveCamera / WebGLRenderer，初始 ready，不自动运行                                   |

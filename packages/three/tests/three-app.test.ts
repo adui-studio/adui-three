@@ -1,7 +1,8 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { BoxGeometry, Mesh, MeshBasicMaterial } from "three";
+import type { WebGLRendererParameters } from "three";
 import { OrthographicThreeApp, ThreeApp } from "../src/index.ts";
-import type { AnyThreeApp, OrthographicThreeAppOptions } from "../src/index.ts";
+import type { AnyThreeApp, OrthographicThreeAppOptions, ThreeAppOptions } from "../src/index.ts";
 import { attachOrbitControls } from "../src/controls.ts";
 
 vi.mock("three/addons/controls/OrbitControls.js", () => ({
@@ -17,12 +18,14 @@ vi.mock("three", async (importOriginal) => {
     ...actual,
     WebGLRenderer: class {
       domElement: HTMLCanvasElement;
+      parameters: WebGLRendererParameters;
       render = vi.fn();
       dispose = vi.fn();
       forceContextLoss = vi.fn();
       setDrawingBufferSize = vi.fn();
-      constructor(options: { canvas: HTMLCanvasElement }) {
+      constructor(options: WebGLRendererParameters & { canvas: HTMLCanvasElement }) {
         this.domElement = options.canvas;
+        this.parameters = options;
       }
     },
   };
@@ -202,8 +205,8 @@ function fixture(width = 640, height = 360) {
     clientHeight: height,
     appendChild: vi.fn(),
   };
-  const create = (): ThreeApp => {
-    const app = new ThreeApp(container as unknown as HTMLElement);
+  const create = (options: ThreeAppOptions = {}): ThreeApp => {
+    const app = new ThreeApp(container as unknown as HTMLElement, options);
     apps.push(app);
     return app;
   };
@@ -1011,6 +1014,64 @@ test("invalid options fail before allocating a renderer", () => {
     );
   }
   expect(env.container.appendChild).not.toHaveBeenCalled();
+});
+
+test.each([false, true])(
+  "host construction rejects external renderer canvas/context before allocation (orthographic=%s)",
+  (orthographic) => {
+    const env = fixture();
+    const create = (renderer: WebGLRendererParameters) =>
+      orthographic ? env.createOrthographic({ renderer }) : env.create({ renderer });
+    const allocate = vi.spyOn(env.document, "createElement");
+    const externalCanvas = env.canvas as unknown as HTMLCanvasElement;
+    const externalContext = {} as WebGL2RenderingContext;
+    for (const renderer of [
+      { antialias: true, canvas: externalCanvas },
+      { antialias: true, context: externalContext },
+    ] satisfies WebGLRendererParameters[])
+      expect(() => create(renderer)).toThrow("external canvas or context");
+    expect(allocate).not.toHaveBeenCalled();
+    expect(env.container.appendChild).not.toHaveBeenCalled();
+  },
+);
+
+test("renderer settings are copied once and nullable ownership fields cannot reenter through getters", () => {
+  for (const orthographic of [false, true]) {
+    const env = fixture();
+    let reads = 0;
+    const renderer: Omit<WebGLRendererParameters, "context"> & {
+      context: WebGLRenderingContext | null;
+    } = {
+      get alpha() {
+        reads++;
+        renderer.context = {} as WebGL2RenderingContext;
+        return true;
+      },
+      antialias: false,
+      context: null,
+    };
+    const app = orthographic ? env.createOrthographic({ renderer }) : env.create({ renderer });
+    const received = Reflect.get(app.renderer, "parameters") as WebGLRendererParameters;
+    expect(received).not.toHaveProperty("context");
+    expect(received.canvas).toBe(env.canvas);
+    expect(received).toMatchObject({ alpha: true, antialias: false });
+    expect(reads).toBe(1);
+    expect(renderer.context).not.toBeNull();
+  }
+});
+
+test("malformed renderer settings reject before DOM or GPU allocation", () => {
+  for (const orthographic of [false, true]) {
+    const env = fixture();
+    const allocate = vi.spyOn(env.document, "createElement");
+    for (const value of [null, 1, "renderer", []]) {
+      const options = { renderer: value as unknown as NonNullable<ThreeAppOptions["renderer"]> };
+      expect(() => (orthographic ? env.createOrthographic(options) : env.create(options))).toThrow(
+        TypeError,
+      );
+    }
+    expect(allocate).not.toHaveBeenCalled();
+  }
 });
 
 test("optional controls share the host loop and detach exactly once", () => {

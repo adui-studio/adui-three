@@ -17,6 +17,12 @@ WebGLRenderer 为首版后端，要求 WebGL 2；WebGPU 的初始化和材质流
 
 资源采用显式所有权登记，按 scope 去重并逆序清理，不遍历 scene 无差别释放；借入及跨实例共享资源由外部管理。宿主只创建自己的 scene/camera/renderer/canvas，不在第一版加入外部 renderer、通用插件系统或全局资源引用计数。
 
+## 运行时 renderer 配置边界
+
+2026-11-13 补查：Omit 只能限制直接对象字面量，包含公共字段的更宽 WebGLRendererParameters 变量仍可结构化赋值，原运行时展开会将外部 context 传给原生 renderer。宿主必须维护自有上下文的生命周期，因此在创建 DOM/GPU 前复制配置，拒绝非空 canvas/context，并丢弃 null/undefined 的这两个字段；不修改调用方原对象。renderer 本身须为非 null、非数组对象，字段 getter 只读取一次，其他原生选项与默认 antialias 保持。
+
+四项先行失败单测验证两类宿主的拒绝/无分配、配置快照与迟到字段注入、非法配置形状；真实 WebGL 验证四次外部句柄注入被拒绝且原宿主像素/上下文保持，新建宿主仍拥有独立上下文。没有新增外部 renderer 注入接口或私有缓存改写。
+
 ## 理由、代价与风险
 
 边界小且可用原生对象扩展，独立控制器入口避免核心强制加载 addon。显式资源登记便于审查，代价是使用者需逐一登记实际拥有的资源。raw scene 与 renderer 可被外部误用，文档明确不要替换内部对象或额外启循环。RAF 方案不适用于 WebXR，浏览器兼容目前只实际验证 Chromium/软件 WebGL。

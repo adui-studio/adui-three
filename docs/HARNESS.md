@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 424 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 428 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 98 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 99 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR / 未压缩 EXR 环境                      |
@@ -60,6 +60,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-13 renderer 配置所有权补查：四项先行失败单测复现更宽原生配置对象绕过 Omit、外部上下文透传以及配置 getter 期间的字段注入。创建 canvas/renderer 前复制并验证，拒绝非空外部句柄，去掉 nil 字段。宿主定向 54/54 通过；真实 WebGL 专项 1/1（约 4.6 秒）验证两类宿主的四次拒绝无 DOM 挂载，原宿主红色像素/上下文不变，正常新宿主仍独立。首次静态检查指出测试的 native context 声明不含 null 和未绑定方法引用，改为显式 nullable 测试形状/闭包后通过；ready 通过 428 项单测、16 项文档测试、168 文件格式、104 源文件静态检查与全部构建；十二入口独立 tarball 和四次严格声明/消费通过。完整浏览器 99/99（约 4.4 分钟）通过，零重试、零跳过，包含三项触摸集成。无依赖升级、CI 或发布。
 
 2026-11-13 触摸拾取验收：增加 hasTouch/isMobile 的 Chromium 模拟上下文，390×844、DPR=3（宿主上限 2），使用 Touchscreen.tap 和原生 CDP 多触点输入。事件记录验证 touch/isTrusted 和非主触点，覆盖 CSS 缩放、双画布、可交互标签、双指轨道平移、取消按压及后续点按；两项专项 2/2（约 4.7 秒）通过。首轮因测试在 touchEnd 后重复发送 touchCancel 被 CDP 拒绝，改为跟踪活动手势并另外启动真正可取消的按压；未改库或放宽断言，诊断保留 playwright-report/diagnostics/touch-probe-first。完整浏览器 97/97（约 4.7 分钟）通过、零重试，报告另存忽略的 playwright-report/diagnostics/touch-picking-full。随后新增触摸变换手柄 1/1（约 4.9 秒）验证真实绿色轴像素定位、拖动/取消后的轨道配置恢复，以及释放后触摸轨道继续可用；两批分次验收，不称单次全量 98。ready 通过 16 项文档测试、424 项主包单测（缓存命中）、167 文件格式、103 源文件静态检查与全部构建；库 API/实现/导出未改，不重复 package 消费。不代表真机、移动 Safari/Firefox、笔输入或完整触摸手势矩阵通过。
 
