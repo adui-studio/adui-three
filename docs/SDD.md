@@ -98,6 +98,8 @@ running 是用户运行意图；文档隐藏或容器零尺寸时暂停 RAF 但�
 
 ## 画布截图契约
 
+CaptureFrameOptions.region 可选，类型 CaptureRegion 包含只读 x/y/width/height；左上角起算的 drawing-buffer 像素，x/y 非负安全整数，宽高正安全整数。四个数值先快照；范围在 app.render 后以最终实际 canvas 宽高校验，越界拒绝且不分配临时画布，贴边有效。九参数 drawImage 复制到同尺寸原点，不重采样、不换算 CSS/DPR 或隐式裁边。默认完整截图和取消/编码清理不变，见 [ADR-0031](adr/0031-capture-region.md)。
+
 capture 独立入口提供 captureFrame(app, CaptureFrameOptions):Promise<Blob>。type 默认 PNG，可选 JPEG/WebP；quality 可选有限 [0,1]，signal 可选。校验可绘制状态与默认 render target，复用 app.render 后同步复制当前 drawing buffer 到 detached Canvas 2D，再 toBlob；不推进动画、改变运行意图/相机/管线或增加 RAF。像素与后续帧/尺寸隔离，不包含 DOM/CSS 界面，不是 HDR/任意分辨率导出。
 
 pending 编码登记宿主 scope 并监听两个 signal，逻辑取消立即拒绝 AbortError，迟到结果丢弃；所有结束路径解除登记/监听、归零画布，清理错误继续并聚合。原生 null/编码/CORS、隐藏/零尺寸/丢失上下文/非默认目标或宿主绘制重入失败正常拒绝。浏览器格式可回退 PNG，以实际 Blob.type 为准；Blob URL/下载属于应用，详见 [ADR-0021](adr/0021-frame-capture.md)。
@@ -332,6 +334,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-040  | 正交过渡契约                      | camera-transition.ts、共享正交准备               | 缩放/控件/取消单测、真实过渡浏览器、泛型包消费             |
 | FR-041  | 相机视图契约                      | camera-view.ts、投影演示                         | JSON/镜头/控件/异常单测、相同像素浏览器、包消费            |
 | FR-042  | EXR 环境契约                      | environment.ts、原创 EXR fixture                 | 原生半浮点/隔离单测、实际照明/GPU 回归、包消费             |
+| FR-043  | 画布截图契约                      | capture.ts、区域类型及演示选择                   | 坐标/边界/尺寸/取消单测、PNG 区域像素、包消费              |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 

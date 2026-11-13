@@ -164,6 +164,24 @@ type 默认 image/png，可选 image/jpeg / image/webp；quality 可选有限 [0
 
 隐藏、零尺寸、上下文不可用或当前 render target 非默认时拒绝；自定义管线须确实输出画布。不要从宿主更新/绘制/完成阶段调用，单次绘制重入会拒绝。signal、宿主或 app.resources 结束立即逻辑取消，原生编码可能继续，迟到结果丢弃。任务拥有临时画布并清监听/登记、归零尺寸；Blob 交给应用后自行管理引用或 URL。截图有与像素数相关的 CPU/内存成本，没有后台计时器或第二循环。
 
+### 导出局部画面
+
+```ts
+import { captureFrame } from "@adui/three/capture";
+import type { CaptureRegion } from "@adui/three/capture";
+
+const canvas = app.renderer.domElement;
+const region: CaptureRegion = {
+  x: 0,
+  y: 0,
+  width: Math.max(1, Math.floor(canvas.width / 2)),
+  height: Math.max(1, Math.floor(canvas.height / 2)),
+};
+const cropped = await captureFrame(app, { region });
+```
+
+region 使用实际 drawing-buffer 像素，原点在画布左上角；x/y 必须是非负安全整数，宽高为正安全整数，不自动转换 CSS/DPR、缩放或裁去越界部分。省略时截取完整画布。区域数值在调用时复制，范围在本次 render 完成后按实际画布检查；越界 RangeError 发生在临时画布分配之前，但本次绘制可能已发生。输出宽高就是区域宽高；其余格式、取消、并发隔离和清理规则与完整截图一致。演示“截图范围”可选完整画面或中心区域。
+
 ## WebGL 上下文丢失
 
 `app.contextLost` 初始 false；自有 canvas 收到原生 webglcontextlost 后设为 true 并完整 dispose，标记保留用于诊断。暂停、隐藏或 ready 状态同样结束；旧 canvas 的恢复事件不能复活宿主。普通主动 dispose 不把此属性设为 true。

@@ -63,6 +63,8 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 ## 关键取舍
 
+区域截图只改变 capture 的同步复制矩形，使用相同宿主绘制、pending 所有权和编码流程；不增加渲染目标、调度器或图像服务，见 [ADR-0031](adr/0031-capture-region.md)。
+
 环境入口的 loadHDR/loadEXR 共用任务与资产生命周期，仅原生解码器不同；EXR 为每任务复制输入，绑定/原生转换缓存仍由既有所有权管理。不创建格式服务或新入口，见 [ADR-0030](adr/0030-exr-environment.md)。
 
 camera-view 仅保存与恢复相机的数值配置，复用相机写锁和过渡取消；不创建调度、存储服务或场景序列化。快照不拥有原宿主/控件/模型，细节见 [ADR-0029](adr/0029-camera-views.md)。

@@ -1,5 +1,6 @@
 import { expect, test, vi } from "vite-plus/test";
 import { captureFrame } from "../src/capture.ts";
+import type { CaptureRegion } from "../src/capture.ts";
 import { ResourceScope } from "../src/resources.ts";
 import type { ThreeApp, ThreeAppState } from "../src/three-app.ts";
 
@@ -273,4 +274,113 @@ test("a draw callback ending the owner does not submit an encoder afterwards", a
   await expect(captureFrame(env.app)).rejects.toMatchObject({ name: "AbortError" });
   expect(env.requests).toHaveLength(0);
   expect(env.surfaces[0]!.width).toBe(0);
+});
+
+test("region captures copy exact pixel coordinates and snapshot values before drawing", async () => {
+  const env = fixture();
+  const region = { x: 123, y: 45, width: 301, height: 207 };
+  env.render.mockImplementation(() => {
+    region.x = 900;
+    region.width = 100;
+  });
+  const promise = captureFrame(env.app, { region });
+  const surface = env.surfaces[0]!;
+  expect([surface.width, surface.height]).toEqual([301, 207]);
+  expect(surface.draw).toHaveBeenCalledExactlyOnceWith(
+    env.source,
+    123,
+    45,
+    301,
+    207,
+    0,
+    0,
+    301,
+    207,
+  );
+  const blob = new Blob(["region"], { type: "image/png" });
+  env.requests[0]!.callback(blob);
+  expect(await promise).toBe(blob);
+  expect([surface.width, surface.height]).toEqual([0, 0]);
+  expect(env.render).toHaveBeenCalledOnce();
+});
+
+test("invalid region values reject before drawing or allocating a surface", async () => {
+  const env = fixture();
+  for (const region of [null, [], "rectangle", {}, { x: 0, y: 0, width: 1 }])
+    await expect(captureFrame(env.app, { region: region as CaptureRegion })).rejects.toThrow();
+  for (const field of ["x", "y", "width", "height"] as const) {
+    for (const value of [-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])
+      await expect(
+        captureFrame(env.app, { region: { x: 0, y: 0, width: 100, height: 100, [field]: value } }),
+      ).rejects.toBeInstanceOf(RangeError);
+  }
+  for (const field of ["width", "height"] as const)
+    await expect(
+      captureFrame(env.app, { region: { x: 0, y: 0, width: 100, height: 100, [field]: 0 } }),
+    ).rejects.toBeInstanceOf(RangeError);
+  expect(env.render).not.toHaveBeenCalled();
+  expect(env.document.createElement).not.toHaveBeenCalled();
+});
+
+test("out-of-bounds regions reject after the final draw without allocating or leaking ownership", async () => {
+  const env = fixture();
+  const untrack = vi.spyOn(env.value.resources, "untrack");
+  for (const region of [
+    { x: 1200, y: 0, width: 1, height: 1 },
+    { x: 1199, y: 0, width: 2, height: 1 },
+    { x: 0, y: 680, width: 1, height: 1 },
+    { x: Number.MAX_SAFE_INTEGER, y: 0, width: Number.MAX_SAFE_INTEGER, height: 1 },
+  ])
+    await expect(captureFrame(env.app, { region })).rejects.toThrow("rendered drawing buffer");
+  expect(env.render).toHaveBeenCalledTimes(4);
+  expect(untrack).toHaveBeenCalledTimes(4);
+  expect(env.document.createElement).not.toHaveBeenCalled();
+  // The right and bottom edges are inclusive boundaries for the rectangle's extent.
+  const valid = captureFrame(env.app, { region: { x: 1199, y: 679, width: 1, height: 1 } });
+  expect([env.surfaces[0]!.width, env.surfaces[0]!.height]).toEqual([1, 1]);
+  const blob = new Blob(["one pixel"]);
+  env.requests[0]!.callback(blob);
+  expect(await valid).toBe(blob);
+});
+
+test("region bounds use the drawing buffer after render-time resize and preserve later retries", async () => {
+  const env = fixture();
+  env.source.width = 100;
+  env.render.mockImplementationOnce(() => {
+    env.source.width = 1200;
+  });
+  const first = captureFrame(env.app, { region: { x: 1000, y: 0, width: 200, height: 100 } });
+  const blob = new Blob(["resized"]);
+  env.requests[0]!.callback(blob);
+  expect(await first).toBe(blob);
+  env.render.mockImplementationOnce(() => {
+    env.source.width = 900;
+  });
+  await expect(
+    captureFrame(env.app, { region: { x: 1000, y: 0, width: 200, height: 100 } }),
+  ).rejects.toThrow("rendered drawing buffer");
+  expect(env.surfaces).toHaveLength(1);
+  const retry = captureFrame(env.app);
+  expect(env.surfaces[1]!.width).toBe(900);
+  env.requests[1]!.callback(blob);
+  expect(await retry).toBe(blob);
+});
+
+test("concurrent regions keep independent encoded sizes and release only the cancelled surface", async () => {
+  const env = fixture();
+  const controller = new AbortController();
+  const first = captureFrame(env.app, {
+    signal: controller.signal,
+    region: { x: 0, y: 0, width: 200, height: 100 },
+  });
+  const second = captureFrame(env.app, { region: { x: 400, y: 200, width: 300, height: 250 } });
+  controller.abort();
+  await expect(first).rejects.toMatchObject({ name: "AbortError" });
+  expect([env.surfaces[0]!.width, env.surfaces[0]!.height]).toEqual([0, 0]);
+  expect([env.surfaces[1]!.width, env.surfaces[1]!.height]).toEqual([300, 250]);
+  env.requests[0]!.callback(new Blob(["late"]));
+  const blob = new Blob(["second"]);
+  env.requests[1]!.callback(blob);
+  expect(await second).toBe(blob);
+  expect([env.surfaces[1]!.width, env.surfaces[1]!.height]).toEqual([0, 0]);
 });

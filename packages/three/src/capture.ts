@@ -1,11 +1,40 @@
 import type { AnyThreeApp } from "./three-app.ts";
 
+export interface CaptureRegion {
+  /** Top-left origin in actual drawing-buffer pixels, independent of CSS size and DPR. */
+  readonly x: number;
+  readonly y: number;
+  /** Positive integer output dimensions. No resampling or automatic clipping. */
+  readonly width: number;
+  readonly height: number;
+}
+
 export interface CaptureFrameOptions {
   /** Browser encoding; unsupported formats may fall back to PNG. Inspect Blob.type. Default PNG. */
   type?: "image/png" | "image/jpeg" | "image/webp";
   /** Finite [0,1]; only affects lossy formats supported by the browser. */
   quality?: number;
   signal?: AbortSignal;
+  /** Optional pixel rectangle within the canvas produced by this capture's draw. */
+  region?: CaptureRegion;
+}
+
+function snapshotRegion(value: CaptureRegion | undefined): CaptureRegion | undefined {
+  if (value === undefined) return;
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new TypeError("Capture region must be a pixel rectangle");
+  const { x, y, width, height } = value;
+  if (
+    ![x, y, width, height].every(Number.isSafeInteger) ||
+    x < 0 ||
+    y < 0 ||
+    width <= 0 ||
+    height <= 0
+  )
+    throw new RangeError(
+      "Capture region requires nonnegative integer origin and positive dimensions",
+    );
+  return { x, y, width, height };
 }
 
 function aborted(): DOMException {
@@ -17,7 +46,8 @@ export async function captureFrame(
   app: AnyThreeApp,
   options: CaptureFrameOptions = {},
 ): Promise<Blob> {
-  const { type = "image/png", quality, signal } = options;
+  const { type = "image/png", quality, signal, region: requestedRegion } = options;
+  const region = snapshotRegion(requestedRegion);
   if (!["image/png", "image/jpeg", "image/webp"].includes(type))
     throw new TypeError("Capture type must be image/png, image/jpeg or image/webp");
   if (quality !== undefined && (!Number.isFinite(quality) || quality < 0 || quality > 1))
@@ -92,14 +122,31 @@ export async function captureFrame(
       if (settled) return;
       drawable();
       if (!source.width || !source.height) throw new Error("Capture canvas has no drawing buffer");
+      if (
+        region &&
+        (region.x > source.width - region.width || region.y > source.height - region.height)
+      )
+        throw new RangeError("Capture region must fit within the rendered drawing buffer");
       const snapshot = document.createElement("canvas");
       surface = snapshot;
-      snapshot.width = source.width;
-      snapshot.height = source.height;
+      snapshot.width = region?.width ?? source.width;
+      snapshot.height = region?.height ?? source.height;
       const context = snapshot.getContext("2d");
       if (!context) throw new Error("Canvas 2D encoding is unavailable");
       if (settled) return;
-      context.drawImage(source, 0, 0);
+      if (region)
+        context.drawImage(
+          source,
+          region.x,
+          region.y,
+          region.width,
+          region.height,
+          0,
+          0,
+          region.width,
+          region.height,
+        );
+      else context.drawImage(source, 0, 0);
       if (settled) return;
       active();
       snapshot.toBlob(

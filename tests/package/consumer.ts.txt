@@ -1,5 +1,6 @@
 import { loadTexture, loadKTX2 } from "@adui/three/textures";
 import { captureFrame } from "@adui/three/capture";
+import type { CaptureRegion } from "@adui/three/capture";
 import { createInstancedMesh } from "@adui/three/geometry";
 import { loadHDR, loadEXR, attachEnvironment } from "@adui/three/environment";
 import { ResourceScope, ThreeApp, OrthographicThreeApp } from "@adui/three";
@@ -48,7 +49,8 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   // @ts-expect-error Framing helpers currently require a perspective host.
   fitObject(orthographic, model.scene);
   orthographic.dispose();
-  const image: Blob = await captureFrame(app, { type: "image/webp", quality: 0.8, signal: app.signal });
+  const region: CaptureRegion = { x: 0, y: 0, width: 1, height: 1 };
+  const image: Blob = await captureFrame(app, { type: "image/webp", quality: 0.8, signal: app.signal, region });
   void image;
   const contextLost: boolean = app.contextLost;
   void contextLost;

@@ -59,7 +59,7 @@ function mountPanel(id: string, color: number): void {
     <div class="stage"><div class="viewport" aria-label="场景 ${id}，拖动旋转，滚轮缩放"><div class="label-overlay"></div></div><span class="stage-hint">拖动旋转 · 滚轮缩放</span><p class="error" role="alert" hidden></p></div>
     <div class="metrics"><div><span>UPDATES</span><strong data-testid="frames">0</strong></div><div><span>VIEWPORT</span><strong data-testid="size">—</strong></div><div><span>DPR</span><strong data-testid="dpr">—</strong></div><div><span>DRAW CALLS</span><strong data-testid="draw-calls">0</strong></div></div>
     <div class="actions"><button data-action="start" class="primary">运行</button><button data-action="stop">暂停</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建 ↻</button></div>
-    <div class="effect-actions"><select class="capture-format" data-action="capture-format" aria-label="截图格式"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select><button data-action="capture">截图</button><button data-action="cancel-capture">取消截图</button><button data-action="clear-capture">清除截图</button><a data-testid="capture-download" hidden>下载截图</a><span data-testid="capture-state">idle</span></div>
+    <div class="effect-actions"><select class="capture-format" data-action="capture-format" aria-label="截图格式"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select><select class="capture-format" data-action="capture-region" aria-label="截图范围"><option value="full">完整画面</option><option value="center">中心区域</option></select><button data-action="capture">截图</button><button data-action="cancel-capture">取消截图</button><button data-action="clear-capture">清除截图</button><a data-testid="capture-download" hidden>下载截图</a><span data-testid="capture-state">idle</span></div>
     <img class="capture-preview" data-testid="capture-preview" alt="场景截图预览" hidden>
     <div class="resize-actions"><button data-action="width" aria-pressed="false">收窄容器</button><button data-action="zero" aria-pressed="false">零高度</button><button data-action="labels" aria-pressed="true">显示标签</button><button data-action="fit">适配视角</button><button data-action="transition">平滑取景</button><button data-action="cancel-transition">取消过渡</button><button data-action="large-model" aria-pressed="false">大模型</button></div>
     <p class="camera-feedback" role="status">取景过渡：<span data-testid="transition-state">idle</span> · <span data-testid="transition-progress">0</span>%</p>
@@ -412,7 +412,25 @@ function mountPanel(id: string, color: number): void {
           : selectedFormat === "image/webp"
             ? "image/webp"
             : "image/png";
-      const image = await captureFrame(owner, { signal: controller.signal, type, quality: 0.9 });
+      const center =
+        card.querySelector<HTMLSelectElement>('[data-action="capture-region"]')!.value === "center";
+      const source = owner.renderer.domElement;
+      const width = Math.max(1, Math.floor(source.width / 2));
+      const height = Math.max(1, Math.floor(source.height / 2));
+      const region = center
+        ? {
+            x: Math.floor((source.width - width) / 2),
+            y: Math.floor((source.height - height) / 2),
+            width,
+            height,
+          }
+        : undefined;
+      const image = await captureFrame(owner, {
+        signal: controller.signal,
+        type,
+        quality: 0.9,
+        region,
+      });
       if (version !== captureVersion || owner !== app || owner.signal.aborted) return;
       const url = URL.createObjectURL(image);
       if (captureURL) URL.revokeObjectURL(captureURL);

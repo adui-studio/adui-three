@@ -51,23 +51,27 @@ async function pause(page: Page): Promise<void> {
       .click();
 }
 
-async function canvasPixels(panel: Locator) {
-  return panel.evaluate((element) => {
+async function canvasPixels(panel: Locator, center = false) {
+  return panel.evaluate((element, center) => {
     element.querySelector<HTMLButtonElement>('[data-action="render"]')!.click();
     const gl = element.querySelector("canvas")!.getContext("webgl2")!;
     const width = gl.drawingBufferWidth,
       height = gl.drawingBufferHeight;
     const bytes = new Uint8Array(width * height * 4);
     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
+    const outputWidth = center ? Math.max(1, Math.floor(width / 2)) : width;
+    const outputHeight = center ? Math.max(1, Math.floor(height / 2)) : height;
+    const left = center ? Math.floor((width - outputWidth) / 2) : 0;
+    const top = center ? Math.floor((height - outputHeight) / 2) : 0;
     let hash = 2166136261;
-    for (let y = 0; y < height; y++)
-      for (let x = 0; x < width; x++) {
-        const offset = ((height - 1 - y) * width + x) * 4;
+    for (let y = 0; y < outputHeight; y++)
+      for (let x = 0; x < outputWidth; x++) {
+        const offset = ((height - 1 - top - y) * width + left + x) * 4;
         for (let channel = 0; channel < 3; channel++)
           hash = Math.imul(hash ^ bytes[offset + channel]!, 16777619);
       }
-    return { hash, width, height, error: gl.getError() };
-  });
+    return { hash, width: outputWidth, height: outputHeight, error: gl.getError() };
+  }, center);
 }
 
 async function encodedPixels(panel: Locator) {
@@ -243,4 +247,67 @@ test("JPEG and WebP use native encoding and expose the actual image type and dow
       `scene-A.${extension}`,
     );
   }
+});
+
+test("a cropped PNG matches the real postprocessing pixel region and preserves paused animation", async ({
+  page,
+}) => {
+  await probe(page);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await pause(page);
+  const panel = page.getByTestId("scene-A");
+  const other = page.getByTestId("scene-B");
+  await panel.getByRole("button", { name: "加载动画样例", exact: true }).click();
+  await expect(panel).toHaveAttribute("data-model-state", "loaded");
+  await panel.getByRole("button", { name: "播放动画", exact: true }).click();
+  await panel.getByRole("slider", { name: "动画定位" }).fill("50");
+  await panel.getByRole("button", { name: "泛光", exact: true }).click();
+  const peer = await canvasPixels(other);
+  const expected = await canvasPixels(panel, true);
+  const frames = await panel.getByTestId("frames").textContent();
+  const time = await panel.getByTestId("animation-time").textContent();
+  await panel.getByRole("combobox", { name: "截图范围" }).selectOption("center");
+  await panel.getByRole("button", { name: "截图", exact: true }).click();
+  await expect(panel).toHaveAttribute("data-capture-state", "ready");
+  expect(await encodedPixels(panel)).toEqual({
+    hash: expected.hash,
+    width: expected.width,
+    height: expected.height,
+    type: "image/png",
+  });
+  await expect(panel.getByTestId("frames")).toHaveText(frames!);
+  await expect(panel.getByTestId("animation-time")).toHaveText(time!);
+  expect(await canvasPixels(other)).toEqual(peer);
+  expect(expected.error).toBe(0);
+  expect(errors).toEqual([]);
+  const download = page.waitForEvent("download");
+  await panel.getByTestId("capture-download").click();
+  await (await download).saveAs("test-results/captured-region.png");
+});
+
+test("an in-flight cropped image retains its pixels after canvas resize and capture selection changes", async ({
+  page,
+}) => {
+  await probe(page, true);
+  await page.goto("/");
+  await pause(page);
+  const panel = page.getByTestId("scene-A");
+  const expected = await canvasPixels(panel, true);
+  await panel.getByRole("combobox", { name: "截图范围" }).selectOption("center");
+  await panel.getByRole("button", { name: "截图", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.__captures.pending.length)).toBe(1);
+  await panel.getByRole("combobox", { name: "截图范围" }).selectOption("full");
+  await panel.getByRole("button", { name: "收窄容器", exact: true }).click();
+  await expect.poll(async () => (await canvasPixels(panel)).width).toBeLessThan(expected.width * 2);
+  await page.evaluate(() => window.__captures.pending.shift()!());
+  await expect(panel).toHaveAttribute("data-capture-state", "ready");
+  expect(await encodedPixels(panel)).toEqual({
+    hash: expected.hash,
+    width: expected.width,
+    height: expected.height,
+    type: "image/png",
+  });
+  expect(expected.error).toBe(0);
 });

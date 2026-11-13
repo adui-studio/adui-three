@@ -113,6 +113,8 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 反向深度标签回归见 [labels-depth.spec.ts](../tests/browser/labels-depth.spec.ts)：消费真实库产物和锁定的 Three.js build，按实际 EXT_clip_control 能力验收透视/正交近远裁剪像素；无扩展时显式跳过，不模拟 GPU 模式。
 
+区域截图复用 [capture.ts](../packages/three/src/capture.ts) 和既有截图测试：数值快照、最终缓冲边界及原生九参数复制见 [ADR-0031](adr/0031-capture-region.md)。演示只提供裁剪策略，库不依赖应用选择。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。
