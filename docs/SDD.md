@@ -366,7 +366,7 @@ handle 登记宿主 scope，拥有节点、instanceMatrix、instanceColor、morp
 
 geometry 入口导出 computeObjectBounds(object:Object3D):Box3，独立于宿主、相机和 DOM。先更新祖先/子树矩阵和引用骨骼/绑定逆矩阵，再以原生 Box3 precise 路径采样 CPU 顶点。InstancedMesh 显式重算几何体/实例盒，BatchedMesh 重算聚合盒并沿用原生每几何体缓存；返回独立世界 AABB，通过 getSize/getCenter 读取数值。两类取景复用此准备，仍保留原相机锁及控件契约。
 
-包括隐藏子树，普通 Mesh 包含当前 CPU 骨骼和形变；实例/批次保留原生保守盒，不保证逐实例形变紧边界。忽略可见性/layers/drawRange 和 shader 位移；扫描成本由数据规模决定。只更新原生矩阵、bindMatrixInverse 和包围盒缓存，不写 needsUpdate、不推进 Mixer、绘制或接管资源。非对象 TypeError，空/非有限 RangeError；零尺寸允许，同根准备重入拒绝，异常后解锁但不回滚原生准备副作用，见 [ADR-0032](adr/0032-object-bounds.md)。
+包括隐藏子树，普通 Mesh 包含当前 CPU 骨骼和形变；实例/批次保留原生保守盒，不保证逐实例形变紧边界。忽略可见性/layers/drawRange 和 shader 位移；扫描成本由数据规模决定。只更新原生矩阵、bindMatrixInverse 和包围盒缓存，不写 needsUpdate、不推进 Mixer、绘制或接管资源。非对象 TypeError，空/非有限 RangeError；零尺寸允许，所有根对象间的封装准备同步重入拒绝，异常后解锁但不回滚原生准备副作用，见 [ADR-0032](adr/0032-object-bounds.md)。
 
 ## 对象路径运动契约
 

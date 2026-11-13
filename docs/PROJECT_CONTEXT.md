@@ -2,7 +2,7 @@
 
 ## 目标与当前阶段
 
-更新日期：2026-11-13。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。最近交付路径定位 08acacb；已补充 [旧封装迁移对照](MIGRATION.md) 和本地 tarball 消费步骤。本机归档在忽略的 dist/local-packages，可按指南重建；旧业务兼容仍待实测。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
+更新日期：2026-11-13。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。最近交付 [迁移对照](MIGRATION.md) 38149ff；本轮修复原生 Box3 共享临时向量导致的跨对象同步重入污染。本机归档在忽略的 dist/local-packages，可按指南重建；旧业务兼容仍待实测。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
 
 用户授权持续封装、分步提交推送；提交描述和正文使用中文，格式 type(scope): emoji 中文描述。不得改写已有提交或擅自发布 npm。用户明确“不做任何 CI”：不新增/启用工作流，不调整组织或仓库 Actions 设置。历史工作流已由 e6ea2c2 移除，保留当时的本地输入回归修复。
 
@@ -29,7 +29,7 @@
 
 ## 验证状态
 
-当前 ready 通过：16 项文档检查器测试、459 项主包单测、格式/Lint/类型及全部构建。十二入口 tarball 和四次严格消费通过，包含 computeObjectBounds 的无 DOM 调用与两类宿主 render 的 boolean 返回声明。路径专项 4/4、seek 方法的独立消费与本轮完整浏览器 103/103（约 5.0 分钟）通过，零重试、零跳过。EXR 仅以原创单 part 未压缩 RGB 样例验收，不外推所有编码格式。反向深度数值探针和历史证据见 [Harness](HARNESS.md)，未将数学用例外推为完整硬件兼容。
+当前 ready 通过：16 项文档检查器测试、461 项主包单测、格式/Lint/类型及全部构建。十二入口 tarball 和四次严格消费通过，包含 computeObjectBounds 的无 DOM 调用与两类宿主 render 的 boolean 返回声明。边界/相机定向 70/70、跨打包入口重入消费及完整浏览器 103/103（约 5.7 分钟）通过，零重试、零跳过。EXR 仅以原创单 part 未压缩 RGB 样例验收，不外推所有编码格式。反向深度数值探针和历史证据见 [Harness](HARNESS.md)，未将数学用例外推为完整硬件兼容。
 
 浏览器环境是 Chromium/SwiftShader，单 worker、零自动重试；完整设备/格式/浏览器矩阵、长期 GPU 泄漏和性能基准尚未完成。保留 TypeScript 7 API 实验性和演示大 chunk 构建提示，不将本地通过称为远端 CI 通过。失败诊断、历史统计和阶段未提交记录统一保留在 Harness，不在接手入口复制过期状态。
 

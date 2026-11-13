@@ -153,3 +153,37 @@ test("same-root reentry rejects and preparation errors release the guard for a l
   expect(() => computeObjectBounds(env.mesh)).toThrow("native preparation");
   expect(computeObjectBounds(env.mesh).min.toArray()).toEqual([-1, -2, -3]);
 });
+
+test("cross-root reentry cannot overwrite the native Box3 scratch vertex of the outer measurement", () => {
+  const env = fixture();
+  const point = env.scope.track(new BufferGeometry());
+  point.setAttribute("position", new Float32BufferAttribute([1, 2, 3], 3));
+  const mesh = new Mesh(point, env.material);
+  env.mesh.position.set(100, 200, 300);
+  let nestedError: unknown;
+  vi.spyOn(mesh, "getVertexPosition").mockImplementation((index, target) => {
+    Mesh.prototype.getVertexPosition.call(mesh, index, target);
+    try {
+      computeObjectBounds(env.mesh);
+    } catch (error) {
+      nestedError = error;
+    }
+    return target;
+  });
+  const box = computeObjectBounds(mesh);
+  expect(box.min.toArray()).toEqual([1, 2, 3]);
+  expect(box.max.toArray()).toEqual([1, 2, 3]);
+  expect(nestedError).toEqual(new Error("Object bounds preparation is already in progress"));
+  expect(computeObjectBounds(env.mesh).min.toArray()).toEqual([99, 198, 297]);
+});
+
+test("uncaught cross-root preparation reentry releases the global guard for both objects", () => {
+  const first = fixture(),
+    second = fixture();
+  vi.spyOn(first.mesh, "updateWorldMatrix").mockImplementationOnce(() => {
+    computeObjectBounds(second.mesh);
+  });
+  expect(() => computeObjectBounds(first.mesh)).toThrow("in progress");
+  expect(computeObjectBounds(first.mesh).max.toArray()).toEqual([1, 2, 3]);
+  expect(computeObjectBounds(second.mesh).max.toArray()).toEqual([1, 2, 3]);
+});

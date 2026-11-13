@@ -52,7 +52,14 @@ if (!development) {
   scope.dispose();
   scope.dispose();
   assert.equal(disposed, 1);
-  const { BoxGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera } = await import("three");
+  const {
+    BoxGeometry,
+    BufferGeometry,
+    Float32BufferAttribute,
+    Mesh,
+    MeshBasicMaterial,
+    PerspectiveCamera,
+  } = await import("three");
   const { computeObjectFrame } = await import("@adui/three/camera");
   const mesh = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
   const { computeObjectBounds } = await import("@adui/three/geometry");
@@ -65,6 +72,23 @@ if (!development) {
   camera.position.set(3, 2, 5);
   camera.lookAt(0, 0, 0);
   assert.ok(computeObjectFrame(camera, mesh).distance > 0);
+  // The archive must share the same native-scratch guard between independently imported entries.
+  const pointGeometry = new BufferGeometry();
+  pointGeometry.setAttribute("position", new Float32BufferAttribute([1, 2, 3], 3));
+  const pointMesh = new Mesh(pointGeometry, mesh.material);
+  const getVertex = pointMesh.getVertexPosition.bind(pointMesh);
+  pointMesh.getVertexPosition = (index, target) => {
+    getVertex(index, target);
+    assert.throws(() => computeObjectFrame(camera, mesh), /already in progress/);
+    return target;
+  };
+  try {
+    assert.deepEqual(computeObjectBounds(pointMesh).min.toArray(), [1, 2, 3]);
+    assert.ok(computeObjectFrame(camera, mesh).distance > 0);
+  } finally {
+    pointMesh.dispose();
+    pointGeometry.dispose();
+  }
   const { captureCameraView, restoreCameraView } = await import("@adui/three/camera");
   const viewHost = {
     camera,

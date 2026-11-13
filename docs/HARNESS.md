@@ -18,7 +18,7 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 459 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 461 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
 | `pnpm run test:browser`         | 构建演示并执行 99 项真实 Chromium 多步骤回归                       |
@@ -62,6 +62,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-13 世界边界跨根重入：两项先行失败回归使用真实 Mesh/Box3，复现嵌套对象采样把外层单点 [1,2,3] 污染为 [99,198,297]，以及未拒绝跨根准备。改用共享同步保护并在 finally 解除，边界/两类相机定向 70/70 通过；ready 通过 461 单测、16 文档测试、175 文件格式、108 源文件静态检查及全部构建。十二入口 tarball 和四次严格消费通过，新增实际 geometry → camera 嵌套采样，验证独立入口共享防护状态且外层数值正确。完整浏览器 103/103（约 5.7 分钟）通过，零重试、零跳过；不拦截直接原生 Box3 调用。
 
 2026-11-13 迁移文档与本地归档：依据旧版只读审查整理模块对照、版本边界、循环/所有权/框架清理和当前未实现能力。根 README 移除过期数量，改指向本记录。文档检查器 16/16、链接/命令检查和静态检查通过；本轮没有修改库行为，沿用路径阶段 ready 459 单测及完整浏览器 103/103。主包构建后实际 pack 到本机忽略目录 dist/local-packages，归档为 @adui/three@0.0.0，含 61 个主包文件、十二个运行时入口，peer 为 >=0.187.0 <0.188.0，不含 apps/node_modules/.agents。没有安装到旧业务工程，旧业务兼容仍待实测。
 

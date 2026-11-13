@@ -1,17 +1,19 @@
 import { Box3 } from "three";
 import type { BatchedMesh, InstancedMesh, Object3D, SkinnedMesh } from "three";
 
-const preparing = new WeakSet<Object3D>();
+// Native Box3 shares scratch vectors across roots; nested CPU samples would overwrite the caller's vertex.
+let preparing = false;
 
 /**
  * Independent finite world AABB, including hidden descendants. Refreshes native matrices/caches.
  * Mesh vertices use the current CPU skin/morph pose; instances/batches use conservative native boxes.
  * No rendering, animation advance, GPU upload or ownership. Empty/nonfinite bounds throw RangeError.
+ * Synchronous reentry through this helper is rejected across all roots to protect native scratch data.
  */
 export function computeObjectBounds(object: Object3D): Box3 {
   if (!object?.isObject3D) throw new TypeError("An Object3D is required");
-  if (preparing.has(object)) throw new Error("Object bounds preparation is already in progress");
-  preparing.add(object);
+  if (preparing) throw new Error("Object bounds preparation is already in progress");
+  preparing = true;
   try {
     object.updateWorldMatrix(true, true);
     object.traverse((node) => {
@@ -38,6 +40,6 @@ export function computeObjectBounds(object: Object3D): Box3 {
       throw new RangeError("Object has no finite bounds");
     return bounds;
   } finally {
-    preparing.delete(object);
+    preparing = false;
   }
 }
