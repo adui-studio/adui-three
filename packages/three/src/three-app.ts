@@ -215,7 +215,14 @@ abstract class SceneHost<C extends Camera> {
   setRenderPipeline(pipeline: RenderPipeline): () => void {
     this.#assertActive();
     if (this.#resizing) throw new Error("Cannot attach a pipeline reentrantly during resize");
-    if (!pipeline || typeof pipeline.render !== "function" || typeof pipeline.resize !== "function")
+    if (!pipeline) throw new TypeError("A render and resize pipeline is required");
+    // oxlint-disable-next-line typescript/unbound-method -- Snapshot validation only; never invoked unbound.
+    const render = pipeline.render;
+    this.#assertActive();
+    // oxlint-disable-next-line typescript/unbound-method -- Invoked with call(pipeline) after owner checks.
+    const resize = pipeline.resize;
+    this.#assertActive();
+    if (typeof render !== "function" || typeof resize !== "function")
       throw new TypeError("A render and resize pipeline is required");
     if (this.#pipeline) throw new Error("A render pipeline is already attached");
     const lease = { value: pipeline, sizeDirty: false };
@@ -225,7 +232,7 @@ abstract class SceneHost<C extends Camera> {
     };
     this.#resizing = true;
     try {
-      pipeline.resize(this.size);
+      resize.call(pipeline, this.size);
       this.#assertActive();
       if (this.#pipeline !== lease) throw new Error("Render pipeline attachment was interrupted");
       return detach;
@@ -287,7 +294,10 @@ abstract class SceneHost<C extends Camera> {
       }
       if (this.#pipeline?.sizeDirty) {
         const lease = this.#pipeline;
-        lease.value.resize(this.size);
+        // oxlint-disable-next-line typescript/unbound-method -- Preserve the receiver via call after lease checks.
+        const resize = lease.value.resize;
+        if (this.#state === "disposed" || this.#pipeline !== lease) return;
+        resize.call(lease.value, this.size);
         lease.sizeDirty = false;
       }
       this.#syncLoop();
@@ -361,8 +371,13 @@ abstract class SceneHost<C extends Camera> {
       this.resize();
       if (!valid()) return;
     }
-    if (this.#pipeline) this.#pipeline.value.render(frame);
-    else this.renderer.render(this.scene, this.camera);
+    if (this.#pipeline) {
+      const lease = this.#pipeline;
+      // oxlint-disable-next-line typescript/unbound-method -- Preserve the receiver via call after lease checks.
+      const render = lease.value.render;
+      if (!valid() || this.#pipeline !== lease) return;
+      render.call(lease.value, frame);
+    } else this.renderer.render(this.scene, this.camera);
     if (!valid()) return;
     const afterRender = Array.from(this.#afterRender);
     for (const callback of afterRender) {

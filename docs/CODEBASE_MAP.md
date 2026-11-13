@@ -125,4 +125,6 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 ## 维护
 
+管线 getter 的真实生命周期回归见 [pipeline-getters.spec.ts](../tests/browser/pipeline-getters.spec.ts)，覆盖两类宿主在挂接/绘制/尺寸读取时销毁，验证旧调用跳过和独立实例像素。
+
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

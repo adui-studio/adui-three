@@ -98,6 +98,8 @@ running 是用户运行意图；文档隐藏或容器零尺寸时暂停 RAF 但�
 
 容器尺寸基于 clientWidth/clientHeight，建议无 padding，CSS transform 不改变绘制分辨率。构造仅限现代浏览器，要求 WebGL 2 / ResizeObserver / matchMedia；模块导入不访问 DOM。没有数据库、事务、后端鉴权或隐式遥测；资产权限由应用负责。
 
+管线方法 getter 属于可重入边界：挂接时各读一次并重新确认宿主和独占槽位，首次尺寸通知使用该快照；每次后续通知/绘制读取当前方法后检查宿主及原租约。失效则跳过旧方法，未绘制不派发完成通知；调用保留管线对象 this，不冻结之后的方法替换或回滚 getter 副作用，见 ADR-0009。
+
 ## 画布截图契约
 
 CaptureFrameOptions.region 可选，类型 CaptureRegion 包含只读 x/y/width/height；左上角起算的 drawing-buffer 像素，x/y 非负安全整数，宽高正安全整数。四个数值先快照；范围在 app.render 后以最终实际 canvas 宽高校验，越界拒绝且不分配临时画布，贴边有效。九参数 drawImage 复制到同尺寸原点，不重采样、不换算 CSS/DPR 或隐式裁边。默认完整截图和取消/编码清理不变，见 [ADR-0031](adr/0031-capture-region.md)。

@@ -486,6 +486,141 @@ test("failed or interrupted pipeline initialization releases the slot without ow
   expect(disposing.dispose).not.toHaveBeenCalled();
 });
 
+test.each(["render", "resize"] as const)(
+  "pipeline %s getter disposal prevents all initialization calls",
+  (key) => {
+    const app = fixture().create();
+    const render = vi.fn(),
+      resize = vi.fn();
+    const pipeline = { render, resize };
+    Object.defineProperty(pipeline, key, {
+      get() {
+        app.dispose();
+        return key === "render" ? render : resize;
+      },
+    });
+    expect(() => app.setRenderPipeline(pipeline)).toThrow("disposed");
+    expect(render).not.toHaveBeenCalled();
+    expect(resize).not.toHaveBeenCalled();
+  },
+);
+
+test("pipeline initialization reads callbacks once and preserves their native receiver", () => {
+  const app = fixture().create();
+  let reads = 0;
+  const resize = vi.fn(function (this: object) {
+    expect(this).toBe(pipeline);
+  });
+  const pipeline = {
+    render: vi.fn(),
+    get resize() {
+      reads++;
+      return resize;
+    },
+  };
+  const off = app.setRenderPipeline(pipeline);
+  expect(reads).toBe(1);
+  expect(resize).toHaveBeenCalledOnce();
+  off();
+});
+
+test("a valid pipeline attached by a preparation getter retains its independent lease", () => {
+  const app = fixture().create();
+  const nested = { render: vi.fn(), resize: vi.fn() },
+    stale = vi.fn();
+  expect(() =>
+    app.setRenderPipeline({
+      get render() {
+        app.setRenderPipeline(nested);
+        return stale;
+      },
+      resize: stale,
+    }),
+  ).toThrow("already attached");
+  app.render();
+  expect(nested.render).toHaveBeenCalledOnce();
+  expect(nested.resize).toHaveBeenCalledOnce();
+  expect(stale).not.toHaveBeenCalled();
+});
+
+test("render getter disposal skips the returned method and completion observers", () => {
+  const app = fixture().create(),
+    render = vi.fn(),
+    after = vi.fn();
+  let armed = false;
+  app.setRenderPipeline({
+    get render() {
+      if (armed) app.dispose();
+      return render;
+    },
+    resize: vi.fn(),
+  });
+  app.onAfterRender(after);
+  armed = true;
+  app.render();
+  expect(app.state).toBe("disposed");
+  expect(render).not.toHaveBeenCalled();
+  expect(after).not.toHaveBeenCalled();
+  expect(vi.spyOn(app.renderer, "render")).not.toHaveBeenCalled();
+});
+
+test("render getter replacement retains the newer lease for the next draw without a false completion", () => {
+  const app = fixture().create(),
+    stale = vi.fn(),
+    next = vi.fn(),
+    after = vi.fn();
+  let armed = false;
+  const off = app.setRenderPipeline({
+    get render() {
+      if (armed) {
+        armed = false;
+        off();
+        app.setRenderPipeline({ render: next, resize: vi.fn() });
+      }
+      return stale;
+    },
+    resize: vi.fn(),
+  });
+  app.onAfterRender(after);
+  armed = true;
+  app.render();
+  expect(stale).not.toHaveBeenCalled();
+  expect(next).not.toHaveBeenCalled();
+  expect(after).not.toHaveBeenCalled();
+  off();
+  app.render();
+  expect(next).toHaveBeenCalledOnce();
+  expect(after).toHaveBeenCalledOnce();
+});
+
+test.each(["dispose", "detach"] as const)(
+  "resize getter %s skips the returned method after invalidating its lease",
+  (mode) => {
+    const env = fixture(),
+      app = env.create(),
+      resize = vi.fn();
+    let armed = false;
+    const off = app.setRenderPipeline({
+      render: vi.fn(),
+      get resize() {
+        if (armed) {
+          if (mode === "dispose") app.dispose();
+          else off();
+        }
+        return resize;
+      },
+    });
+    armed = true;
+    env.container.clientWidth = 320;
+    app.resize();
+    expect(resize).toHaveBeenCalledOnce();
+    if (mode === "detach") {
+      app.render();
+      expect(vi.spyOn(app.renderer, "render")).toHaveBeenCalledOnce();
+    } else expect(app.state).toBe("disposed");
+  },
+);
+
 test("pipeline render errors stop the host and suppress completion observers", () => {
   const env = fixture();
   const app = env.create();
