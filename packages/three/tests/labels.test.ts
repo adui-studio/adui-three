@@ -151,6 +151,25 @@ test("hides behind-camera, offscreen, near/far and non-finite anchors", () => {
   expect(env.wrapper().hidden).toBe(false);
 });
 
+test.each([false, true])(
+  "orthographic near zero includes the camera plane with reversed depth %s",
+  (reversed) => {
+    const env = fixture(new OrthographicCamera(-2, 2, 1, -1, 0, 10));
+    if (reversed) vi.spyOn(env.state.camera, "reversedDepth", "get").mockReturnValue(true);
+    env.state.camera.updateProjectionMatrix();
+    env.target.position.z = 5;
+    env.add();
+    expect(env.wrapper().hidden).toBe(false);
+    env.target.position.z = 5.01;
+    env.layer.update();
+    expect(env.wrapper().hidden).toBe(true);
+    env.target.position.z = 0;
+    env.layer.update();
+    expect(env.wrapper().hidden).toBe(false);
+    env.layer.dispose();
+  },
+);
+
 test.each([
   ["perspective", () => new PerspectiveCamera(50, 2, 1, 10)],
   ["orthographic", () => new OrthographicCamera(-2, 2, 1, -1, 1, 10)],

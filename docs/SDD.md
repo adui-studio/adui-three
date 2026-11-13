@@ -262,13 +262,15 @@ click：主指针左键/单指 pointerdown 记录位置与命中对象 → move/
 
 ## DOM 标签契约
 
-WebGL 标签深度裁剪读取原生 camera.reversedDepth：普通模式接受 NDC z∈[-1,1]，反向模式接受 z∈[0,1]；x/y 和相机背后检查不变。库不写入相机深度模式。反向模式需由原生 renderer 和 EXT_clip_control 支持，当前仅验证 Chromium/SwiftShader，不外推完整设备或后处理组合矩阵。
+正交 near=0 包含相机平面锚点，直接按原生 NDC 深度范围裁剪；仅透视在投影前排除相机平面/后方，避免除法奇点。普通和反向模式均以实际几何体像素核验，见 [OrthographicCamera 官方说明](https://threejs.org/docs/pages/OrthographicCamera.html)。
+
+WebGL 标签深度裁剪读取原生 camera.reversedDepth：普通模式接受 NDC z∈[-1,1]，反向模式接受 z∈[0,1]；x/y 检查不变，透视预先排除相机平面/背后，正交保留 near=0 的合法边界。库不写入相机深度模式。反向模式需由原生 renderer 和 EXT_clip_control 支持，当前仅验证 Chromium/SwiftShader，不外推完整设备或后处理组合矩阵。
 
 [labels.ts](../packages/three/src/labels.ts) 是可选独立入口，导出 attachDOMLabels、DOMLabelOptions、DOMLabelHandle、DOMLabelsHandle。应用提供与 canvas 同 document、无 border/padding/滚动条的定位 overlay；库不修改其样式，只管理自有根层与标签包装节点。标签不加入模型场景树，避免被模型快照接管或依赖框架挂载。
 
 add 接收 object、独占挂载的 detached element、局部 offset=[0,0,0]、anchor=[0.5,1]、interactive=false。句柄提供原生目标/元素引用、可变 Vector3 offset、visible、disposed、dispose；层提供 add/update/clear/dispose。元素移除后可复用，内容监听、框架组件卸载与 overlay 由应用管理。
 
-每次成功 render 后通过 onAfterRender 同步刷新；ResizeObserver 观察 canvas/overlay，在暂停和零尺寸时仍更新，无第二 RAF。投影：更新世界矩阵 → 局部 offset 转世界/相机坐标 → 排除相机背后 → 投影并检查有限值及 NDC 裁剪范围 → 按 canvas/overlay 的 CSS 矩形和 client 尺寸换算定位。目标不属于 app.scene、隐藏祖先或 layers 不匹配也隐藏。支持正向轴向缩放，不支持 CSS 旋转/倾斜/镜像；不做深度遮挡、透视缩放、距离排序、避让或 CSS3D。
+每次成功 render 后通过 onAfterRender 同步刷新；ResizeObserver 观察 canvas/overlay，在暂停和零尺寸时仍更新，无第二 RAF。投影：更新世界矩阵 → 局部 offset 转世界/相机坐标 → 透视排除相机平面/背后 → 投影并检查有限值及 NDC 裁剪范围 → 按 canvas/overlay 的 CSS 矩形和 client 尺寸换算定位。目标不属于 app.scene、隐藏祖先或 layers 不匹配也隐藏。支持正向轴向缩放，不支持 CSS 旋转/倾斜/镜像；不做深度遮挡、透视缩放、距离排序、避让或 CSS3D。
 
 默认包装 pointer-events:none，interactive=true 可接收原生 DOM/键盘事件；内容 CSS 可以覆盖继承，应用负责协调。层登记 app.resources，释放时取消订阅、断开 observer、尝试全部标签与根节点清理，最终聚合异常，保护借用目标。重复释放不重试失败项。挂载期间同步销毁宿主会回滚，不返回死句柄；销毁后 add/update 抛错，clear/dispose 幂等。
 

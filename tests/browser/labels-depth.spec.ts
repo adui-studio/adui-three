@@ -9,8 +9,13 @@ interface DepthSample {
   mode: boolean;
 }
 
-for (const orthographic of [false, true]) {
-  test(`${orthographic ? "orthographic" : "perspective"} labels match native reversed-depth near/far clipping`, async ({
+for (const { orthographic, near, reversed } of [
+  { orthographic: false, near: 1, reversed: true },
+  { orthographic: true, near: 1, reversed: true },
+  { orthographic: true, near: 0, reversed: false },
+  { orthographic: true, near: 0, reversed: true },
+]) {
+  test(`${orthographic ? "orthographic" : "perspective"} labels match native near ${near} clipping with reversed depth ${reversed}`, async ({
     page,
   }) => {
     const errors: string[] = [];
@@ -42,19 +47,19 @@ for (const orthographic of [false, true]) {
         <script type="module">
           import { ThreeApp, OrthographicThreeApp } from "/depth-library/index.mjs";
           import { attachDOMLabels } from "/depth-library/labels.mjs";
-          import { BoxGeometry, Color, Mesh, MeshBasicMaterial } from "three";
+          import { BoxGeometry, PlaneGeometry, Color, Mesh, MeshBasicMaterial } from "three";
           try {
             const orthographic = ${JSON.stringify(orthographic)};
             const Host = orthographic ? OrthographicThreeApp : ThreeApp;
             const app = new Host(document.querySelector("#stage"), {
-              renderer: { reversedDepthBuffer: true }, maxPixelRatio: 1,
-              camera: { near: 1, far: 10, position: [0, 0, 5] }
+              renderer: { reversedDepthBuffer: ${JSON.stringify(reversed)} }, maxPixelRatio: 1,
+              camera: { near: ${near}, far: 10, position: [0, 0, 5] }
             });
-            if (!app.renderer.capabilities.reversedDepthBuffer) {
+            if (${JSON.stringify(reversed)} && !app.renderer.capabilities.reversedDepthBuffer) {
               document.querySelector("#result").textContent = JSON.stringify({ supported: false });
             } else {
               app.scene.background = new Color(0x121820);
-              const geometry = app.resources.track(new BoxGeometry(0.25, 0.25, 0.25));
+              const geometry = app.resources.track(${near === 0 ? "new PlaneGeometry(0.25, 0.25)" : "new BoxGeometry(0.25, 0.25, 0.25)"});
               const material = app.resources.track(new MeshBasicMaterial({ color: 0xff3020 }));
               const object = new Mesh(geometry, material);
               app.scene.add(object);
@@ -63,8 +68,8 @@ for (const orthographic of [false, true]) {
               element.id = "label"; element.textContent = "clipped with geometry";
               layer.add({ object, element, anchor: [0.5, 0.5], offset: [0, 0.5, 0] });
               const samples = [];
-              // Fully visible, wholly beyond far, wholly before near, behind camera, visible again.
-              for (const z of [0, -6, 4.5, 6, 0]) {
+              // At near=0, test the camera plane itself and a point strictly behind it.
+              for (const z of ${JSON.stringify(near === 0 ? [0, 5, 5.01, -6, 0] : [0, -6, 4.5, 6, 0])}) {
                 object.position.z = z;
                 app.render();
                 const gl = app.renderer.getContext();
@@ -95,14 +100,15 @@ for (const orthographic of [false, true]) {
     const result = JSON.parse(text) as { supported: boolean; samples?: DepthSample[] };
     test.skip(!result.supported, "Native EXT_clip_control is unavailable; no mode is simulated.");
     const samples = result.samples!;
-    expect(samples.map((sample) => sample.visible)).toEqual([true, false, false, false, true]);
+    expect(samples.map((sample) => sample.visible)).toEqual([true, near === 0, false, false, true]);
     expect(samples[0]!.red).toBeGreaterThan(30);
     expect(samples[4]!.red).toBe(samples[0]!.red);
-    for (const sample of samples.slice(1, 4)) expect(sample.red).toBe(0);
-    expect(samples.every((sample) => sample.mode && sample.error === 0)).toBe(true);
+    if (near === 0) expect(samples[1]!.red).toBeGreaterThan(30);
+    for (const sample of samples.slice(near === 0 ? 2 : 1, 4)) expect(sample.red).toBe(0);
+    expect(samples.every((sample) => sample.mode === reversed && sample.error === 0)).toBe(true);
     expect(errors).toEqual([]);
     await page.screenshot({
-      path: `test-results/labels-depth-${orthographic ? "orthographic" : "perspective"}.png`,
+      path: `test-results/labels-depth-${orthographic ? "orthographic" : "perspective"}-${near}-${reversed}.png`,
       scale: "css",
     });
   });

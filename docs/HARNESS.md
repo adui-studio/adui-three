@@ -18,7 +18,7 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 461 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 463 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
 | `pnpm run test:browser`         | 构建演示并执行 99 项真实 Chromium 多步骤回归                       |
@@ -62,6 +62,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-13 正交零近平面标签：两项先行失败单测复现普通/反向深度下相机平面锚点被误隐藏。仅透视在投影前排除 z>=0，正交沿用原生 NDC 裁剪。标签单测 18/18、原生深度专项 4/4（约 5.7 秒）通过；近平面上的 PlaneGeometry 实际可见，严格后方和远平面外像素/标签均裁剪，反向模式使用真实 EXT_clip_control。ready 通过 463 单测、16 文档测试、175 文件格式、108 源文件静态检查及全部构建；完整浏览器 105/105（约 4.8 分钟）通过，零重试、零跳过。
 
 2026-11-13 世界边界跨根重入：两项先行失败回归使用真实 Mesh/Box3，复现嵌套对象采样把外层单点 [1,2,3] 污染为 [99,198,297]，以及未拒绝跨根准备。改用共享同步保护并在 finally 解除，边界/两类相机定向 70/70 通过；ready 通过 461 单测、16 文档测试、175 文件格式、108 源文件静态检查及全部构建。十二入口 tarball 和四次严格消费通过，新增实际 geometry → camera 嵌套采样，验证独立入口共享防护状态且外层数值正确。完整浏览器 103/103（约 5.7 分钟）通过，零重试、零跳过；不拦截直接原生 Box3 调用。
 

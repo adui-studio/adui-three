@@ -107,8 +107,12 @@ export function attachDOMLabels(app: AnyThreeApp, container: HTMLElement): DOMLa
         .copy(label.offset)
         .applyMatrix4(label.object.matrixWorld)
         .applyMatrix4(app.camera.matrixWorldInverse);
-      // Reject points on/behind the camera before perspective division.
-      if (projected.z >= 0) {
+      // Perspective has a division pole; orthographic near=0 includes its camera plane.
+      if (
+        projected.z >= 0 &&
+        "isPerspectiveCamera" in app.camera &&
+        app.camera.isPerspectiveCamera
+      ) {
         wrapper.hidden = true;
         continue;
       }
