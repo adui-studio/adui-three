@@ -27,6 +27,7 @@ test("pipeline getter disposal prevents stale calls in both native hosts and kee
       <script type="importmap">{"imports":{"three":"/pipeline-native/build/three.module.js"}}</script>
       <script type="module">
         import { ThreeApp, OrthographicThreeApp } from "/pipeline-library/index.mjs";
+        import { captureFrame } from "/pipeline-library/capture.mjs";
         import { BoxGeometry, Mesh, MeshBasicMaterial } from "three";
         function create(Host) {
           const stage = document.createElement("div");
@@ -83,7 +84,43 @@ test("pipeline getter disposal prevents stale calls in both native hosts and kee
               } finally { app.dispose(); stage.remove(); }
             }
           }
-          document.querySelector("#result").textContent = JSON.stringify({ baseline, results });
+          const captures = [];
+          for (const Host of [ThreeApp, OrthographicThreeApp]) {
+            const { app, stage } = create(Host);
+            let armed = false, stale = 0, completions = 0, allocations = 0, failure = "";
+            const off = app.setRenderPipeline({
+              get render() { if (armed) off(); return () => { stale++; }; },
+              resize() {}
+            });
+            app.onAfterRender(() => { completions++; });
+            const createElement = document.createElement;
+            document.createElement = function (name, ...args) {
+              if (name === "canvas") allocations++;
+              return createElement.call(this, name, ...args);
+            };
+            try {
+              armed = true;
+              try { await captureFrame(app); } catch (error) { failure = error.message; }
+              const firstAllocations = allocations;
+              const image = await captureFrame(app), retryAllocations = allocations;
+              document.createElement = createElement;
+              const bitmap = await createImageBitmap(image);
+              let green = 0;
+              try {
+                const surface = new OffscreenCanvas(bitmap.width, bitmap.height);
+                const context = surface.getContext("2d");
+                context.drawImage(bitmap, 0, 0);
+                const bytes = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+                for (let i = 0; i < bytes.length; i += 4)
+                  if (bytes[i + 1] > 200 && bytes[i] < 130 && bytes[i + 2] < 150) green++;
+                captures.push({ failure, firstAllocations, retryAllocations, stale, completions, green,
+                  type: image.type, width: bitmap.width, height: bitmap.height, state: app.state,
+                  error: app.renderer.getContext().getError(), peer: sample() });
+                surface.width = 0; surface.height = 0;
+              } finally { bitmap.close(); }
+            } finally { document.createElement = createElement; app.dispose(); stage.remove(); }
+          }
+          document.querySelector("#result").textContent = JSON.stringify({ baseline, results, captures });
         } finally { peer.app.dispose(); peer.stage.remove(); }
       </script></body></html>`,
     }),
@@ -104,6 +141,20 @@ test("pipeline getter disposal prevents stale calls in both native hosts and kee
       canvases: number;
       peer: unknown;
     }>;
+    captures: Array<{
+      failure: string;
+      firstAllocations: number;
+      retryAllocations: number;
+      stale: number;
+      completions: number;
+      green: number;
+      type: string;
+      width: number;
+      height: number;
+      state: string;
+      error: number;
+      peer: unknown;
+    }>;
   };
   expect(data.baseline.green).toBeGreaterThan(100);
   expect(data.baseline.error).toBe(0);
@@ -120,6 +171,20 @@ test("pipeline getter disposal prevents stale calls in both native hosts and kee
     if (result.mode.startsWith("initial-")) expect(result.failure).toContain("disposed");
     else expect(result.failure).toBe("");
     expect(result.peer).toEqual(data.baseline);
+  }
+  expect(data.captures).toHaveLength(2);
+  for (const capture of data.captures) {
+    expect(capture.failure).toBe("Capture requires a completed draw");
+    expect(capture.firstAllocations).toBe(0);
+    expect(capture.retryAllocations).toBe(1);
+    expect(capture.stale).toBe(0);
+    expect(capture.completions).toBe(1);
+    expect(capture.green).toBeGreaterThan(100);
+    expect(capture.type).toBe("image/png");
+    expect([capture.width, capture.height]).toEqual([320, 200]);
+    expect(capture.state).toBe("ready");
+    expect(capture.error).toBe(0);
+    expect(capture.peer).toEqual(data.baseline);
   }
   expect(errors).toEqual([]);
 });

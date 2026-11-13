@@ -621,6 +621,57 @@ test.each(["dispose", "detach"] as const)(
   },
 );
 
+test("single draw reports invocation and returns false for hidden or zero-size hosts without scheduling", () => {
+  const env = fixture(),
+    app = env.create(),
+    after = vi.fn(),
+    update = vi.fn();
+  app.onAfterRender(after);
+  app.onUpdate(update);
+  expect(app.render()).toBe(true);
+  env.document.hidden = true;
+  expect(app.render()).toBe(false);
+  env.document.hidden = false;
+  env.container.clientHeight = 0;
+  app.resize();
+  expect(app.render()).toBe(false);
+  expect(after).toHaveBeenCalledOnce();
+  expect(update).not.toHaveBeenCalled();
+  expect(env.frames.size).toBe(0);
+});
+
+test("a render getter interrupt reports no draw and the next default draw succeeds", () => {
+  const app = fixture().create(),
+    render = vi.fn(),
+    after = vi.fn();
+  let armed = false;
+  const off = app.setRenderPipeline({
+    get render() {
+      if (armed) off();
+      return render;
+    },
+    resize: vi.fn(),
+  });
+  app.onAfterRender(after);
+  armed = true;
+  expect(app.render()).toBe(false);
+  expect(render).not.toHaveBeenCalled();
+  expect(after).not.toHaveBeenCalled();
+  expect(app.render()).toBe(true);
+  expect(after).toHaveBeenCalledOnce();
+});
+
+test("a completion observer stopping the host preserves the successful draw result", () => {
+  const app = fixture().create(),
+    skipped = vi.fn();
+  app.onAfterRender(() => app.stop());
+  app.onAfterRender(skipped);
+  expect(app.render()).toBe(true);
+  expect(app.state).toBe("stopped");
+  expect(skipped).not.toHaveBeenCalled();
+  expect(vi.spyOn(app.renderer, "render")).toHaveBeenCalledOnce();
+});
+
 test("pipeline render errors stop the host and suppress completion observers", () => {
   const env = fixture();
   const app = env.create();

@@ -26,6 +26,8 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   attachEnvironment(app, exr, { background: true });
   exr.dispose();
   const orthographic = new OrthographicThreeApp(container, { camera: { frustumHeight: 8, near: 0 } });
+  const drewPerspective: boolean = app.render(), drewOrthographic: boolean = orthographic.render();
+  void [drewPerspective, drewOrthographic];
   const span: number = orthographic.camera.top - orthographic.camera.bottom;
   const savedView = captureCameraView(orthographic);
   const restoredView = restoreCameraView(orthographic, savedView);

@@ -34,7 +34,7 @@ function fixture() {
   const source = { width: 1200, height: 680, ownerDocument: document };
   const gl = { isContextLost: vi.fn(() => false) };
   const target = vi.fn<() => object | null>(() => null);
-  const render = vi.fn<() => void>();
+  const render = vi.fn(() => true);
   const value = {
     state: "stopped" as ThreeAppState,
     size: { width: 600, height: 340, pixelRatio: 2 },
@@ -90,6 +90,23 @@ test("encoding options snapshot primitives and return the browser's actual MIME 
   const fallback = new Blob(["png"], { type: "image/png" });
   env.requests[0]!.callback(fallback);
   expect((await promise).type).toBe("image/png");
+});
+
+test("an interrupted draw rejects instead of encoding stale canvas pixels and can be retried", async () => {
+  const env = fixture();
+  env.render.mockImplementationOnce(() => false);
+  const result = captureFrame(env.app).catch((error: unknown) => error);
+  try {
+    expect(env.document.createElement).not.toHaveBeenCalled();
+    expect(await result).toEqual(new Error("Capture requires a completed draw"));
+    const retry = captureFrame(env.app);
+    const blob = new Blob(["retry"]);
+    env.requests[0]!.callback(blob);
+    expect(await retry).toBe(blob);
+  } finally {
+    env.dispose();
+    await result;
+  }
 });
 
 test("invalid options and hidden/zero/offscreen/lost inputs reject before drawing or allocating", async () => {
@@ -163,6 +180,7 @@ test("disposal or cancellation from render completion never creates an encoding 
     env.render.mockImplementation(() => {
       if (owner) env.dispose();
       else controller.abort();
+      return true;
     });
     await expect(captureFrame(env.app, { signal: controller.signal })).rejects.toMatchObject({
       name: "AbortError",
@@ -180,6 +198,7 @@ test("render errors and availability changes pass through without starting an en
   await expect(captureFrame(env.app)).rejects.toBe(error);
   env.render.mockImplementationOnce(() => {
     env.document.hidden = true;
+    return true;
   });
   await expect(captureFrame(env.app)).rejects.toThrow("visible");
   expect(env.requests).toHaveLength(0);
@@ -282,6 +301,7 @@ test("region captures copy exact pixel coordinates and snapshot values before dr
   env.render.mockImplementation(() => {
     region.x = 900;
     region.width = 100;
+    return true;
   });
   const promise = captureFrame(env.app, { region });
   const surface = env.surfaces[0]!;
@@ -348,6 +368,7 @@ test("region bounds use the drawing buffer after render-time resize and preserve
   env.source.width = 100;
   env.render.mockImplementationOnce(() => {
     env.source.width = 1200;
+    return true;
   });
   const first = captureFrame(env.app, { region: { x: 1000, y: 0, width: 200, height: 100 } });
   const blob = new Blob(["resized"]);
@@ -355,6 +376,7 @@ test("region bounds use the drawing buffer after render-time resize and preserve
   expect(await first).toBe(blob);
   env.render.mockImplementationOnce(() => {
     env.source.width = 900;
+    return true;
   });
   await expect(
     captureFrame(env.app, { region: { x: 1000, y: 0, width: 200, height: 100 } }),

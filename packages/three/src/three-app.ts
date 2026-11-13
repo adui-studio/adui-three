@@ -244,8 +244,8 @@ abstract class SceneHost<C extends Camera> {
     }
   }
 
-  /** Draw once without updates, advancing time or scheduling another frame. */
-  render(): void {
+  /** Draw once without updates/time/RAF. True when the renderer/pipeline was invoked, false if skipped. */
+  render(): boolean {
     this.#assertActive();
     if (this.#inFrame || this.#resizing)
       throw new Error("Cannot render reentrantly within a host frame or resize");
@@ -255,10 +255,10 @@ abstract class SceneHost<C extends Camera> {
       revision === this.#revision &&
       this.#drawable &&
       !this.#document.hidden;
-    if (!valid()) return;
+    if (!valid()) return false;
     this.#inFrame = true;
     try {
-      this.#draw({ delta: 0, elapsed: this.#elapsed }, valid);
+      return this.#draw({ delta: 0, elapsed: this.#elapsed }, valid);
     } catch (error) {
       this.stop();
       throw error;
@@ -365,25 +365,26 @@ abstract class SceneHost<C extends Camera> {
     }
   }
 
-  #draw(frame: FrameInfo, valid: () => boolean): void {
+  #draw(frame: FrameInfo, valid: () => boolean): boolean {
     // Failed native-buffer and pipeline sizing must complete before another draw.
     if (this.#bufferDirty || this.#pipeline?.sizeDirty) {
       this.resize();
-      if (!valid()) return;
+      if (!valid()) return false;
     }
     if (this.#pipeline) {
       const lease = this.#pipeline;
       // oxlint-disable-next-line typescript/unbound-method -- Preserve the receiver via call after lease checks.
       const render = lease.value.render;
-      if (!valid() || this.#pipeline !== lease) return;
+      if (!valid() || this.#pipeline !== lease) return false;
       render.call(lease.value, frame);
     } else this.renderer.render(this.scene, this.camera);
-    if (!valid()) return;
+    if (!valid()) return true;
     const afterRender = Array.from(this.#afterRender);
     for (const callback of afterRender) {
       if (this.#afterRender.has(callback)) callback(frame);
-      if (!valid()) return;
+      if (!valid()) return true;
     }
+    return true;
   }
 
   #currentFrame(revision: number): boolean {

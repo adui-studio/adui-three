@@ -12,7 +12,7 @@ renderer 配置在 DOM/GPU 分配前快照。类型 Omit 不阻止更宽的原�
 
 新增 RenderPipeline 类型：render(FrameInfo):void、resize(ViewportSize):void；setRenderPipeline 借用对象并返回幂等解除函数。挂接时通知当前尺寸，后续在变化或失败待重试时通知，包括零尺寸/暂停/DPR；旧解除函数不影响新租约。重复挂接拒绝，初始化错误或同步销毁释放槽位。宿主销毁解除引用而不调用借用对象 dispose，所有者自行登记资源。
 
-render():void 显式绘制一帧，沿用当前管线或原生 renderer，并派发 onAfterRender；不触发 onUpdate、不调度 RAF、不推进 elapsed，delta=0。ready/stopped/running 可用，隐藏/零尺寸跳过，disposed 后拒绝。更新/绘制/完成阶段和尺寸处理期间重入拒绝；异常停止宿主后抛出。自动帧和手动绘制共享绘制阶段及完成订阅竞争规则，生命周期变化中止剩余完成回调。详见 [ADR-0009](adr/0009-render-pipeline.md)。
+render():boolean 显式绘制一帧，沿用当前管线或原生 renderer，并派发 onAfterRender；不触发 onUpdate、不调度 RAF、不推进 elapsed，delta=0。ready/stopped/running 可用，隐藏/零尺寸跳过返回 false，disposed 后拒绝。同步调用 renderer/pipeline 并正常返回后为 true；准备中断/租约失效导致未调用时为 false。已绘制后观察者改变运行状态仍为 true，不表示 GPU 完成或第三方管线输出正确。更新/绘制/完成阶段和尺寸处理期间重入拒绝；异常停止宿主后抛出。自动帧和手动绘制共享绘制阶段及完成订阅竞争规则，生命周期变化中止剩余完成回调。详见 [ADR-0009](adr/0009-render-pipeline.md)。
 
 | 公开接口                                                | 具体职责与契约                                                                |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------- |
@@ -101,6 +101,8 @@ running 是用户运行意图；文档隐藏或容器零尺寸时暂停 RAF 但�
 管线方法 getter 属于可重入边界：挂接时各读一次并重新确认宿主和独占槽位，首次尺寸通知使用该快照；每次后续通知/绘制读取当前方法后检查宿主及原租约。失效则跳过旧方法，未绘制不派发完成通知；调用保留管线对象 this，不冻结之后的方法替换或回滚 getter 副作用，见 ADR-0009。
 
 ## 画布截图契约
+
+截图检查 render 的布尔结果；false 时在分配临时画布前拒绝并清理 pending/监听，不导出旧缓冲。保留取消和可用性错误优先级，宿主仍可重试，见 ADR-0021。
 
 CaptureFrameOptions.region 可选，类型 CaptureRegion 包含只读 x/y/width/height；左上角起算的 drawing-buffer 像素，x/y 非负安全整数，宽高正安全整数。四个数值先快照；范围在 app.render 后以最终实际 canvas 宽高校验，越界拒绝且不分配临时画布，贴边有效。九参数 drawImage 复制到同尺寸原点，不重采样、不换算 CSS/DPR 或隐式裁边。默认完整截图和取消/编码清理不变，见 [ADR-0031](adr/0031-capture-region.md)。
 

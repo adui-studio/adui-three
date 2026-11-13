@@ -6,6 +6,8 @@
 
 已存在工具链：Vite+ 1.4.0，TypeScript 声明 ^7.0.2，Node 要求 >=22.18.0，包管理器声明 pnpm 12.16.1。版本事实来自配置与锁文件，不代表新库兼容范围。[代码地图](CODEBASE_MAP.md) 定位现有文件。
 
+单次绘制向 capture 返回是否已同步调用 renderer/pipeline；capture 不接受未发生绘制的旧缓冲。该结果不验证第三方管线是否正确输出或 GPU 完成，原生画布检查和任务所有权仍由既有层分别负责。
+
 ## 目标与建议边界
 
 geometry 的 computeObjectBounds 与 camera 的两类取景共用内部 [object-bounds.ts](../packages/three/src/object-bounds.ts)，只依赖原生 CPU 数学和对象，测量不借用宿主或 addon。原生矩阵/边界缓存会同步，返回独立世界 Box3，不接管对象资源，见 [ADR-0032](adr/0032-object-bounds.md)。

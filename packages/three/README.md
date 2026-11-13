@@ -96,6 +96,8 @@ OrthographicThreeApp.camera 精确为 OrthographicCamera；默认 ThreeApp.camer
 
 ## 绘制管线与单次绘制
 
+`render(): boolean` 在同步调用当前 renderer/pipeline 并正常返回时为 true；隐藏、零尺寸或准备中断导致未绘制时为 false。已绘制后完成通知中暂停宿主仍为 true；错误继续抛出。结果不保证第三方管线输出、像素变化或 GPU 完成。既有忽略返回值的调用可保持；自定义覆盖/测试替身需返回布尔值。
+
 `app.render()` 显式绘制一次：ready/stopped/running 可用，不执行 onUpdate、不启动 RAF、不累计时间；成功后执行 onAfterRender，传入 delta=0 与上次有效 elapsed。隐藏/零尺寸时无操作，销毁后抛错；更新、绘制和完成回调中重入拒绝。绘制/完成错误仍使宿主停止并重新抛出。
 
 ```ts
@@ -172,6 +174,8 @@ const center = bounds.getCenter(new Vector3());
 函数不绘制、不推进动画、不上传数据或接管对象资源；按需调用，扫描成本取决于顶点/骨骼/实例数量。空或非有限边界抛 RangeError，零尺寸有效，非法对象抛 TypeError；同根同步重入拒绝，准备失败可能保留已更新的原生矩阵/缓存。
 
 ## 截图
+
+本次单次绘制若被中断并返回 false，截图会拒绝且不创建编码画布，避免导出旧缓冲；解除失效管线等操作后可以重试。自定义管线需同步输出到画布。
 
 ```ts
 import { captureFrame } from "@adui/three/capture";

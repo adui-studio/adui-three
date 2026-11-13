@@ -118,9 +118,10 @@ export async function captureFrame(
       signal?.addEventListener("abort", cancel, { once: true });
       app.resources.track(pending);
       drawable();
-      app.render(); // Throws for host-frame/resize reentry; updates and host intent stay unchanged.
+      const rendered = app.render(); // Throws for frame/resize reentry; no updates or intent changes.
       if (settled) return;
       drawable();
+      if (!rendered) throw new Error("Capture requires a completed draw");
       if (!source.width || !source.height) throw new Error("Capture canvas has no drawing buffer");
       if (
         region &&

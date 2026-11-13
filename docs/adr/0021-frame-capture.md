@@ -21,6 +21,10 @@ type/quality 在请求开始快照；浏览器不支持请求格式时可能回�
 
 单测验证顺序/真实尺寸、选项、并发隔离、取消/迟到、宿主/scope 结束、原生异常、清理继续。浏览器解码 PNG 后与暂停的实际泛光输出逐像素比较，验证动画不前进、后续帧/resize 不改变截图、迟到结果与多实例、预览 URL 替换/清空/销毁，以及 JPEG/WebP 实际编码类型。独立 tarball 验证十一入口、无 DOM 导入及严格消费；完整浏览器/格式/色彩兼容矩阵不在本轮承诺内。
 
+## 绘制中断补充
+
+2026-11-13 补充绘制中断：capture 检查 app.render 的布尔结果；若 getter 解除/替换管线等导致本次绘制未调用，拒绝 Capture requires a completed draw，并在创建编码画布前解除 pending/监听。已发生的解除等业务副作用不回滚；宿主仍可重试。先保留取消和可用性检查的既有错误优先级，已取消任务不被该错误覆盖。真实浏览器以两类宿主验证无临时画布分配、未调用失效管线，以及随后原生 PNG 重试解码得到实际绿色几何体；对侧像素不变。
+
 ## 来源
 
 - [HTML Canvas toBlob 标准](https://html.spec.whatwg.org/multipage/canvas.html#dom-canvas-toblob-dev)
