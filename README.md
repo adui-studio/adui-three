@@ -189,7 +189,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 420 项主包单元测试和 94 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
+当前有 424 项主包单元测试和 95 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
 
 ## 项目结构
 

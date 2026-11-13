@@ -1,5 +1,5 @@
 import { Color, InstancedMesh, Matrix4, Object3D } from "three";
-import type { BufferGeometry, Material } from "three";
+import type { BufferAttribute, BufferGeometry, Material } from "three";
 import type { AnyThreeApp } from "./three-app.ts";
 import { ResourceScope } from "./resources.ts";
 
@@ -28,6 +28,62 @@ export interface InstancedMeshHandle {
 
 function materialList(value: Material | readonly Material[]): value is readonly Material[] {
   return Array.isArray(value);
+}
+
+/** Attribute-local upload tracking; native or callback changes conservatively request full data. */
+function attributeUpdates(): (attribute: BufferAttribute, start: number, count: number) => void {
+  const states = new WeakMap<
+    BufferAttribute,
+    {
+      uploaded: boolean;
+      full: boolean;
+      version: number;
+      callback: () => void;
+    }
+  >();
+  return (attribute, start, count): void => {
+    let state = states.get(attribute);
+    if (!state) {
+      const previous = attribute.onUploadCallback.bind(attribute);
+      const tracked = {
+        uploaded: false,
+        full: false,
+        version: attribute.version,
+        callback: (): void => {},
+      };
+      tracked.callback = (): void => {
+        tracked.uploaded = true;
+        tracked.full = false;
+        tracked.version = attribute.version;
+        attribute.clearUpdateRanges();
+        previous();
+      };
+      attribute.onUpload(tracked.callback);
+      states.set(attribute, tracked);
+      state = tracked;
+    }
+    if (attribute.version !== state.version || attribute.onUploadCallback !== state.callback)
+      state.full = true;
+    if (!state.uploaded || state.full) attribute.clearUpdateRanges();
+    else {
+      // Keep one bounded pending interval. It includes unchanged slots between sparse edits.
+      const ranges = attribute.updateRanges;
+      if (ranges.length === 0) attribute.addUpdateRange(start, count);
+      else {
+        let lower = start,
+          upper = start + count;
+        for (const range of ranges) {
+          lower = Math.min(lower, range.start);
+          upper = Math.max(upper, range.start + range.count);
+        }
+        ranges[0]!.start = lower;
+        ranges[0]!.count = upper - lower;
+        ranges.splice(1);
+      }
+    }
+    attribute.needsUpdate = true;
+    state.version = attribute.version;
+  };
 }
 
 /** Own the instance object/buffers, borrow its reusable geometry/material. No updates or rendering. */
@@ -63,6 +119,7 @@ export function createInstancedMesh(
   const resources = new ResourceScope();
   const matrixCopy = new Matrix4();
   const colorCopy = new Color();
+  const mark = attributeUpdates();
   let disposed = false;
   const active = (): void => {
     if (disposed || resources.disposed) throw new Error("Instanced mesh has been disposed");
@@ -108,7 +165,7 @@ export function createInstancedMesh(
         throw new RangeError("Instance transform must have positive nonzero determinant");
       mesh.setMatrixAt(index, matrixCopy);
       active();
-      mesh.instanceMatrix.needsUpdate = true;
+      mark(mesh.instanceMatrix, index * 16, 16);
       invalidate();
     },
     setColorAt(index, color): void {
@@ -120,7 +177,7 @@ export function createInstancedMesh(
       colorCopy.setRGB(values[0]!, values[1]!, values[2]!);
       mesh.setColorAt(index, colorCopy);
       active();
-      mesh.instanceColor!.needsUpdate = true;
+      mark(mesh.instanceColor!, index * 3, 3);
     },
     dispose(): void {
       if (disposed) return;

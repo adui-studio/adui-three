@@ -128,6 +128,8 @@ detach(); // 恢复原生绘制，不释放 pipeline；资源由其所有者管�
 
 ## 实例化网格
 
+受管理矩阵/颜色在首次实际上传后只标记 16/3 个 Float32 组件。每属性合并为一个待传包络，可能包含稀疏修改之间的未变槽位；公开 onUpload 确认上传并清范围，同时保留既有回调。检测到外部 needsUpdate 版本变化或回调替换则保守回退完整上传，避免混合原生写入丢失；直接数组修改仍由调用者标记上传。没有每帧监听或额外 draw，详见 ADR-0022 的补充。
+
 ```ts
 import { createInstancedMesh } from "@adui/three/geometry";
 import { BoxGeometry, MeshBasicMaterial, Matrix4, Color } from "three";

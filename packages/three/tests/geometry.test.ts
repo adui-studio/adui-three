@@ -128,6 +128,95 @@ test("native raycasting sees newly moved bounds and returns the instance id", ()
   handle.dispose();
 });
 
+test("uploaded instance attributes track component ranges and combine pending edits with bounded storage", () => {
+  const env = fixture();
+  const handle = env.create(10);
+  handle.setMatrixAt(0, new Matrix4());
+  handle.setColorAt(0, new Color(0xff0000));
+  const matrix = handle.mesh.instanceMatrix,
+    color = handle.mesh.instanceColor!;
+  expect(matrix.updateRanges).toEqual([]);
+  expect(color.updateRanges).toEqual([]);
+  matrix.onUploadCallback();
+  color.onUploadCallback();
+  handle.setMatrixAt(2, new Matrix4().makeTranslation(2, 0, 0));
+  expect(matrix.updateRanges).toEqual([{ start: 32, count: 16 }]);
+  for (let i = 0; i < 100; i++) handle.setMatrixAt(4, new Matrix4().makeTranslation(i, 0, 0));
+  expect(matrix.updateRanges).toEqual([{ start: 32, count: 48 }]);
+  handle.setColorAt(3, new Color(0x00ff00));
+  expect(color.updateRanges).toEqual([{ start: 9, count: 3 }]);
+  matrix.onUploadCallback();
+  color.onUploadCallback();
+  expect(matrix.updateRanges).toEqual([]);
+  expect(color.updateRanges).toEqual([]);
+  handle.setMatrixAt(9, new Matrix4());
+  expect(matrix.updateRanges).toEqual([{ start: 144, count: 16 }]);
+  const version = matrix.version;
+  expect(() => handle.setMatrixAt(10, new Matrix4())).toThrow();
+  expect(matrix.version).toBe(version);
+  expect(matrix.updateRanges).toEqual([{ start: 144, count: 16 }]);
+  handle.dispose();
+});
+
+test("external full-upload intent is preserved when native and managed edits mix before drawing", () => {
+  const env = fixture();
+  const handle = env.create();
+  handle.setMatrixAt(0, new Matrix4());
+  const attribute = handle.mesh.instanceMatrix;
+  attribute.onUploadCallback();
+  handle.setMatrixAt(1, new Matrix4());
+  expect(attribute.updateRanges).toEqual([{ start: 16, count: 16 }]);
+  // The consumer requests a complete upload after changing a different native slot.
+  handle.mesh.setMatrixAt(3, new Matrix4().makeTranslation(12, 0, 0));
+  attribute.needsUpdate = true;
+  handle.setMatrixAt(0, new Matrix4());
+  expect(attribute.updateRanges).toEqual([]);
+  handle.setMatrixAt(2, new Matrix4());
+  expect(attribute.updateRanges).toEqual([]);
+  attribute.onUploadCallback();
+  handle.setMatrixAt(0, new Matrix4());
+  expect(attribute.updateRanges).toEqual([{ start: 0, count: 16 }]);
+  const matrix = new Matrix4();
+  handle.mesh.getMatrixAt(3, matrix);
+  expect(matrix.elements[12]).toBe(12);
+  handle.dispose();
+});
+
+test("replaced native upload callbacks retain their behavior and use conservative full updates", () => {
+  const env = fixture();
+  const handle = env.create();
+  handle.setColorAt(0, new Color(0xff0000));
+  const attribute = handle.mesh.instanceColor!;
+  attribute.onUploadCallback();
+  const callback = vi.fn();
+  attribute.onUpload(callback);
+  handle.setColorAt(2, new Color(0x00ff00));
+  expect(attribute.updateRanges).toEqual([]);
+  attribute.onUploadCallback();
+  expect(callback).toHaveBeenCalledOnce();
+  handle.dispose();
+});
+
+test("tracking preserves a previously configured native upload callback and explicit dirty components", () => {
+  const env = fixture();
+  const handle = env.create();
+  const attribute = handle.mesh.instanceMatrix;
+  const contexts: unknown[] = [];
+  attribute.onUpload(function (this: typeof attribute) {
+    contexts.push(this);
+  });
+  handle.setMatrixAt(0, new Matrix4());
+  attribute.onUploadCallback();
+  expect(contexts).toEqual([attribute]);
+  attribute.addUpdateRange(48, 16);
+  handle.setMatrixAt(1, new Matrix4());
+  expect(attribute.updateRanges).toEqual([{ start: 16, count: 48 }]);
+  attribute.onUploadCallback();
+  expect(contexts).toEqual([attribute, attribute]);
+  expect(attribute.updateRanges).toEqual([]);
+  handle.dispose();
+});
+
 test("cleanup owns only the node/instance attributes/morph texture and continues after listener errors", () => {
   const env = fixture();
   const handle = env.create();

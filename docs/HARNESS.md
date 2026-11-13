@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 420 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 424 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 94 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 95 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR / 未压缩 EXR 环境                      |
@@ -60,6 +60,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-13 实例局部上传补查：先行 GPU 失败回归确认单实例矩阵/颜色原为 1600/300 字节整数组上传，trace 与报告保留在忽略的 playwright-report/diagnostics/instance-upload-baseline。按 r187 公开 updateRanges/onUpload 实现局部包络和首次上传确认，并对外部版本/回调变化回退完整上传。两项先行失败单测支持局部范围/混合写入修复，另外覆盖既有/替换回调；专项 GPU 4/4（约 6.6 秒）通过，单项变更实测 64/12 字节，无编辑重绘不上传。首次静态检查阻止探针对 bufferSubData 重载的窄签名和未收窄 canvas 类型，改为完整签名/显式 HTMLCanvasElement 后通过；ready 通过 424 项单测、13 项文档测试、165 文件格式、101 源文件静态检查与全部构建；完整浏览器 95/95（约 4.3 分钟）通过，零重试。无公共接口/导出/依赖或打包变更，沿用区域截图阶段十二入口包消费，不重复 package 检查。
 
 2026-11-13 区域截图阶段：增加 CaptureRegion 和可选 region，快照数值并以本次绘制后的实际 canvas 校验范围。五项新单测覆盖坐标/尺寸、非法输入、贴边/越界、缓冲变化/重试和并发取消，截图定向 18/18 通过。七项截图浏览器专项 7/7（约 21.5 秒）通过，新增局部 PNG 与实际泛光区域逐像素比较，以及在途编码的 resize/选项变化隔离；ready 通过 420 项单测、13 项文档测试、164 文件格式和 100 源文件静态检查与全部构建；十二入口 tarball 与四次严格类型消费通过，包含新增 CaptureRegion。完整浏览器 94/94（约 4.6 分钟）通过，零重试，下载的局部 PNG 已目视检查。保留原有 TypeScript 7/大 chunk 提示，声明构建另出现约 4.4 秒的 dts 回调耗时提示；无依赖升级、CI 或发布。
 

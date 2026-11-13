@@ -340,6 +340,8 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 
 ## 实例化网格契约
 
+受管理矩阵/颜色在首次实际上传后只标记 16/3 个 Float32 组件。每属性合并为一个待传包络，可能包含稀疏修改之间的未变槽位；公开 onUpload 确认上传并清范围，同时保留既有回调。检测到外部 needsUpdate 版本变化或回调替换则保守回退完整上传，避免混合原生写入丢失；直接数组修改仍由调用者标记上传。没有每帧监听或额外 draw，详见 ADR-0022 的补充。
+
 拾取以对象引用与原生 instanceId/batchId 的数值快照共同表示命中目标。hover 跨同一网格的不同实例也派发；按下至抬起实例变化会取消点击，即使指针未移动。保留原始 Intersection，不复制或改变结果对象；仅内部保存身份字段，防止后续原生结果复用/修改污染按下或悬停状态。这不是业务实例身份系统，复用相同槽位编号的内容变化仍由消费者管理。
 
 geometry 入口导出 createInstancedMesh(app,options)、CreateInstancedMeshOptions 和 InstancedMeshHandle。options 的 geometry、material（单个或只读数组）为借用，数组只复制引用列表；capacity 为正整数，count 为 [0,capacity] 整数且默认 0，addToScene 默认 true。handle 暴露 mesh/capacity/resources/disposed、setCount、setMatrixAt、setColorAt、dispose。

@@ -115,6 +115,8 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 区域截图复用 [capture.ts](../packages/three/src/capture.ts) 和既有截图测试：数值快照、最终缓冲边界及原生九参数复制见 [ADR-0031](adr/0031-capture-region.md)。演示只提供裁剪策略，库不依赖应用选择。
 
+实例属性上传量见 [geometry-upload.spec.ts](../tests/browser/geometry-upload.spec.ts)，通过真实 WebGL bufferSubData 参数核对局部写入和无编辑绘制，不把调用量等同 GPU 时间。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。
