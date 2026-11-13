@@ -17,7 +17,7 @@ pnpm --dir packages/three pack --pack-destination ../../dist/local-packages
 pnpm add ./vendor/adui-three-0.0.0.tgz
 ```
 
-消费工程直接依赖 `three@0.187.0`，TypeScript 工程另直接依赖 `@types/three@0.187.0`。旧工程审查时声明 three ^0.181.2 / 类型 ^0.180.0，实际安装版本未核验；需要单独验证旧 addon、shader 与资产在 0.187.0 下的行为，不能把旧依赖声明当作新版兼容证据。当前 peer 只覆盖 0.187.x；包为 ESM，要求 WebGL 2，宿主构造需要浏览器 DOM。
+消费工程直接依赖 `three@0.187.0`，TypeScript 工程另直接依赖 `@types/three@0.187.0`。旧工程审查时声明 three ^0.181.2 / 类型 ^0.180.0，2026-11-13 复核已安装公共依赖元数据，版本分别为 0.181.2 / 0.180.0；需要单独验证旧 addon、shader 与资产在 0.187.0 下的行为，不能把旧依赖声明当作新版兼容证据。当前 peer 只覆盖 0.187.x；包为 ESM，要求 WebGL 2，宿主构造需要浏览器 DOM。
 
 生产前的包消费、浏览器与兼容边界见 [Harness](HARNESS.md)。上述 pack 只生成本地归档，不执行 npm 发布；0.0.0 是当前开发版本，重复打包会更新同名产物。
 
