@@ -14,9 +14,10 @@ import {
   removeCameraMotion,
   mixCameraNumber,
   nearCameraVector,
+  createCameraPauseController,
 } from "./camera-runtime.ts";
 
-export type CameraTransitionState = "running" | "completed" | "cancelled" | "failed";
+export type CameraTransitionState = "running" | "paused" | "completed" | "cancelled" | "failed";
 export type CameraTransitionResult<F extends ObjectFrame = ObjectFrame> =
   | { status: "completed"; frame: F }
   | { status: "cancelled" }
@@ -36,6 +37,9 @@ export interface CameraTransitionHandle<F extends ObjectFrame = ObjectFrame> {
   readonly finished: Promise<CameraTransitionResult<F>>;
   cancel(this: void): void;
   dispose(this: void): void;
+  /** Freeze only this motion's clock, retaining its camera/input lease. */
+  pause(this: void): void;
+  resume(this: void): void;
 }
 
 /** Snapshot-based transition driven only by ThreeApp.onUpdate, with one motion per camera. */
@@ -88,6 +92,8 @@ function transitionFrame<F extends ObjectFrame>(
     finished: Promise.resolve({ status: "cancelled" }),
     cancel(): void {},
     dispose(): void {},
+    pause(): void {},
+    resume(): void {},
   });
   if (signal?.aborted) return cancelled();
   const endPreparation = beginCameraWrite(app.camera);
@@ -118,7 +124,9 @@ function transitionFrame<F extends ObjectFrame>(
     throw new RangeError("Invalid starting orbit target");
   // Validate before ending an existing, otherwise valid request.
   cancelCameraMotion(camera);
-  let state: CameraTransitionState = "running";
+  // Settlement state remains running while the pause controller freezes only the clock.
+  let state: Exclude<CameraTransitionState, "paused"> = "running";
+  const pauseController = createCameraPauseController();
   let progress = 0;
   let elapsed = 0;
   let resolve!: (result: CameraTransitionResult<F>) => void;
@@ -150,7 +158,7 @@ function transitionFrame<F extends ObjectFrame>(
   };
   const handle: CameraTransitionHandle<F> = {
     get state() {
-      return state;
+      return state === "running" && pauseController.paused ? "paused" : state;
     },
     get progress() {
       return progress;
@@ -162,11 +170,18 @@ function transitionFrame<F extends ObjectFrame>(
     dispose(): void {
       finish({ status: "cancelled" });
     },
+    pause(): void {
+      if (state === "running") pauseController.setPaused(true);
+    },
+    resume(): void {
+      if (state === "running") pauseController.setPaused(false);
+    },
   };
-  app.resources.track(handle);
-  registerCameraMotion(camera, handle);
   const endWrite = beginCameraWrite(camera);
+  const releasePreparationPause = pauseController.hold();
   try {
+    app.resources.track(handle);
+    registerCameraMotion(camera, handle);
     if (signal) {
       signal.addEventListener("abort", handle.cancel, { once: true });
       cleanup.push(() => signal.removeEventListener("abort", handle.cancel));
@@ -299,7 +314,9 @@ function transitionFrame<F extends ObjectFrame>(
           handle.cancel();
           return;
         }
+        if (pauseController.paused) return;
         const releaseWrite = beginCameraWrite(camera);
+        const releasePause = pauseController.hold();
         try {
           if (!Number.isFinite(delta) || delta < 0)
             throw new RangeError("Invalid transition delta");
@@ -348,6 +365,7 @@ function transitionFrame<F extends ObjectFrame>(
           throw error;
         } finally {
           releaseWrite();
+          releasePause();
         }
       }),
     );
@@ -357,5 +375,6 @@ function transitionFrame<F extends ObjectFrame>(
     throw error;
   } finally {
     endWrite();
+    releasePreparationPause();
   }
 }

@@ -23,6 +23,40 @@ export function nearCameraVector(a: Vector3, b: Vector3): boolean {
 interface CameraMotion {
   cancel(): void;
 }
+
+interface CameraPauseController {
+  readonly paused: boolean;
+  setPaused(this: void, paused: boolean): void;
+  hold(this: void): () => void;
+}
+
+/** Commit pause requests after the current initialization/frame, never halfway through a native pose write. */
+export function createCameraPauseController(): CameraPauseController {
+  let paused = false,
+    holds = 0,
+    requested: boolean | undefined;
+  return {
+    get paused() {
+      return paused;
+    },
+    setPaused(value): void {
+      if (holds) requested = value;
+      else paused = value;
+    },
+    hold(): () => void {
+      holds++;
+      let released = false;
+      return () => {
+        if (released) return;
+        released = true;
+        if (--holds === 0 && requested !== undefined) {
+          paused = requested;
+          requested = undefined;
+        }
+      };
+    },
+  };
+}
 const writing = new WeakSet<Camera>();
 const motions = new WeakMap<Camera, CameraMotion>();
 

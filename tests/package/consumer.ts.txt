@@ -38,6 +38,8 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
     const height: number = viewResult.view.top - viewResult.view.bottom; void height;
   }
   viewMotion.cancel(); viewMotion.dispose();
+  viewMotion.pause(); viewMotion.resume();
+  if (viewMotion.state === "paused") viewMotion.resume();
   if (restoredView.kind === "orthographic") { const center: number = restoredView.centerX; void center; }
   const orthographicFrame = computeOrthographicFrame(orthographic.camera, model.scene);
   const fittedZoom: number = fitOrthographicObject(orthographic, model.scene).zoom;
@@ -46,6 +48,7 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   const orthographicResult = await orthographicMotion.finished;
   if (orthographicResult.status === "completed") { const zoom: number = orthographicResult.frame.zoom; void zoom; }
   orthographicMotion.cancel();
+  orthographicMotion.pause(); orthographicMotion.resume();
   const aspect: number = app.camera.aspect;
   const shared: AnyThreeApp = orthographic;
   attachOrbitControls(shared);

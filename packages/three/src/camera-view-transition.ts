@@ -12,6 +12,7 @@ import {
   mixCameraNumber,
   mixCameraVector,
   nearCameraVector,
+  createCameraPauseController,
 } from "./camera-runtime.ts";
 
 export interface CameraViewTransitionOptions extends CameraViewOptions {
@@ -30,6 +31,9 @@ export interface CameraViewTransitionHandle {
   readonly finished: Promise<CameraViewTransitionResult>;
   cancel(this: void): void;
   dispose(this: void): void;
+  /** Freeze only this motion's clock, retaining the camera/input lease. */
+  pause(this: void): void;
+  resume(this: void): void;
 }
 
 type ViewCamera = PerspectiveCamera | OrthographicCamera;
@@ -65,8 +69,12 @@ export function transitionToCameraView(
       finished: Promise.resolve({ status: "cancelled" }),
       cancel(): void {},
       dispose(): void {},
+      pause(): void {},
+      resume(): void {},
     };
   const endPreparation = beginCameraWrite(app.camera);
+  const pauseController = createCameraPauseController();
+  const releasePreparationPause = pauseController.hold();
   let fail: ((result: CameraViewTransitionResult) => CameraViewTransitionResult) | undefined;
   try {
     const prepared = prepareCameraView(app, input, { controls });
@@ -76,7 +84,7 @@ export function transitionToCameraView(
     owned();
     cancelCameraMotion(camera);
     owned();
-    let state: CameraTransitionState = "running",
+    let state: Exclude<CameraTransitionState, "paused"> = "running",
       progress = 0,
       elapsed = 0;
     let outcome: CameraViewTransitionResult | undefined;
@@ -111,7 +119,7 @@ export function transitionToCameraView(
     };
     const handle: CameraViewTransitionHandle = {
       get state() {
-        return state;
+        return state === "running" && pauseController.paused ? "paused" : state;
       },
       get progress() {
         return progress;
@@ -122,6 +130,12 @@ export function transitionToCameraView(
       },
       dispose(): void {
         finish({ status: "cancelled" });
+      },
+      pause(): void {
+        if (state === "running") pauseController.setPaused(true);
+      },
+      resume(): void {
+        if (state === "running") pauseController.setPaused(false);
       },
     };
     fail = finish;
@@ -265,7 +279,9 @@ export function transitionToCameraView(
         handle.cancel();
         return;
       }
+      if (pauseController.paused) return;
       const endWrite = beginCameraWrite(camera);
+      const releasePause = pauseController.hold();
       try {
         if (!Number.isFinite(delta) || delta < 0) throw new RangeError("Invalid transition delta");
         elapsed = Math.min(duration, elapsed + delta);
@@ -330,6 +346,7 @@ export function transitionToCameraView(
         throw result.status === "failed" ? result.error : error;
       } finally {
         endWrite();
+        releasePause();
       }
     });
     if (state !== "running") unsubscribe();
@@ -340,5 +357,6 @@ export function transitionToCameraView(
     throw result?.status === "failed" ? result.error : error;
   } finally {
     endPreparation();
+    releasePreparationPause();
   }
 }

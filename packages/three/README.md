@@ -424,6 +424,8 @@ if (result.status === "completed") console.log(result.view); // 原生约束后�
 
 scope/signal/输入/新相机命令可结束过渡；CSS 尺寸、外部姿态/投影/控件约束变化在下次有效更新取消。结束按值恢复 enabled/damping/autoRotate，不释放借用对象。原生回调副作用不回滚，错误同步传播且 finished resolve failed。`/?demo=orthographic` 同时提供立即恢复、平滑恢复、取消和进度。
 
+取景与书签过渡句柄均支持 `motion.pause()` / `motion.resume()`：只冻结自身进度，state 为 paused，宿主及其他对象继续更新/绘制。暂停保留相机和输入租约，输入/取消/替换/所有者结束仍可结算；外部配置变化在下一宿主更新取消。继续只消费后续 delta，不补暂停时间。原生写入回调中的请求待本次姿态完整提交后生效，终点/异常优先结算；终态调用无操作。演示“暂停相机 / 继续相机”与场景启停分开。
+
 ## KTX2 纹理模型
 
 ```ts

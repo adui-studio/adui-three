@@ -51,6 +51,8 @@ transitionOrthographicToObject(OrthographicThreeApp,Object3D,CameraTransitionOpt
 
 ## 相机视图契约
 
+CameraTransitionState 新增 paused，两种过渡句柄 pause()/resume() 只冻结自身进度，不影响宿主或其他目标。暂停保留输入/资源/相机租约，下一宿主更新仍检查外部修改；取消、signal、scope、替换照常结算。继续仅消费后续 delta。初始化/原生写入回调中的控制请求延后到本次提交结束，终点/异常优先；终态调用无操作，见 [ADR-0037](adr/0037-camera-pause.md)。
+
 captureCameraView(AnyThreeApp,CameraViewOptions?) 返回 CameraView，restoreCameraView(app,view,options?) 返回实际恢复后的新快照。version=1，kind 为 perspective/orthographic，公共字段 position/quaternion/up/zoom/near/far，可选 target；透视有 fov，正交有 top/bottom/centerX。数值数组独立，可由消费者 JSON 往返和跨同类宿主使用，无原生对象或资产引用。
 
 恢复按当前 CSS 比例重算 aspect/水平范围，保留垂直构图。拒绝父级/缩放/手动矩阵、view/filmOffset、坏元组/非有限/未归一化四元数、无效裁剪及不可表示候选。capture 零尺寸可用且不取消运动；restore 需有效视口，准备起持写锁，验证后才取消旧过渡。不自动绘制、启动、持久化或接管资源。
@@ -353,6 +355,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-043  | 画布截图契约                      | capture.ts、区域类型及演示选择                   | 坐标/边界/尺寸/取消单测、PNG 区域像素、包消费              |
 | FR-044  | 对象世界边界契约                  | object-bounds.ts、geometry 导出及测量演示        | CPU 姿态/缓存/重入单测、无绘制测量回归、无 DOM 包消费      |
 | FR-045  | 对象路径运动契约                  | path-animation.ts、独立时间轴演示                | 弧长/端点/命令竞争单测、像素/拾取/重建回归、包消费         |
+| FR-049  | 相机视图契约                      | camera-runtime.ts、两种过渡、投影演示            | 暂停/租约/回调单测、原生 GPU 绘制与像素、严格包消费        |
 | FR-048  | 模型动画契约                      | animation.ts、模型倍速滑块                       | 速度/渐变/通知排队单测、GPU 冻结与完成、严格包消费         |
 | FR-047  | 相机视图平滑恢复契约              | camera-view-transition.ts、投影演示              | 插值/取消/租约/重入单测、GPU 书签恢复、严格包消费          |
 | FR-046  | 对象路径运动契约                  | path-animation.ts、有限循环演示                  | 计数/端点/精度/竞争单测、完成像素/拾取回归、包消费         |

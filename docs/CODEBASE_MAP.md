@@ -135,4 +135,6 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 模型级倍速在 animation.ts 复用 Mixer 与命令队列，原有动画/通知单测覆盖速度、权重和排队；[倍速浏览器专项](../tests/browser/animation-rate.spec.ts) 核验真实冻结像素、独立实例和有限结束。
 
+相机独立暂停在 camera-runtime.ts 共享门控，[暂停单测](../packages/three/tests/camera-pause.test.ts) 覆盖四种运动和原生回调；[浏览器专项](../tests/browser/camera-pause.spec.ts) 同时采集原生绘制命令与像素，避免用静态标签证明宿主仍运行。
+
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。
