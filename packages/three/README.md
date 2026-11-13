@@ -2,92 +2,13 @@
 
 以生命周期为中心的 Three.js 场景宿主。当前为本地 MVP，版本 `0.0.0`，尚未发布 npm。采用 ESM，开发依赖固定 Three.js / @types/three `0.187.0`，peer 范围为 `>=0.187.0 <0.188.0`。
 
-## 正交相机
+先从下面的最小示例运行场景，再按需组合子入口：
 
-```ts
-import { OrthographicThreeApp } from "@adui/three";
-
-const app = new OrthographicThreeApp(container, {
-  camera: { frustumHeight: 10, near: 0, far: 1000, position: [0, 0, 10] },
-});
-app.camera.zoom = 2;
-app.camera.updateProjectionMatrix();
-app.render();
-```
-
-OrthographicThreeApp.camera 精确为 OrthographicCamera；默认 ThreeApp.camera 继续为 PerspectiveCamera。两者共享单循环、尺寸/DPR、资源、绘制管线和上下文丢失策略，均不会自动启动。frustumHeight 是未缩放的竖向世界单位跨度，必须正且有限；正交 near 可为 0，far 必须有限且大于 near。默认参数见示例，默认看向原点；renderer/maxPixelRatio/maxDelta 与 ThreeApp 相同。
-
-改变容器尺寸时保留当前 top/bottom、水平中心和 zoom，仅按 CSS 宽高比更新左右边界；DPR 不改变取景。直接修改相机后仍需 updateProjectionMatrix，未变尺寸的 resize 不负责更新修改。零尺寸暂停，投影/缓冲失败可在修复参数后 resize/render 重试。原生 view offset 由应用管理。
-
-通用扩展可用 AnyThreeApp 借用两种宿主；controls、模型/纹理加载、动画、拾取/标签、后处理、截图与实例化入口均接受此类型。camera 的正交即时/平滑取景采用独立命名接口，既有透视接口保持原类型。演示服务 `/?demo=orthographic` 比较深度、缩放、拾取/标签和放大模型后的取景。
-
-正交演示还可开启“组合效果”，点击对象后观察描边，并分别旁路泛光/描边或释放整条链；复用既有 postprocessing，不增加库入口。效果在暂停、resize/零尺寸恢复和宿主重建中保持各自所有权。
-
-### 正交自动取景
-
-```ts
-import { computeOrthographicFrame, fitOrthographicObject } from "@adui/three/camera";
-
-const plan = computeOrthographicFrame(app.camera, object, { padding: 1.2 });
-const frame = fitOrthographicObject(app, object, { controls: orbit.controls });
-console.log(plan.zoom, frame.distance);
-app.render();
-```
-
-这里 app 为 OrthographicThreeApp，object 为借用 Object3D，orbit 为可选 OrbitControls 句柄。规划不写相机；应用设置位置/朝向、zoom 和默认推荐裁剪面，不改未缩放视锥、不绘制或启动场景。返回 OrthographicObjectFrame，包含世界边界、包围球、中心、位置、距离、near/far 及 zoom。采用保守包围球以容纳任意朝向，可能比最紧凑取景留白更多。
-
-默认 padding=1.2（>=1）、minimumDistance=0；可指定世界 direction。相机需未挂父级、无缩放、自动矩阵且视锥居中，不支持 view offset；无效/空/退化边界拒绝。蒙皮准备包含子树外骨骼和当前绑定逆矩阵。控件必须属于该相机；不兼容的缩放、距离和目标限制先拒绝，保留调用方配置。adjustClipping=false 保留原生 near/far（near 可为 0），范围不足则拒绝。回调异常释放准备/应用写锁，恢复控件配置，但不回滚原生副作用。尺寸/对象改变后自行重新取景；shader 位移不属于 CPU 边界保证。
-
-### 正交平滑取景
-
-```ts
-import { transitionOrthographicToObject } from "@adui/three/camera";
-
-const motion = transitionOrthographicToObject(app, object, {
-  controls: orbit.controls,
-  duration: 0.8,
-});
-app.start(); // 消费者明确决定运行；宿主暂停时过渡也暂停。
-const result = await motion.finished;
-if (result.status === "completed") console.log(result.frame.zoom);
-```
-
-沿用正交即时规划，按宿主 delta 插值姿态/轨道与 zoom，返回 CameraTransitionHandle<OrthographicObjectFrame>；原句柄/结果默认类型仍为 ObjectFrame。每相机最多一个过渡，无自动启动/绘制或独立时钟，finished 始终 resolve completed/cancelled/failed。支持 cancel/dispose、signal、替换、即时 fit、宿主/scope 结束及带控件的输入取消。
-
-尺寸、视锥/zoom、姿态或控件缩放约束改写在下次更新取消；默认先扩裁剪、完成后收紧，near=0 有效，取消保留当前姿态/zoom。控件配置按值租用/恢复，即时取景先完成旧租约交接。目标改变后自行取消并重新规划，不保证过渡中全部可见或避障。
-
-### 保存和恢复视角
-
-```ts
-import { captureCameraView, restoreCameraView } from "@adui/three/camera";
-
-const saved = captureCameraView(app, { controls: orbit.controls });
-const json = JSON.stringify(saved); // 消费者自行存储。
-const actual = restoreCameraView(app, JSON.parse(json), { controls: orbit.controls });
-app.render();
-```
-
-CameraView 是 version=1 的透视/正交联合快照，含独立 position/quaternion/up 数组、zoom、near/far，可选轨道 target；透视含 fov，正交含 top/bottom/centerX。没有场景、模型、userData 或 GPU 引用，可在原宿主结束后恢复到同类新宿主。恢复按当前 CSS 比例适配，保持垂直构图，不保存旧 aspect、renderer 或深度模式；类型字段只读不表示运行时冻结。
-
-capture 不写相机、取消过渡或推进时间，零尺寸可用；restore 需要有效视口，完整校验后取消旧过渡，返回实际视图，不绘制或启动。只支持未挂父级、无缩放、自动矩阵且无 view/filmOffset 的相机，拒绝坏版本/数值/镜头范围。
-
-带控件保存会记录 target，并要求无 roll、单位 up；带控件恢复需已有 target、同相机与相同 up。距离、正交缩放和目标限制先校验，原生角度限制可调整最终姿态。控件惯性通过公开 update 消耗，配置与共享写锁在异常后恢复；原生副作用不回滚。演示“保存视角 / 恢复视角”使用内存 JSON，库不访问 localStorage 或业务 Store。
-
-### EXR 环境图
-
-```ts
-import { loadEXR, attachEnvironment } from "@adui/three/environment";
-
-const exr = await loadEXR(app, "/studio.exr", { signal: abort.signal });
-const binding = attachEnvironment(app, exr, { background: true });
-app.render();
-binding.dispose();
-exr.dispose();
-```
-
-loadEXR 与 loadHDR 共用 LoadHDROptions/HDREnvironment（HDR 表示高动态范围资产）和显式绑定/释放；前者以原生 part=0、半浮点 RGBA 解析 EXR，后者保持 RGBE。保留原生色彩/方向/过滤，设置等距柱状映射，不猜格式、自动曝光、写材质或创建循环。
-
-相同 URL 下载可合并，EXR 解压前独立复制输入；取消是逻辑性的，不能抢占同步解析或承诺运输终止。迟到纹理/错误、所有者结束和重试沿用既有环境契约。绑定与 GPU 缓存先清，再释放源纹理；不要另行 dispose 借用纹理。原创 64×32 FLOAT scanline 样例离线生成，半浮点/照明与 GPU 清理通过验证；其他压缩、多 part、深度 EXR 和硬件矩阵没有逐项验收。
+- 宿主：[生命周期 API](#api)、[正交相机](#正交相机)、[资源归属](#资源与边界)、[绘制管线](#绘制管线与单次绘制)。
+- 相机：[自动取景](#相机取景)、[平滑过渡](#相机平滑过渡)、[保存和恢复视角](#保存和恢复视角)。
+- 模型：[资产复用](#复用模型资产)、[压缩解码](#压缩模型)、[动画](#模型动画)、[路径运动](#对象路径运动)、[实例化网格](#实例化网格)。
+- 交互：[拾取](#对象拾取)、[DOM 标签](#dom-标签)、[变换手柄](#对象变换手柄)、[截图](#截图)。
+- 外观：[图片纹理](#独立图片纹理)、[KTX2 纹理](#独立-ktx2-纹理)、[HDR 环境](#hdr-环境)、[EXR 环境](#exr-环境图)、[泛光和描边](#选择描边与组合效果)。
 
 ## 最小示例
 
@@ -149,6 +70,27 @@ window.addEventListener(
 新增订阅从下一帧执行；帧内取消立即生效；回调内 stop/dispose 阻止本帧 render。回调内 stop/start 会终止旧帧并只保留一个新循环。同步更新或 render 报错时先停止，再将异常交回浏览器，不吞错。
 
 onAfterRender 在所有 onUpdate 完成并且 renderer.render 成功后执行，不依赖它与更新回调的注册先后。每个阶段开始时拍摄订阅快照；在该阶段内新增订阅下一帧执行，在更新阶段新增的渲染完成订阅可于本帧执行。stop/dispose/重启使本帧剩余回调失效；渲染失败跳过整个完成阶段，完成回调报错同样停止循环并抛出。手动调用 renderer.render 不会触发宿主订阅。
+
+## 正交相机
+
+```ts
+import { OrthographicThreeApp } from "@adui/three";
+
+const app = new OrthographicThreeApp(container, {
+  camera: { frustumHeight: 10, near: 0, far: 1000, position: [0, 0, 10] },
+});
+app.camera.zoom = 2;
+app.camera.updateProjectionMatrix();
+app.render();
+```
+
+OrthographicThreeApp.camera 精确为 OrthographicCamera；默认 ThreeApp.camera 继续为 PerspectiveCamera。两者共享单循环、尺寸/DPR、资源、绘制管线和上下文丢失策略，均不会自动启动。frustumHeight 是未缩放的竖向世界单位跨度，必须正且有限；正交 near 可为 0，far 必须有限且大于 near。默认参数见示例，默认看向原点；renderer/maxPixelRatio/maxDelta 与 ThreeApp 相同。
+
+改变容器尺寸时保留当前 top/bottom、水平中心和 zoom，仅按 CSS 宽高比更新左右边界；DPR 不改变取景。直接修改相机后仍需 updateProjectionMatrix，未变尺寸的 resize 不负责更新修改。零尺寸暂停，投影/缓冲失败可在修复参数后 resize/render 重试。原生 view offset 由应用管理。
+
+通用扩展可用 AnyThreeApp 借用两种宿主；controls、模型/纹理加载、动画、拾取/标签、后处理、截图与实例化入口均接受此类型。camera 的正交即时/平滑取景采用独立命名接口，既有透视接口保持原类型。演示服务 `/?demo=orthographic` 比较深度、缩放、拾取/标签和放大模型后的取景。
+
+正交演示还可开启“组合效果”，点击对象后观察描边，并分别旁路泛光/描边或释放整条链；复用既有 postprocessing，不增加库入口。效果在暂停、resize/零尺寸恢复和宿主重建中保持各自所有权。
 
 ## 绘制管线与单次绘制
 
@@ -348,6 +290,79 @@ fitObject 使用当前 app.camera 和尺寸立即应用；支持宿主 ready/sto
 
 两个函数不创建循环、资源句柄、订阅或自动播放/启动，也不直接 render。暂停时应用若希望立即显示，可显式 render 一次并更新标签；演示使用这一方式。旋转、动画、resize 或模型替换后，按需重新调用取景。相机过渡见下节；正交/父级/偏轴相机留后续，详见 [ADR-0007](https://github.com/adui-studio/adui-three/blob/main/docs/adr/0007-camera-framing.md)。
 
+### 正交自动取景
+
+```ts
+import { computeOrthographicFrame, fitOrthographicObject } from "@adui/three/camera";
+
+const plan = computeOrthographicFrame(app.camera, object, { padding: 1.2 });
+const frame = fitOrthographicObject(app, object, { controls: orbit.controls });
+console.log(plan.zoom, frame.distance);
+app.render();
+```
+
+这里 app 为 OrthographicThreeApp，object 为借用 Object3D，orbit 为可选 OrbitControls 句柄。规划不写相机；应用设置位置/朝向、zoom 和默认推荐裁剪面，不改未缩放视锥、不绘制或启动场景。返回 OrthographicObjectFrame，包含世界边界、包围球、中心、位置、距离、near/far 及 zoom。采用保守包围球以容纳任意朝向，可能比最紧凑取景留白更多。
+
+默认 padding=1.2（>=1）、minimumDistance=0；可指定世界 direction。相机需未挂父级、无缩放、自动矩阵且视锥居中，不支持 view offset；无效/空/退化边界拒绝。蒙皮准备包含子树外骨骼和当前绑定逆矩阵。控件必须属于该相机；不兼容的缩放、距离和目标限制先拒绝，保留调用方配置。adjustClipping=false 保留原生 near/far（near 可为 0），范围不足则拒绝。回调异常释放准备/应用写锁，恢复控件配置，但不回滚原生副作用。尺寸/对象改变后自行重新取景；shader 位移不属于 CPU 边界保证。
+
+## 相机平滑过渡
+
+```ts
+import { transitionToObject } from "@adui/three/camera";
+
+const motion = transitionToObject(app, model.scene, {
+  controls, // 可选，当前相机的原生 OrbitControls
+  duration: 0.8, // 正有限秒数，默认 0.8
+});
+app.start(); // 由应用决定；库不会自动运行宿主。
+const result = await motion.finished;
+if (result.status === "failed") console.error(result.error);
+// motion.cancel(); 或 motion.dispose(); 幂等，不跳至终点。
+```
+
+选项继承 FitObjectOptions，另接受可选 AbortSignal signal，沿用即时取景的相机、边界与控件限制。目标是调用时快照，不跟随动画、变换或删除；模型移除时由应用取消，必要时可登记到 model.resources。duration 以宿主有效 delta 计时，固定 smoothstep；停止、隐藏或零尺寸期间暂停，恢复不补墙钟时间。无独立 RAF、render 或自动启停。
+
+句柄提供只读 state（running/completed/cancelled/failed）、progress（未经缓动的 0..1）及 finished。finished 始终 resolve：completed 含 frame，cancelled 无 frame，failed 含 error；同步非法输入仍抛错，且在打断旧过渡前校验。更新回调异常清理并 resolve failed 后仍向宿主抛出，使宿主停止；清理异常聚合到 failed 结果。已 abort 的 signal 返回 cancelled 句柄。句柄自动登记 app.resources，cancel/dispose 与宿主清理均解除订阅。
+
+无 controls 时插值位置及 quaternion；有 controls 时插值 target、轨道距离和最短方向旋转，原生角度限制继续生效。过渡期间 enabled、enableDamping、autoRotate 临时设 false，公开 update(0) 清惯性；结束仅恢复仍为 false 的属性，外部已改为 true 的值保留。不要同时安排其他相机写入者；在原生同步 change 事件中重入 fitObject/transitionToObject 会拒绝，可安全取消或销毁。
+
+同相机新过渡或有效 fitObject 会取消旧过渡。有 controls 时画布 pointerdown/wheel 捕获阶段取消，不阻止同一事件交给恢复后的控件。外部尺寸、投影、姿态、控件约束或可观察配置变化，在下一次有效更新取消；暂停期间不轮询。取消保留当前姿态；adjustClipping=true 会先扩展裁剪面，只有完成才收紧，取消保留扩展范围。false 保留原裁剪面并检查终点可见范围。路径不避障、不保证中途完整可见；不提供独立暂停、正交/父级相机或自定义缓动。
+
+### 正交平滑取景
+
+```ts
+import { transitionOrthographicToObject } from "@adui/three/camera";
+
+const motion = transitionOrthographicToObject(app, object, {
+  controls: orbit.controls,
+  duration: 0.8,
+});
+app.start(); // 消费者明确决定运行；宿主暂停时过渡也暂停。
+const result = await motion.finished;
+if (result.status === "completed") console.log(result.frame.zoom);
+```
+
+沿用正交即时规划，按宿主 delta 插值姿态/轨道与 zoom，返回 CameraTransitionHandle<OrthographicObjectFrame>；原句柄/结果默认类型仍为 ObjectFrame。每相机最多一个过渡，无自动启动/绘制或独立时钟，finished 始终 resolve completed/cancelled/failed。支持 cancel/dispose、signal、替换、即时 fit、宿主/scope 结束及带控件的输入取消。
+
+尺寸、视锥/zoom、姿态或控件缩放约束改写在下次更新取消；默认先扩裁剪、完成后收紧，near=0 有效，取消保留当前姿态/zoom。控件配置按值租用/恢复，即时取景先完成旧租约交接。目标改变后自行取消并重新规划，不保证过渡中全部可见或避障。
+
+## 保存和恢复视角
+
+```ts
+import { captureCameraView, restoreCameraView } from "@adui/three/camera";
+
+const saved = captureCameraView(app, { controls: orbit.controls });
+const json = JSON.stringify(saved); // 消费者自行存储。
+const actual = restoreCameraView(app, JSON.parse(json), { controls: orbit.controls });
+app.render();
+```
+
+CameraView 是 version=1 的透视/正交联合快照，含独立 position/quaternion/up 数组、zoom、near/far，可选轨道 target；透视含 fov，正交含 top/bottom/centerX。没有场景、模型、userData 或 GPU 引用，可在原宿主结束后恢复到同类新宿主。恢复按当前 CSS 比例适配，保持垂直构图，不保存旧 aspect、renderer 或深度模式；类型字段只读不表示运行时冻结。
+
+capture 不写相机、取消过渡或推进时间，零尺寸可用；restore 需要有效视口，完整校验后取消旧过渡，返回实际视图，不绘制或启动。只支持未挂父级、无缩放、自动矩阵且无 view/filmOffset 的相机，拒绝坏版本/数值/镜头范围。
+
+带控件保存会记录 target，并要求无 roll、单位 up；带控件恢复需已有 target、同相机与相同 up。距离、正交缩放和目标限制先校验，原生角度限制可调整最终姿态。控件惯性通过公开 update 消耗，配置与共享写锁在异常后恢复；原生副作用不回滚。演示“保存视角 / 恢复视角”使用内存 JSON，库不访问 localStorage 或业务 Store。
+
 ## KTX2 纹理模型
 
 ```ts
@@ -542,29 +557,6 @@ overlay 必须与 canvas 属于同一 document，设置 position 为 relative/ab
 
 默认包装节点 pointer-events:none，让指针进入下方画布；interactive=true 使用 auto，内容可用原生按钮、键盘及 DOM 事件。内容显式设置 pointer-events 可覆盖继承值，应用需协调 CSS；非交互内容不应包含可聚焦控件。库不代管光标、业务事件，也不阻止标签事件向 DOM 祖先冒泡。
 
-## 相机平滑过渡
-
-```ts
-import { transitionToObject } from "@adui/three/camera";
-
-const motion = transitionToObject(app, model.scene, {
-  controls, // 可选，当前相机的原生 OrbitControls
-  duration: 0.8, // 正有限秒数，默认 0.8
-});
-app.start(); // 由应用决定；库不会自动运行宿主。
-const result = await motion.finished;
-if (result.status === "failed") console.error(result.error);
-// motion.cancel(); 或 motion.dispose(); 幂等，不跳至终点。
-```
-
-选项继承 FitObjectOptions，另接受可选 AbortSignal signal，沿用即时取景的相机、边界与控件限制。目标是调用时快照，不跟随动画、变换或删除；模型移除时由应用取消，必要时可登记到 model.resources。duration 以宿主有效 delta 计时，固定 smoothstep；停止、隐藏或零尺寸期间暂停，恢复不补墙钟时间。无独立 RAF、render 或自动启停。
-
-句柄提供只读 state（running/completed/cancelled/failed）、progress（未经缓动的 0..1）及 finished。finished 始终 resolve：completed 含 frame，cancelled 无 frame，failed 含 error；同步非法输入仍抛错，且在打断旧过渡前校验。更新回调异常清理并 resolve failed 后仍向宿主抛出，使宿主停止；清理异常聚合到 failed 结果。已 abort 的 signal 返回 cancelled 句柄。句柄自动登记 app.resources，cancel/dispose 与宿主清理均解除订阅。
-
-无 controls 时插值位置及 quaternion；有 controls 时插值 target、轨道距离和最短方向旋转，原生角度限制继续生效。过渡期间 enabled、enableDamping、autoRotate 临时设 false，公开 update(0) 清惯性；结束仅恢复仍为 false 的属性，外部已改为 true 的值保留。不要同时安排其他相机写入者；在原生同步 change 事件中重入 fitObject/transitionToObject 会拒绝，可安全取消或销毁。
-
-同相机新过渡或有效 fitObject 会取消旧过渡。有 controls 时画布 pointerdown/wheel 捕获阶段取消，不阻止同一事件交给恢复后的控件。外部尺寸、投影、姿态、控件约束或可观察配置变化，在下一次有效更新取消；暂停期间不轮询。取消保留当前姿态；adjustClipping=true 会先扩展裁剪面，只有完成才收紧，取消保留扩展范围。false 保留原裁剪面并检查终点可见范围。路径不避障、不保证中途完整可见；不提供独立暂停、正交/父级相机或自定义缓动。
-
 ## 泛光后处理
 
 ```ts
@@ -721,6 +713,22 @@ loadHDR 返回 HDREnvironment，提供原生 texture、前置资源 resources、
 attachEnvironment 只借用同一宿主的活动 HDREnvironment；background=false、intensity=1，强度为非负有限数。每个宿主一个绑定，替换时先释放旧绑定。EnvironmentBinding 提供 disposed 和幂等 dispose，同时登记宿主/资产 scope；解绑不释放资产，资产释放先解绑再纹理清理。原场景 environment、background 和强度只在当前值仍属于绑定时恢复，保留外部变更。原值借用，需由外部保持存活；相同值改回的 ABA 无法区分。
 
 原生 renderer 自动生成 PMREM 照明/立方背景并在源纹理 dispose 时清理，不需手动生成。生成器共享 scratch 会保留至 renderer.dispose；释放单资产回到预热基线。不要单独 texture.dispose，也不要在释放资产后继续将纹理借用于其他场景/材质。当前仅 Radiance 等距柱状 HDR，不含 EXR、跨宿主资源共享或完整硬件/长期资源承诺。
+
+### EXR 环境图
+
+```ts
+import { loadEXR, attachEnvironment } from "@adui/three/environment";
+
+const exr = await loadEXR(app, "/studio.exr", { signal: abort.signal });
+const binding = attachEnvironment(app, exr, { background: true });
+app.render();
+binding.dispose();
+exr.dispose();
+```
+
+loadEXR 与 loadHDR 共用 LoadHDROptions/HDREnvironment（HDR 表示高动态范围资产）和显式绑定/释放；前者以原生 part=0、半浮点 RGBA 解析 EXR，后者保持 RGBE。保留原生色彩/方向/过滤，设置等距柱状映射，不猜格式、自动曝光、写材质或创建循环。
+
+相同 URL 下载可合并，EXR 解压前独立复制输入；取消是逻辑性的，不能抢占同步解析或承诺运输终止。迟到纹理/错误、所有者结束和重试沿用既有环境契约。绑定与 GPU 缓存先清，再释放源纹理；不要另行 dispose 借用纹理。原创 64×32 FLOAT scanline 样例离线生成，半浮点/照明与 GPU 清理通过验证；其他压缩、多 part、深度 EXR 和硬件矩阵没有逐项验收。
 
 ## 开发与验证
 
