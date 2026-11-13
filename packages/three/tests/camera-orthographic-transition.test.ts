@@ -56,6 +56,19 @@ function fixture(orbit = false) {
   };
 }
 
+test.each(["linear", "smoothstep", undefined] as const)(
+  "orthographic orbit targets use selected easing and retain raw progress: %s",
+  (easing) => {
+    const env = fixture(true),
+      motion = env.start({ easing });
+    env.tick(0.25);
+    expect(env.controls!.target.x).toBeCloseTo(20 * (easing === "linear" ? 0.25 : 0.15625));
+    expect(motion.progress).toBe(0.25);
+    motion.cancel();
+    env.env.resources.dispose();
+  },
+);
+
 test("orthographic motion interpolates zoom and pose, accepts starting near zero and completes without drawing", async () => {
   const env = fixture(),
     startZoom = env.camera.zoom,

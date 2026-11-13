@@ -424,6 +424,8 @@ if (result.status === "completed") console.log(result.view); // 原生约束后�
 
 scope/signal/输入/新相机命令可结束过渡；CSS 尺寸、外部姿态/投影/控件约束变化在下次有效更新取消。结束按值恢复 enabled/damping/autoRotate，不释放借用对象。原生回调副作用不回滚，错误同步传播且 finished resolve failed。`/?demo=orthographic` 同时提供立即恢复、平滑恢复、取消和进度。
 
+取景/书签选项还支持 `easing: "linear" | "smoothstep"`（camera 入口导出类型 TransitionEasing），默认 smoothstep；匀速时间参数可设为 linear。创建时捕获预设，progress 仍报告未缓动的时间比例，改选项仅影响下一次请求。球面轨道、原生约束和透视投影可能改变世界/屏幕速度，不保证物理匀速；不接受自定义逐帧回调。
+
 取景与书签过渡句柄均支持 `motion.pause()` / `motion.resume()`：只冻结自身进度，state 为 paused，宿主及其他对象继续更新/绘制。暂停保留相机和输入租约，输入/取消/替换/所有者结束仍可结算；外部配置变化在下一宿主更新取消。继续只消费后续 delta，不补暂停时间。原生写入回调中的请求待本次姿态完整提交后生效，终点/异常优先结算；终态调用无操作。演示“暂停相机 / 继续相机”与场景启停分开。
 
 ## KTX2 纹理模型
@@ -497,6 +499,8 @@ animations.crossFadeTo("Slide", { duration: 0.4, loop: "repeat", timeScale: 1 })
 ```
 
 CrossFadeOptions 的 duration 默认 0.3，正有限 Mixer 秒，其他选项同 play。目标从当前有效权重渐变到 1，其他动作从各自当前权重降到 0；中断重新拍快照，保持瞬时复合姿态。已活动目标保留片段时间，同一当前目标无操作，重播用 play；没有旧动作时正常播放，不从空姿态淡入。结束进度为 1，旧动作在原生采样返回后停止，当前目标保持运行。每片段最多一个 native action，结束只留目标，缓存仍按既有 Mixer 生命周期清理。
+
+`crossFadeTo` 也支持 easing: "linear" | "smoothstep"，默认 linear，animation 入口同样导出 TransitionEasing。只缓动权重，片段时间和倍速保持，blendProgress 仍是原始时间比例；中断基于当前实际有效权重交接。非法值在替换前拒绝，预设准备时捕获，不调用消费者逐帧函数。
 
 暂停/停止宿主均冻结交接，无独立时钟。duration 受 mixer.timeScale 缩放，允许 0 暂停，须非负有限；action timeScale 只改变片段速度。当前只支持普通 blend mode 和 [0,1] 有效权重，不提供 additive、warp 或自定义权重曲线。目标 once 提前结束时继续交接，渐变结束后 state 才为 finished；clamp 行为沿用原生规则。
 

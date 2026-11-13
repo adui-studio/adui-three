@@ -4,6 +4,7 @@ import type { ThreeApp } from "./three-app.ts";
 import { prepareObjectFrame } from "./camera-frame.ts";
 import type { FitObjectOptions, ObjectFrame } from "./camera-frame.ts";
 import { beginCameraWrite, cancelCameraMotion } from "./camera-runtime.ts";
+export type { TransitionEasing } from "./easing.ts";
 
 export { computeObjectFrame } from "./camera-frame.ts";
 export { captureCameraView, restoreCameraView } from "./camera-view.ts";

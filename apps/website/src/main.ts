@@ -13,7 +13,7 @@ import type { EnvironmentBinding, HDREnvironment } from "@adui/three/environment
 import { loadTexture, loadKTX2 } from "@adui/three/textures";
 import type { TextureAsset, KTX2TextureAsset } from "@adui/three/textures";
 import { attachGLTFAnimations } from "@adui/three/animation";
-import type { GLTFAnimationsHandle } from "@adui/three/animation";
+import type { GLTFAnimationsHandle, TransitionEasing } from "@adui/three/animation";
 import { attachPicking } from "@adui/three/interaction";
 import { attachDOMLabels } from "@adui/three/labels";
 import type { DOMLabelHandle, DOMLabelsHandle } from "@adui/three/labels";
@@ -77,7 +77,7 @@ function mountPanel(id: string, color: number): void {
     <p class="model-feedback" role="status">模型未加载 · 使用项目原创的内嵌纹理样例</p>
     <div class="model-actions"><button data-action="clone-model">创建实例</button><button data-action="clone-peer">复制到另一场景</button><button data-action="clone-play">播放实例</button><button data-action="clone-pause">暂停实例</button><button data-action="remove-clone">移除实例</button></div>
     <p class="camera-feedback" role="status">实例：<span data-testid="clone-state">idle</span> · <span data-testid="clone-time">0.000</span> s · 共享几何体与材质</p>
-    <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="skin-model">加载骨骼样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-fade">渐变切换</button><button data-action="animation-once">单次播放</button><button data-action="animation-repeat-twice">循环两次</button><button data-action="animation-pingpong">往返一次</button><button data-action="animation-stop">停止动画</button></div>
+    <div class="animation-actions"><button data-action="animated-model">加载动画样例</button><button data-action="skin-model">加载骨骼样例</button><button data-action="animation-play">播放动画</button><button data-action="animation-pause">暂停动画</button><button data-action="animation-resume">继续动画</button><button data-action="animation-next">切换片段</button><button data-action="animation-fade">渐变切换</button><button data-action="animation-easing" aria-pressed="false">下次平滑渐变</button><button data-action="animation-once">单次播放</button><button data-action="animation-repeat-twice">循环两次</button><button data-action="animation-pingpong">往返一次</button><button data-action="animation-stop">停止动画</button></div>
     <p class="animation-feedback" role="status">动画：<span data-testid="animation-state">idle</span> · <span data-testid="animation-clip">—</span> · <span data-testid="animation-time">0.000</span> s · 渐变 <span data-testid="animation-blend-progress">0</span>%<br>循环通知 <span data-testid="animation-loops">0</span> · 播放完成 <span data-testid="animation-completions">0</span> · 最近完成 <span data-testid="animation-last-completion">—</span> <button data-action="animation-chain" aria-pressed="false">完成后切换</button></p>
     <label class="animation-timeline">定位<input type="range" min="0" max="100" step="1" value="0" data-action="animation-seek" aria-label="动画定位"><span data-testid="animation-progress">0</span>%</label>
     <label class="animation-timeline">倍速<input type="range" min="0" max="2" step="0.25" value="1" data-action="animation-rate" aria-label="动画倍速"><span data-testid="animation-rate">1.00</span>×（0 冻结动画）</label>
@@ -108,6 +108,7 @@ function mountPanel(id: string, color: number): void {
   let labelsVisible = true;
   let animation: GLTFAnimationsHandle | undefined;
   let animationIndex = 0;
+  let animationEasing: TransitionEasing = "linear";
   let animationCompletions = 0,
     animationLoops = 0,
     lastAnimationCompletion = "—",
@@ -327,6 +328,10 @@ function mountPanel(id: string, color: number): void {
     card.querySelector('[data-testid="animation-last-completion"]')!.textContent =
       lastAnimationCompletion;
     button("animation-chain").setAttribute("aria-pressed", String(chainAnimation));
+    button("animation-easing").setAttribute(
+      "aria-pressed",
+      String(animationEasing === "smoothstep"),
+    );
     card.dataset.animationBlendProgress = (animation?.blendProgress ?? 0).toFixed(3);
     card.querySelector('[data-testid="animation-blend-progress"]')!.textContent = String(
       Math.round((animation?.blendProgress ?? 0) * 100),
@@ -334,6 +339,7 @@ function mountPanel(id: string, color: number): void {
     const canAnimate =
       !!animation && !animation.disposed && animation.clips.length > 0 && !hasTransform;
     button("animation-chain").disabled = !canAnimate;
+    button("animation-easing").disabled = !canAnimate;
     button("animated-model").disabled = !app || state === "disposed";
     button("skin-model").disabled = !app || state === "disposed";
     for (const action of [
@@ -945,6 +951,8 @@ function mountPanel(id: string, color: number): void {
       if (action === "skin-model") void requestModel("/models/skin-morph.glb");
       if (action === "animation-play") animation?.play(animationIndex);
       if (action === "animation-chain") chainAnimation = !chainAnimation;
+      if (action === "animation-easing")
+        animationEasing = animationEasing === "linear" ? "smoothstep" : "linear";
       if (action === "animation-pause") animation?.pause();
       if (action === "animation-resume") animation?.resume();
       if (action === "animation-next" && animation?.clips.length) {
@@ -953,7 +961,7 @@ function mountPanel(id: string, color: number): void {
       }
       if (action === "animation-fade" && animation?.clips.length) {
         animationIndex = (animationIndex + 1) % animation.clips.length;
-        animation.crossFadeTo(animationIndex, { duration: 2 });
+        animation.crossFadeTo(animationIndex, { duration: 2, easing: animationEasing });
         if (app?.state !== "running") app?.render();
       }
       if (action === "animation-once") animation?.play(animationIndex, { loop: "once" });

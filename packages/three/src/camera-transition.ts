@@ -6,6 +6,8 @@ import { prepareObjectFrame } from "./camera-frame.ts";
 import { prepareOrthographicFrame } from "./camera-orthographic.ts";
 import type { OrthographicObjectFrame } from "./camera-orthographic.ts";
 import type { FitObjectOptions, ObjectFrame } from "./camera-frame.ts";
+import { resolveTransitionEasing } from "./easing.ts";
+import type { TransitionEasing } from "./easing.ts";
 import {
   assertCameraWriteAvailable,
   beginCameraWrite,
@@ -26,6 +28,8 @@ export type CameraTransitionResult<F extends ObjectFrame = ObjectFrame> =
 export interface CameraTransitionOptions extends FitObjectOptions {
   /** Positive finite duration, in host delta seconds. Default 0.8. */
   duration?: number;
+  /** Interpolation preset. Default smoothstep. Raw progress remains linear in host time. */
+  easing?: TransitionEasing;
   signal?: AbortSignal;
 }
 
@@ -98,7 +102,9 @@ function transitionFrame<F extends ObjectFrame>(
   if (signal?.aborted) return cancelled();
   const endPreparation = beginCameraWrite(app.camera);
   let prepared: PreparedFrame<F>;
+  let sampleProgress: (progress: number) => number;
   try {
+    sampleProgress = resolveTransitionEasing(options.easing, "smoothstep");
     prepared = prepare();
   } finally {
     endPreparation();
@@ -322,7 +328,7 @@ function transitionFrame<F extends ObjectFrame>(
             throw new RangeError("Invalid transition delta");
           elapsed = Math.min(duration, elapsed + delta);
           progress = elapsed / duration;
-          const t = progress * progress * (3 - 2 * progress);
+          const t = sampleProgress(progress);
           if (endZoom !== undefined) {
             camera.zoom = (1 - t) * startZoom + t * endZoom;
             camera.updateProjectionMatrix();

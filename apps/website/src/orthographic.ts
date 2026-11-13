@@ -16,6 +16,7 @@ import type {
   CameraTransitionHandle,
   CameraView,
   CameraViewTransitionHandle,
+  TransitionEasing,
 } from "@adui/three/camera";
 import { attachPostprocessing } from "@adui/three/postprocessing";
 import type { PostprocessingHandle } from "@adui/three/postprocessing";
@@ -38,7 +39,7 @@ for (const orthographic of [true, false]) {
   card.innerHTML = `<div class="card-heading"><h2>${orthographic ? "正交相机" : "透视相机"}</h2><span data-testid="projection-state">—</span></div>
     <div class="stage"><div class="viewport" aria-label="${orthographic ? "正交" : "透视"}画布"><div class="label-overlay"></div></div></div>
     <div class="metrics"><div><span>ZOOM</span><strong data-testid="projection-zoom">1.000</strong></div><div><span>BLUE Z</span><strong data-testid="projection-depth">-5</strong></div><div><span>WIDTH</span><strong data-testid="projection-width">0</strong></div><div><span>HEIGHT</span><strong data-testid="projection-height">0</strong></div></div>
-    <div class="actions projection-actions"><button data-action="save-view">保存视角</button><button data-action="restore-view">恢复视角</button><button data-action="smooth-view">平滑恢复视角</button><button data-action="cancel-view">取消视角恢复</button><button data-action="effects">组合效果</button><button data-action="bloom">泛光开关</button><button data-action="outline">描边开关</button><button data-action="fit">适配视角</button><button data-action="smooth">平滑取景</button><button data-action="cancel">取消过渡</button><button data-action="pause-camera">暂停相机</button><button data-action="resume-camera">继续相机</button><button data-action="pause-host">暂停场景</button><button data-action="start-host">运行场景</button><button data-action="large">放大模型</button><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
+    <div class="actions projection-actions"><button data-action="save-view">保存视角</button><button data-action="restore-view">恢复视角</button><button data-action="smooth-view">平滑恢复视角</button><button data-action="cancel-view">取消视角恢复</button><button data-action="effects">组合效果</button><button data-action="bloom">泛光开关</button><button data-action="outline">描边开关</button><button data-action="fit">适配视角</button><button data-action="smooth">平滑取景</button><button data-action="easing" aria-pressed="false">下次匀速过渡</button><button data-action="cancel">取消过渡</button><button data-action="pause-camera">暂停相机</button><button data-action="resume-camera">继续相机</button><button data-action="pause-host">暂停场景</button><button data-action="start-host">运行场景</button><button data-action="large">放大模型</button><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
     <p class="model-feedback">视图：<span data-testid="projection-view">未保存</span></p><p class="model-feedback">视角恢复：<span data-testid="projection-view-motion">idle</span> · <span data-testid="projection-view-progress">0.000</span></p><p class="model-feedback">效果：<span data-testid="projection-effects">idle</span> · 泛光 <span data-testid="projection-bloom">off</span> · 描边 <span data-testid="projection-outline">off</span></p><p class="model-feedback">过渡：<span data-testid="projection-motion">idle</span> · <span data-testid="projection-progress">0.000</span></p><p class="model-feedback">选中：<span data-testid="projection-picked">—</span> · <span data-testid="projection-error" role="alert"></span></p>`;
   root.querySelector(".workspace")!.appendChild(card);
   const viewport = card.querySelector<HTMLDivElement>(".viewport")!;
@@ -56,6 +57,7 @@ for (const orthographic of [true, false]) {
     large = false;
   let narrow = false,
     zero = false;
+  let easing: TransitionEasing = "smoothstep";
   const show = (key: string, text: string): void => {
     card.querySelector<HTMLElement>(`[data-testid="projection-${key}"]`)!.textContent = text;
   };
@@ -73,6 +75,9 @@ for (const orthographic of [true, false]) {
     show("bloom", effects && !effects.disposed && effects.bloom?.enabled ? "on" : "off");
     show("outline", effects && !effects.disposed && effects.outline?.enabled ? "on" : "off");
     show("view", savedView ? "已保存" : "未保存");
+    card
+      .querySelector('[data-action="easing"]')!
+      .setAttribute("aria-pressed", String(easing === "linear"));
     for (const button of card.querySelectorAll<HTMLButtonElement>("button")) {
       button.disabled = button.dataset.action !== "rebuild" && (!app || app.state === "disposed");
       if (["bloom", "outline"].includes(button.dataset.action ?? ""))
@@ -146,6 +151,7 @@ for (const orthographic of [true, false]) {
         const current = transitionToCameraView(host, JSON.parse(savedView) as CameraView, {
           controls,
           duration: 1.2,
+          easing,
         });
         viewMotion = current;
         void current.finished.then((result) => {
@@ -176,8 +182,8 @@ for (const orthographic of [true, false]) {
       try {
         const current =
           host instanceof OrthographicThreeApp
-            ? transitionOrthographicToObject(host, content!, { controls, duration: 1.2 })
-            : transitionToObject(host, content!, { controls, duration: 1.2 });
+            ? transitionOrthographicToObject(host, content!, { controls, duration: 1.2, easing })
+            : transitionToObject(host, content!, { controls, duration: 1.2, easing });
         motion = current;
         void current.finished.then((result) => {
           if (motion !== current) return;
@@ -219,6 +225,8 @@ for (const orthographic of [true, false]) {
         return;
       }
       if (!app || app.state === "disposed") return;
+      if (button.dataset.action === "easing")
+        easing = easing === "linear" ? "smoothstep" : "linear";
       if (button.dataset.action === "save-view") saveView?.();
       if (button.dataset.action === "restore-view") restoreView?.();
       if (button.dataset.action === "smooth-view") {

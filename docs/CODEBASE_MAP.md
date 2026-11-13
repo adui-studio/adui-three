@@ -139,4 +139,6 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 路径倍速复用 path-animation.ts 现有步长与写入保护；path-animation 单测覆盖零速度/预算/重入，path.spec.ts 增加实际箭头像素、拾取和所有者重建，演示滑块只控制 A。
 
+过渡节奏位于 [easing.ts](../packages/three/src/easing.ts)，camera/animation 共享固定数学预设，两个入口只公开 TransitionEasing 类型与选项。相机/渐变单测覆盖四分之一进度数值、实际权重交接和非法输入，投影/模型演示提供下次节奏选择。
+
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

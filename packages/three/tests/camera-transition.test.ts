@@ -1,7 +1,7 @@
 import { expect, test, vi } from "vite-plus/test";
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { fitObject, transitionToObject } from "../src/camera.ts";
+import { computeObjectFrame, fitObject, transitionToObject } from "../src/camera.ts";
 import type { CameraTransitionOptions } from "../src/camera.ts";
 import type { ThreeApp, ThreeAppState, FrameInfo } from "../src/index.ts";
 import { ResourceScope } from "../src/resources.ts";
@@ -57,6 +57,64 @@ function start(env: ReturnType<typeof fixture>, options: CameraTransitionOptions
     ...options,
   });
 }
+
+test.each(["linear", "smoothstep", undefined] as const)(
+  "perspective framing applies the selected easing while progress stays uneased: %s",
+  (easing) => {
+    const env = fixture(),
+      before = env.camera.position.clone(),
+      frame = computeObjectFrame(env.camera, env.object);
+    const motion = start(env, { easing });
+    env.tick(0.25);
+    const t = easing === "linear" ? 0.25 : 0.15625;
+    expect(env.camera.position.distanceTo(before.lerp(frame.position, t))).toBeLessThan(1e-10);
+    expect(motion.progress).toBe(0.25);
+    motion.cancel();
+    env.env.resources.dispose();
+  },
+);
+
+test.each(["bad", null, false, 0, () => 0.5])(
+  "invalid camera easing preserves the existing request: %s",
+  (easing) => {
+    const env = fixture(),
+      first = start(env);
+    expect(() => start(env, { easing: easing as CameraTransitionOptions["easing"] })).toThrow(
+      RangeError,
+    );
+    expect(first.state).toBe("running");
+    first.cancel();
+    env.env.resources.dispose();
+  },
+);
+
+test("camera easing getters run under the preparation write lock", () => {
+  const env = fixture();
+  let read = false;
+  const motion = transitionToObject(env.app, env.object, {
+    get easing(): "linear" {
+      read = true;
+      expect(() => start(env)).toThrow(/progress/);
+      return "linear";
+    },
+  });
+  expect(read).toBe(true);
+  motion.cancel();
+  env.env.resources.dispose();
+});
+
+test("camera easing is copied before later option mutations", () => {
+  const env = fixture(),
+    before = env.camera.position.clone(),
+    frame = computeObjectFrame(env.camera, env.object);
+  const options = { duration: 1, easing: "linear" as "linear" | "smoothstep" };
+  const motion = transitionToObject(env.app, env.object, options);
+  options.easing = "smoothstep";
+  env.tick(0.25);
+  expect(env.camera.position.distanceTo(before.lerp(frame.position, 0.25))).toBeLessThan(1e-10);
+  motion.cancel();
+  env.env.resources.dispose();
+});
 
 test("no-controls transition samples host delta, smooths the midpoint and completes with an independent frame", async () => {
   const env = fixture();

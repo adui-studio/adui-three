@@ -46,6 +46,7 @@
 - [动画倍速决策](docs/adr/0036-animation-playback-rate.md)：模型级时钟缩放、姿态/循环保留与通知排队。
 - [相机暂停决策](docs/adr/0037-camera-pause.md)：过渡独立冻结、原生回调交接与保留输入租约。
 - [路径倍速决策](docs/adr/0038-path-playback-rate.md)：未来步长缩放、有限程数保留与采样重入保护。
+- [过渡节奏决策](docs/adr/0039-transition-easing.md)：固定插值预设、原始时间进度与实际权重交接。
 - [区域截图决策](docs/adr/0031-capture-region.md)：画布像素坐标、最终缓冲边界与独立编码。
 - [世界边界决策](docs/adr/0032-object-bounds.md)：CPU 姿态测量、独立快照与共享取景准备。
 - [路径定位决策](docs/adr/0033-path-seek.md)：弧长进度采样、正向重置、暂停及写入竞争。

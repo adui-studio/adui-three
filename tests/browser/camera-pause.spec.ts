@@ -49,6 +49,10 @@ for (const kind of ["orthographic", "perspective"]) {
       const panel = page.getByTestId(kind),
         peer = page.getByTestId(kind === "orthographic" ? "perspective" : "orthographic");
       await panel.getByRole("button", { name: "保存视角", exact: true }).click();
+      await panel.getByRole("button", { name: "下次匀速过渡", exact: true }).click();
+      await expect(
+        panel.getByRole("button", { name: "下次匀速过渡", exact: true }),
+      ).toHaveAttribute("aria-pressed", "true");
       const original = await pixels(panel),
         other = await pixels(peer);
       await panel.getByRole("button", { name: "放大视图", exact: true }).click();

@@ -93,6 +93,62 @@ test("finite repeat counts traversals, finishes once, holds its endpoint and res
   expect(env.animation.state).toBe("playing");
 });
 
+test.each(["linear", "smoothstep", undefined] as const)(
+  "crossfade easing changes actual weights without changing blend progress: %s",
+  async (easing) => {
+    const env = await fixture();
+    env.state.state = "running";
+    env.animation.play(0);
+    env.animation.crossFadeTo(1, { duration: 1, easing });
+    env.tick(0.25);
+    expect(env.animation.blendProgress).toBe(0.25);
+    expect(env.animation.action!.getEffectiveWeight()).toBeCloseTo(
+      easing === "smoothstep" ? 0.15625 : 0.25,
+    );
+    env.tick(0.75);
+    expect(env.animation.blendProgress).toBe(1);
+    expect(env.animation.blending).toBe(false);
+  },
+);
+
+test("interrupted smooth fades hand over their current effective weights without a pose jump", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.play(0);
+  env.animation.crossFadeTo(1, { duration: 1, easing: "smoothstep" });
+  env.tick(0.25);
+  const outgoing = env.animation.action!,
+    pose = env.scene.position.clone();
+  env.animation.crossFadeTo(0, { duration: 1, easing: "linear" });
+  expect(env.scene.position.distanceTo(pose)).toBeLessThan(1e-10);
+  env.tick(0.5);
+  expect(outgoing.getEffectiveWeight()).toBeCloseTo(0.078125);
+  expect(env.animation.action!.getEffectiveWeight()).toBeCloseTo(0.921875);
+});
+
+test("fade easing is copied before later option mutations", async () => {
+  const env = await fixture();
+  env.state.state = "running";
+  env.animation.play(0);
+  const options = { duration: 1, easing: "smoothstep" as "linear" | "smoothstep" };
+  env.animation.crossFadeTo(1, options);
+  options.easing = "linear";
+  env.tick(0.25);
+  expect(env.animation.action!.getEffectiveWeight()).toBeCloseTo(0.15625);
+});
+
+test.each(["bad", null, false, 0, () => 0.5])(
+  "invalid fade easing preserves the active action: %s",
+  async (easing) => {
+    const env = await fixture();
+    env.animation.play(0);
+    const action = env.animation.action;
+    expect(() => env.animation.crossFadeTo(1, { easing: easing as "linear" })).toThrow(RangeError);
+    expect(env.animation.action).toBe(action);
+    expect(env.animation.blending).toBe(false);
+  },
+);
+
 test("controller playback rate preserves the current pose, action rate and loop budget", async () => {
   const env = await fixture();
   env.state.state = "running";

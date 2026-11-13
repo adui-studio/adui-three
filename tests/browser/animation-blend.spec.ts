@@ -17,6 +17,11 @@ test("real GLB crossfade follows host/controller pause and interrupted handoff p
   const b = page.getByTestId("scene-B");
   await load(a);
   await load(b);
+  await a.getByRole("button", { name: "下次平滑渐变", exact: true }).click();
+  await expect(a.getByRole("button", { name: "下次平滑渐变", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await b.getByRole("button", { name: "暂停", exact: true }).click();
   const other = await b.getByTestId("animation-time").textContent();
   await a.evaluate((element) => {
@@ -45,16 +50,42 @@ test("real GLB crossfade follows host/controller pause and interrupted handoff p
   expect(frozen!.x).toBeCloseTo(pose!.x, 0);
   expect(frozen!.y).toBeCloseTo(pose!.y, 0);
   const interruption = await a.evaluate((element) => {
+    const hash = (): number => {
+      element.querySelector<HTMLButtonElement>('[data-action="render"]')!.click();
+      const gl = element.querySelector("canvas")!.getContext("webgl2")!,
+        bytes = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+      gl.readPixels(
+        0,
+        0,
+        gl.drawingBufferWidth,
+        gl.drawingBufferHeight,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        bytes,
+      );
+      let value = 2166136261;
+      for (const byte of bytes) value = Math.imul(value ^ byte, 16777619);
+      return value;
+    };
+    const beforeHash = hash();
     const label = element.querySelectorAll<HTMLElement>('[data-testid="object-label"]');
     const before = label[label.length - 1]!.getBoundingClientRect();
     element.querySelector<HTMLButtonElement>('[data-action="animation-fade"]')!.click();
     element.querySelector<HTMLButtonElement>('[data-action="stop"]')!.click();
     element.querySelector<HTMLButtonElement>('[data-action="render"]')!.click();
     const after = label[label.length - 1]!.getBoundingClientRect();
-    return { x: after.x - before.x, y: after.y - before.y };
+    return {
+      x: after.x - before.x,
+      y: after.y - before.y,
+      beforeHash,
+      afterHash: hash(),
+      error: element.querySelector("canvas")!.getContext("webgl2")!.getError(),
+    };
   });
   expect(Math.abs(interruption.x)).toBeLessThan(0.5);
   expect(Math.abs(interruption.y)).toBeLessThan(0.5);
+  expect(interruption.afterHash).toBe(interruption.beforeHash);
+  expect(interruption.error).toBe(0);
   await expect(a.getByTestId("animation-clip")).toHaveText("Lift");
   await expect(a).toHaveAttribute("data-animation-blend-progress", "0.000");
   await a.getByRole("button", { name: "运行", exact: true }).click();

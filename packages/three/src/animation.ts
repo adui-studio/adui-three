@@ -8,6 +8,9 @@ import {
 import type { AnimationAction, AnimationClip, Object3D } from "three";
 import type { GLTFInstance, GLTFModel } from "./loaders.ts";
 import type { AnyThreeApp } from "./three-app.ts";
+import { resolveTransitionEasing } from "./easing.ts";
+import type { TransitionEasing } from "./easing.ts";
+export type { TransitionEasing } from "./easing.ts";
 
 export { followPath } from "./path-animation.ts";
 export type {
@@ -33,6 +36,8 @@ export interface PlayAnimationOptions {
 export interface CrossFadeOptions extends PlayAnimationOptions {
   /** Positive finite mixer seconds. Default 0.3. */
   duration?: number;
+  /** Weight interpolation preset. Default linear. */
+  easing?: TransitionEasing;
 }
 
 export interface GLTFAnimationEvents {
@@ -59,7 +64,7 @@ export interface GLTFAnimationsHandle {
   readonly state: AnimationState;
   readonly disposed: boolean;
   readonly blending: boolean;
-  /** 0 initially/cancelled, 1 after a completed transition. */
+  /** Uneased mixer-time progress; 0 initially/cancelled, 1 after completion. */
   readonly blendProgress: number;
   /** Model-wide native mixer time scale. Starts at 1; 0 freezes sampling time without changing state. */
   readonly playbackRate: number;
@@ -110,8 +115,12 @@ export function attachGLTFAnimations(
   let unsubscribe = (): void => {};
   const actions = new Set<AnimationAction>();
   const terminal = new Set<AnimationAction>();
-  let blend: { duration: number; elapsed: number; weights: Map<AnimationAction, number> } | null =
-    null;
+  let blend: {
+    duration: number;
+    elapsed: number;
+    weights: Map<AnimationAction, number>;
+    easing: (progress: number) => number;
+  } | null = null;
   let blendProgress = 0;
   let targetFinished = false;
   let completion: GLTFAnimationEvents["finished"] | null = null;
@@ -155,10 +164,9 @@ export function attachGLTFAnimations(
           throw new RangeError("Crossfade requires a finite nonnegative mixer timeScale");
         blend.elapsed = Math.min(blend.duration, blend.elapsed + elapsed);
         blendProgress = blend.elapsed / blend.duration;
+        const factor = blend.easing(blendProgress);
         for (const [entry, weight] of blend.weights)
-          entry.setEffectiveWeight(
-            weight * (1 - blendProgress) + (entry === action ? blendProgress : 0),
-          );
+          entry.setEffectiveWeight(weight * (1 - factor) + (entry === action ? factor : 0));
       }
       mixer.update(delta);
       // r187's final ping-pong sample can use the opposite parity, especially when delta skips loops.
@@ -397,6 +405,7 @@ export function attachGLTFAnimations(
       const duration = options.duration ?? 0.3;
       if (!Number.isFinite(duration) || duration <= 0)
         throw new RangeError("Crossfade duration must be positive and finite");
+      const easing = resolveTransitionEasing(options.easing, "linear");
       if (clip.blendMode !== NormalAnimationBlendMode)
         throw new RangeError("Crossfade only supports normal animation blend mode");
       execute(() => {
@@ -428,7 +437,7 @@ export function attachGLTFAnimations(
         notifications.length = 0;
         terminal.clear();
         blendProgress = 0;
-        blend = weights.size > 1 ? { duration, elapsed: 0, weights } : null;
+        blend = weights.size > 1 ? { duration, elapsed: 0, weights, easing } : null;
         state = "playing";
         sample(0);
       });

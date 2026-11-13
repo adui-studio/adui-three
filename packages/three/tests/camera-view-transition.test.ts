@@ -121,6 +121,66 @@ function expectPose(actual: CameraView, expected: CameraView): void {
 }
 
 test.each([false, true])(
+  "bookmark easing is sampled across native lens fields, orthographic=%s",
+  (orthographic) => {
+    for (const easing of ["linear", "smoothstep", undefined] as const) {
+      const env = fixture(orthographic);
+      env.source();
+      const motion = env.start({ easing });
+      env.value.state = "running";
+      env.tick(0.25);
+      const t = easing === "linear" ? 0.25 : 0.15625;
+      expect(env.camera.zoom).toBeCloseTo(2 - t);
+      if (env.camera instanceof PerspectiveCamera) expect(env.camera.fov).toBeCloseTo(70 - 20 * t);
+      else expect(env.camera.top).toBeCloseTo(6 - 2 * t);
+      expect(motion.progress).toBe(0.25);
+      motion.cancel();
+      env.value.resources.dispose();
+    }
+  },
+);
+
+test("invalid bookmark easing and aborting its getter do not replace the current motion", () => {
+  const env = fixture(),
+    first = env.start();
+  expect(() => env.start({ easing: "bad" as CameraViewTransitionOptions["easing"] })).toThrow(
+    RangeError,
+  );
+  expect(first.state).toBe("running");
+  const abort = new AbortController();
+  const next = transitionToCameraView(env.app, env.saved, {
+    signal: abort.signal,
+    get easing(): "linear" {
+      abort.abort();
+      return "linear";
+    },
+  });
+  expect(next.state).toBe("cancelled");
+  expect(first.state).toBe("running");
+  first.cancel();
+  env.value.resources.dispose();
+});
+
+test("view getters aborted during preparation preserve an already paused camera lease", () => {
+  const env = fixture(),
+    first = env.start(),
+    abort = new AbortController();
+  first.pause();
+  const input = {
+    ...env.saved,
+    get zoom() {
+      abort.abort();
+      return 1;
+    },
+  };
+  const next = transitionToCameraView(env.app, input, { signal: abort.signal });
+  expect(next.state).toBe("cancelled");
+  expect(first.state).toBe("paused");
+  first.cancel();
+  env.value.resources.dispose();
+});
+
+test.each([false, true])(
   "same-kind bookmark transition restores pose and projection without drawing, orthographic=%s",
   async (orthographic) => {
     const env = fixture(orthographic);

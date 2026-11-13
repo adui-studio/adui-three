@@ -71,6 +71,8 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 ## 关键取舍
 
+camera/animation 的节奏预设共享内部无状态 easing.ts；只导出公共类型和选项，不引入消费者逐帧回调、第二调度或独立工具包。两个入口保留各自原默认，默认核心不依赖此数学模块，见 [ADR-0039](adr/0039-transition-easing.md)。
+
 路径倍速仅缩放既有宿主步长，0 倍速跳过采样而保留所有者/目标检查；与 seek 共享写入保护，不创建 Mixer 或第二时钟，见 [ADR-0038](adr/0038-path-playback-rate.md)。
 
 取景和书签过渡共享 camera-runtime 暂停门控，保留单宿主调度与相机登记；内部结算状态独立于公开 paused，原生回调请求在当前写入结束交接，见 [ADR-0037](adr/0037-camera-pause.md)。

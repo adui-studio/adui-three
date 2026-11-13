@@ -11,10 +11,12 @@ import type { GLTFInstance, GLTFModel, LoadGLTFOptions } from "@adui/three/loade
 import { attachPicking } from "@adui/three/interaction";
 import { attachDOMLabels } from "@adui/three/labels";
 import { attachGLTFAnimations, followPath } from "@adui/three/animation";
+import type { TransitionEasing as AnimationTransitionEasing } from "@adui/three/animation";
 import { attachBloom, attachPostprocessing } from "@adui/three/postprocessing";
 import { computeObjectFrame, fitObject, transitionToObject, computeOrthographicFrame, fitOrthographicObject, transitionOrthographicToObject, captureCameraView, restoreCameraView } from "@adui/three/camera";
 import { transitionToCameraView } from "@adui/three/camera";
 import type { CameraTransitionResult, CameraViewTransitionResult } from "@adui/three/camera";
+import type { TransitionEasing } from "@adui/three/camera";
 import { Box3, BoxGeometry, Color, LineCurve3, Matrix4, Mesh, MeshBasicMaterial, Vector3 } from "three";
 
 // Compile only: all library values come from the installed archive, without workspace paths.
@@ -32,7 +34,8 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   const span: number = orthographic.camera.top - orthographic.camera.bottom;
   const savedView = captureCameraView(orthographic);
   const restoredView = restoreCameraView(orthographic, savedView);
-  const viewMotion = transitionToCameraView(orthographic, savedView, { duration: 1, signal: orthographic.signal });
+  const easing: TransitionEasing = "linear";
+  const viewMotion = transitionToCameraView(orthographic, savedView, { duration: 1, signal: orthographic.signal, easing });
   const viewResult: CameraViewTransitionResult = await viewMotion.finished;
   if (viewResult.status === "completed" && viewResult.view.kind === "orthographic") {
     const height: number = viewResult.view.top - viewResult.view.bottom; void height;
@@ -122,13 +125,14 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   animations.play(0, { loop: "pingpong", repetitions: 2 });
   animations.seek(0);
   animations.resume();
-  animations.crossFadeTo(0, { duration: 0.3, loop: "repeat", repetitions: 3 });
+  const fadeEasing: AnimationTransitionEasing = "smoothstep";
+  animations.crossFadeTo(0, { duration: 0.3, loop: "repeat", repetitions: 3, easing: fadeEasing });
   const blendProgress: number = animations.blendProgress;
   const blending: boolean = animations.blending;
   void blendProgress; void blending;
   computeObjectFrame(app.camera, object, { direction: [1, 1, 1] });
   fitObject(app, object, { controls });
-  const motion = transitionToObject(app, object, { controls, duration: 1, signal: app.signal });
+  const motion = transitionToObject(app, object, { controls, duration: 1, signal: app.signal, easing });
   const result: CameraTransitionResult = await motion.finished;
   if (result.status === "completed") result.frame.position.toArray();
   if (result.status === "failed") console.error(result.error);

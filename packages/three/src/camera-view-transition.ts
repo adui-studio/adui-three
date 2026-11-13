@@ -2,6 +2,8 @@ import { Matrix4, OrthographicCamera, PerspectiveCamera, Quaternion, Vector3 } f
 import type { AnyThreeApp } from "./three-app.ts";
 import type { CameraView, CameraViewOptions } from "./camera-view.ts";
 import type { CameraTransitionState } from "./camera-transition.ts";
+import { resolveTransitionEasing } from "./easing.ts";
+import type { TransitionEasing } from "./easing.ts";
 import { captureCameraView, prepareCameraView, updateCameraViewProjection } from "./camera-view.ts";
 import {
   assertCameraWriteAvailable,
@@ -18,6 +20,8 @@ import {
 export interface CameraViewTransitionOptions extends CameraViewOptions {
   /** Positive finite host seconds. Default 0.8. */
   duration?: number;
+  /** Interpolation preset. Default smoothstep. */
+  easing?: TransitionEasing;
   signal?: AbortSignal;
 }
 export type CameraViewTransitionResult =
@@ -62,26 +66,28 @@ export function transitionToCameraView(
     throw new RangeError("duration must be positive and finite");
   if (app.state === "disposed" || app.resources.disposed)
     throw new Error("ThreeApp has been disposed");
-  if (signal?.aborted)
-    return {
-      state: "cancelled",
-      progress: 0,
-      finished: Promise.resolve({ status: "cancelled" }),
-      cancel(): void {},
-      dispose(): void {},
-      pause(): void {},
-      resume(): void {},
-    };
+  const cancelled = (): CameraViewTransitionHandle => ({
+    state: "cancelled",
+    progress: 0,
+    finished: Promise.resolve({ status: "cancelled" }),
+    cancel(): void {},
+    dispose(): void {},
+    pause(): void {},
+    resume(): void {},
+  });
+  if (signal?.aborted) return cancelled();
   const endPreparation = beginCameraWrite(app.camera);
   const pauseController = createCameraPauseController();
   const releasePreparationPause = pauseController.hold();
   let fail: ((result: CameraViewTransitionResult) => CameraViewTransitionResult) | undefined;
   try {
+    const sampleProgress = resolveTransitionEasing(options.easing, "smoothstep");
     const prepared = prepareCameraView(app, input, { controls });
     const { camera, candidate, view, owned } = prepared;
     // Both source and destination must be coherent orbit views before replacing an existing motion.
     prepareCameraView(app, captureCameraView(app, { controls }), { controls });
     owned();
+    if (signal?.aborted) return cancelled();
     cancelCameraMotion(camera);
     owned();
     let state: Exclude<CameraTransitionState, "paused"> = "running",
@@ -286,7 +292,7 @@ export function transitionToCameraView(
         if (!Number.isFinite(delta) || delta < 0) throw new RangeError("Invalid transition delta");
         elapsed = Math.min(duration, elapsed + delta);
         progress = elapsed / duration;
-        const t = progress * progress * (3 - 2 * progress);
+        const t = sampleProgress(progress);
         if (controls) {
           mixCameraVector(startTarget!, endTarget!, t, nextTarget);
           interpolated.identity().slerp(orbitRotation, t);
