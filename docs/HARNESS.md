@@ -43,6 +43,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 ## 文档校验边界
 
+向独立工程交付本地归档的命令与消费步骤见 [迁移指南](MIGRATION.md#接入当前开发包)。先构建主包，再 pack 到被忽略的根 dist/local-packages；与 test:package 的临时独立安装验证区分，本地归档不会自动安装到旧业务工程或发布 npm。
+
 [检查器](../scripts/check-docs.mjs) 仅使用 Node 内置模块。扫描根 README/AGENTS/CONTRIBUTING、docs、.github、.agents/skills、packages 与 apps/website/public 的 Markdown，跳过 node_modules/dist 目录和代码围栏。README 检查存在、非空和链接，不强制初始化时期的标题。
 
 静态校验包括核心章节、相对文件/Markdown 锚点、需求编号/状态/验收/SDD 追踪、ADR 索引、Skills 的 name/description 基础元数据和根脚本引用。支持行内与 YAML 多行 description，不是完整 YAML 解析器。导入的 Skills 保留上游格式，但仍检查其元数据与引用。
@@ -60,6 +62,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-13 迁移文档与本地归档：依据旧版只读审查整理模块对照、版本边界、循环/所有权/框架清理和当前未实现能力。根 README 移除过期数量，改指向本记录。文档检查器 16/16、链接/命令检查和静态检查通过；本轮没有修改库行为，沿用路径阶段 ready 459 单测及完整浏览器 103/103。主包构建后实际 pack 到本机忽略目录 dist/local-packages，归档为 @adui/three@0.0.0，含 61 个主包文件、十二个运行时入口，peer 为 >=0.187.0 <0.188.0，不含 apps/node_modules/.agents。没有安装到旧业务工程，旧业务兼容仍待实测。
 
 2026-11-13 路径定位：PathMotionHandle.seek 以弧长进度采样并暂停，重置首个正向阶段；共享写锁、候选与命令版本，保留结束/错误/所有权边界。新增十二项单测，路径定向 32/32；ready 通过 459 单测、16 文档测试、174 文件格式、108 源文件静态检查及全部构建。浏览器路径专项 4/4（约 11.5 秒）通过，新增滑块验证真实箭头像素/拾取、另一目标进度、端点继续、目标/宿主重建。十二入口 tarball 和四次严格声明/消费通过，含 seek 方法；完整浏览器 103/103（约 5.0 分钟）通过，零重试、零跳过。
 

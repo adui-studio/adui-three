@@ -781,6 +781,10 @@ loadEXR 与 loadHDR 共用 LoadHDROptions/HDREnvironment（HDR 表示高动态�
 
 相同 URL 下载可合并，EXR 解压前独立复制输入；取消是逻辑性的，不能抢占同步解析或承诺运输终止。迟到纹理/错误、所有者结束和重试沿用既有环境契约。绑定与 GPU 缓存先清，再释放源纹理；不要另行 dispose 借用纹理。原创 64×32 FLOAT scanline 样例离线生成，半浮点/照明与 GPU 清理通过验证；其他压缩、多 part、深度 EXR 和硬件矩阵没有逐项验收。
 
+## 旧版接入
+
+从 CustomThree 迁移时先看仓库中的 [迁移指南](https://github.com/adui-studio/adui-three/blob/main/docs/MIGRATION.md)，按容器、循环、所有权和模块逐步接入；当前可使用工作区或本地 tarball，尚未发布 npm。
+
 ## 开发与验证
 
 根目录运行 `pnpm run dev` 打开双实例演示，`pnpm run ready` 执行静态检查、文档和单元测试及构建，`pnpm run test:browser` 验证构建后演示的实际 WebGL 行为。首次浏览器测试前运行 `pnpm exec playwright install chromium`。完整契约和验证范围见仓库 docs/SDD.md 与 docs/HARNESS.md；npm 安装包不包含仓库工程文档。

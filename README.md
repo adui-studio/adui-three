@@ -191,7 +191,7 @@ pnpm exec playwright install chromium
 pnpm run test:browser
 ```
 
-当前有 428 项主包单元测试和 99 项浏览器回归。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
+验证范围与最近结果见 [Harness](docs/HARNESS.md)。浏览器实测使用 Chromium / SwiftShader，完整兼容矩阵与长期 GPU 资源基准仍待补充；尚未支持 WebGPU、WebXR或框架适配。
 
 ## 项目结构
 
@@ -203,4 +203,4 @@ scripts/             文档校验与模型生成
 docs/                需求、设计、决策与验证记录
 ```
 
-[API 文档](packages/three/README.md) · [架构与设计](docs/ARCHITECTURE.md) · [开发验证](docs/HARNESS.md) · [贡献指南](CONTRIBUTING.md) · [Agent 协作约定](AGENTS.md)
+[API 文档](packages/three/README.md) · [旧版迁移](docs/MIGRATION.md) · [架构与设计](docs/ARCHITECTURE.md) · [开发验证](docs/HARNESS.md) · [贡献指南](CONTRIBUTING.md) · [Agent 协作约定](AGENTS.md)

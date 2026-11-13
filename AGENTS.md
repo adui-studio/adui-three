@@ -8,6 +8,7 @@
 - [架构](docs/ARCHITECTURE.md) / [详细设计](docs/SDD.md)：当前结构与建议方案。
 - [长期上下文](docs/PROJECT_CONTEXT.md) / [代码地图](docs/CODEBASE_MAP.md)：接手入口。
 - [旧版审查](docs/LEGACY_REVIEW.md)：来源、复用线索和风险。
+- [迁移指南](docs/MIGRATION.md)：旧模块对照、本地包接入和生命周期迁移顺序。
 - [Skills](docs/SKILLS.md) / [Harness](docs/HARNESS.md)：工作流与真实命令。
 - [ADR](docs/adr/0001-package-boundaries.md)：主包名称和边界方案。
 - [核心 MVP 决策](docs/adr/0002-core-mvp.md)：版本、生命周期与包导出。
