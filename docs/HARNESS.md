@@ -43,11 +43,11 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 ## 文档校验边界
 
-[检查器](../scripts/check-docs.mjs) 仅使用 Node 内置模块。扫描根 README/AGENTS/CONTRIBUTING、docs、.github 和 .agents/skills 的 Markdown，跳过代码围栏。README 检查存在、非空和链接，不强制初始化时期的标题。
+[检查器](../scripts/check-docs.mjs) 仅使用 Node 内置模块。扫描根 README/AGENTS/CONTRIBUTING、docs、.github、.agents/skills、packages 与 apps/website/public 的 Markdown，跳过 node_modules/dist 目录和代码围栏。README 检查存在、非空和链接，不强制初始化时期的标题。
 
 静态校验包括核心章节、相对文件/Markdown 锚点、需求编号/状态/验收/SDD 追踪、ADR 索引、Skills 的 name/description 基础元数据和根脚本引用。支持行内与 YAML 多行 description，不是完整 YAML 解析器。导入的 Skills 保留上游格式，但仍检查其元数据与引用。
 
-[13 项检查器测试](../scripts/check-docs.test.mjs) 覆盖正确基线、坏链接、重复需求、缺失验收/追踪、非法状态、ADR 索引、Skill 元数据和命令引用。互联网链接、Mermaid 渲染、需求语义和许可证不靠静态检查宣称正确。私钥头扫描不等同完整安全审计。
+[16 项检查器测试](../scripts/check-docs.test.mjs) 覆盖正确基线、包 README 锚点/公共资产来源链接、依赖与构建目录跳过、坏链接、重复需求、缺失验收/追踪、非法状态、ADR 索引、Skill 元数据和命令引用。互联网链接、Mermaid 渲染、需求语义和许可证不靠静态检查宣称正确。私钥头扫描不等同完整安全审计。
 
 ## 验证记录
 
@@ -60,6 +60,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-13 文档覆盖补查：两个先行失败回归复现包 README 自身锚点、公共资产 README 来源链接被漏检。扩大到 packages 与 apps/website/public，递归时跳过 node_modules/dist；新增忽略目录测试避免读取依赖与产物。检查器定向 16/16 通过，既有包导航和资产记录无坏链接；ready 通过 16 项文档检查器测试、424 项主包单测（未变代码命中缓存）、165 文件格式/101 源文件静态检查及全部构建。本轮不改库、演示或包配置，沿用上阶段 95 项 GPU 与十二入口消费，不重复浏览器或 package 检查。
 
 2026-11-13 实例局部上传补查：先行 GPU 失败回归确认单实例矩阵/颜色原为 1600/300 字节整数组上传，trace 与报告保留在忽略的 playwright-report/diagnostics/instance-upload-baseline。按 r187 公开 updateRanges/onUpload 实现局部包络和首次上传确认，并对外部版本/回调变化回退完整上传。两项先行失败单测支持局部范围/混合写入修复，另外覆盖既有/替换回调；专项 GPU 4/4（约 6.6 秒）通过，单项变更实测 64/12 字节，无编辑重绘不上传。首次静态检查阻止探针对 bufferSubData 重载的窄签名和未收窄 canvas 类型，改为完整签名/显式 HTMLCanvasElement 后通过；ready 通过 424 项单测、13 项文档测试、165 文件格式、101 源文件静态检查与全部构建；完整浏览器 95/95（约 4.3 分钟）通过，零重试。无公共接口/导出/依赖或打包变更，沿用区域截图阶段十二入口包消费，不重复 package 检查。
 

@@ -22,7 +22,8 @@ function markdownFiles(directory) {
   if (!existsSync(directory)) return [];
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
-    if (entry.isDirectory()) return markdownFiles(path);
+    if (entry.isDirectory())
+      return ["node_modules", "dist"].includes(entry.name) ? [] : markdownFiles(path);
     return entry.isFile() && entry.name.endsWith(".md") ? [path] : [];
   });
 }
@@ -68,6 +69,8 @@ export function validateDocs(root = repositoryRoot) {
     join(root, "CONTRIBUTING.md"),
     ...markdownFiles(join(root, ".github")),
     ...markdownFiles(join(root, "docs")),
+    ...markdownFiles(join(root, "packages")),
+    ...markdownFiles(join(root, "apps", "website", "public")),
     ...markdownFiles(join(root, ".agents", "skills")),
   ];
   const packageFile = join(root, "package.json");

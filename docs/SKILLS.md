@@ -127,6 +127,8 @@ HDR 环境阶段继续复用 threejs-loaders，核验 r187 HDRLoader、DataTextu
 
 EXR 阶段使用 threejs-loaders，核验 r187 EXRLoader/DataTextureLoader 和 OpenEXR 官方布局；不采用技能中的独立循环或 manager.abort 终止共享 FileLoader 运输。复用逻辑取消/迟到清理，解压前复制任务输入，新增原生半浮点与 GPU 验收。
 
+实例局部上传使用 threejs-performance 的先测量再修改流程，并核验 r187 BufferAttribute 的范围单位和公开 onUpload 回调。报告真实 bufferSubData 字节，保留完整上传回退，不照搬独立循环或把上传量称为 FPS。文档工作流仍使用 docs:test/docs:check，现覆盖 packages 与公共资产 README，递归跳过依赖/构建目录；第三方 Skill 原文保持。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

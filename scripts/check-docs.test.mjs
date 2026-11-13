@@ -47,6 +47,16 @@ function change(root, file, before, after) {
 
 test("repository baseline is valid", () => assert.deepEqual(validateDocs(source), []));
 
+test("generated and dependency documents are outside the validation scope", (t) => {
+  const root = fixture(t);
+  for (const directory of ["packages/three/dist", "packages/three/node_modules/example"]) {
+    const target = join(root, directory);
+    mkdirSync(target, { recursive: true });
+    writeFileSync(join(target, "README.md"), "[ignored](missing-generated-file.md)\n");
+  }
+  assert.deepEqual(validateDocs(root), []);
+});
+
 test("folded and literal Skill descriptions are accepted", (t) => {
   const root = fixture(t);
   const directory = join(root, ".agents/skills/example");
@@ -127,6 +137,22 @@ const cases = [
       );
     },
     /invalid Skill metadata/,
+  ],
+  [
+    "broken package README anchor",
+    (root) => {
+      const file = join(root, "packages/three/README.md");
+      writeFileSync(file, `${readFileSync(file, "utf8")}\n[broken](#missing-package-section)\n`);
+    },
+    /packages\/three\/README.md: broken anchor/,
+  ],
+  [
+    "broken public asset provenance link",
+    (root) => {
+      const file = join(root, "apps/website/public/environments/README.md");
+      writeFileSync(file, `${readFileSync(file, "utf8")}\n[generator](missing-generator.mjs)\n`);
+    },
+    /apps\/website\/public\/environments\/README.md: broken link/,
   ],
   [
     "unknown command",
