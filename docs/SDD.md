@@ -240,6 +240,8 @@ loadKTX2(app,url,LoadKTX2Options) 同样从 textures 导出，返回 KTX2Texture
 
 ## 对象拾取契约
 
+触摸沿用原生 PointerEvent，不增加独立 touch 监听。Chromium 模拟触摸专项以可信输入验证画布 CSS 缩放/双实例、标签消费输入、多触点使待点击失效、pointercancel 和后续点按恢复；两指 OrbitControls 操作改变相机而不派发 click。验收仅限当前浏览器模拟环境，未承诺真机/笔输入/完整手势兼容。
+
 [interaction.ts](../packages/three/src/interaction.ts) 是独立子入口，导出 attachPicking、PickingOptions、PickingEvent 和 PickingHandle。`attachPicking(app, { objects, recursive?, dragThreshold?, updateSkinnedBounds? })` 使用必填目标 getter；recursive=true、dragThreshold=4 CSS 像素。句柄提供原生 raycaster、disposed、pick(clientX, clientY)、on("click" | "hover", callback) 与 dispose。
 
 蒙皮拾取补充：PickingOptions.updateSkinnedBounds 默认 true；同步目标后按 recursive 范围去重更新骨骼世界矩阵、原生 attached bind inverse、sphere 及已有 box，不新建 box。每次有效拾取有顶点/骨骼 CPU 成本，应用已维护可关闭；不等于每帧渲染剔除或 shader 位移维护。pick 的 getter/矩阵/边界/raycast 期间禁止重入，原生操作后检查失效，错误仍释放保护，见 [ADR-0020](adr/0020-skinned-picking.md)。

@@ -117,6 +117,8 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 实例属性上传量见 [geometry-upload.spec.ts](../tests/browser/geometry-upload.spec.ts)，通过真实 WebGL bufferSubData 参数核对局部写入和无编辑绘制，不把调用量等同 GPU 时间。
 
+触摸输入的浏览器集成见 [touch-picking.spec.ts](../tests/browser/touch-picking.spec.ts) 和 [touch-transform.spec.ts](../tests/browser/touch-transform.spec.ts)：单文件模拟移动上下文、可信触摸点按/双指/取消及标签隔离，不修改默认浏览器配置。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

@@ -21,7 +21,7 @@ pnpm install --frozen-lockfile
 | `pnpm exec vp run -r test`      | 主包的 424 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 95 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 98 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR / 未压缩 EXR 环境                      |
@@ -60,6 +60,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-13 触摸拾取验收：增加 hasTouch/isMobile 的 Chromium 模拟上下文，390×844、DPR=3（宿主上限 2），使用 Touchscreen.tap 和原生 CDP 多触点输入。事件记录验证 touch/isTrusted 和非主触点，覆盖 CSS 缩放、双画布、可交互标签、双指轨道平移、取消按压及后续点按；两项专项 2/2（约 4.7 秒）通过。首轮因测试在 touchEnd 后重复发送 touchCancel 被 CDP 拒绝，改为跟踪活动手势并另外启动真正可取消的按压；未改库或放宽断言，诊断保留 playwright-report/diagnostics/touch-probe-first。完整浏览器 97/97（约 4.7 分钟）通过、零重试，报告另存忽略的 playwright-report/diagnostics/touch-picking-full。随后新增触摸变换手柄 1/1（约 4.9 秒）验证真实绿色轴像素定位、拖动/取消后的轨道配置恢复，以及释放后触摸轨道继续可用；两批分次验收，不称单次全量 98。ready 通过 16 项文档测试、424 项主包单测（缓存命中）、167 文件格式、103 源文件静态检查与全部构建；库 API/实现/导出未改，不重复 package 消费。不代表真机、移动 Safari/Firefox、笔输入或完整触摸手势矩阵通过。
 
 2026-11-13 文档覆盖补查：两个先行失败回归复现包 README 自身锚点、公共资产 README 来源链接被漏检。扩大到 packages 与 apps/website/public，递归时跳过 node_modules/dist；新增忽略目录测试避免读取依赖与产物。检查器定向 16/16 通过，既有包导航和资产记录无坏链接；ready 通过 16 项文档检查器测试、424 项主包单测（未变代码命中缓存）、165 文件格式/101 源文件静态检查及全部构建。本轮不改库、演示或包配置，沿用上阶段 95 项 GPU 与十二入口消费，不重复浏览器或 package 检查。
 

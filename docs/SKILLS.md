@@ -129,6 +129,8 @@ EXR 阶段使用 threejs-loaders，核验 r187 EXRLoader/DataTextureLoader 和 O
 
 实例局部上传使用 threejs-performance 的先测量再修改流程，并核验 r187 BufferAttribute 的范围单位和公开 onUpload 回调。报告真实 bufferSubData 字节，保留完整上传回退，不照搬独立循环或把上传量称为 FPS。文档工作流仍使用 docs:test/docs:check，现覆盖 packages 与公共资产 README，递归跳过依赖/构建目录；第三方 Skill 原文保持。
 
+触摸验收复用 threejs-interaction 并核验 r187 PointerEvent/OrbitControls 与锁定 Playwright/CDP 输入声明。保持画布 CSS 坐标和单一监听集合，模拟事件的可信状态只说明浏览器输入路径；不照搬技能的新循环或扩大为移动真机支持声明。
+
 ## 维护
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。
