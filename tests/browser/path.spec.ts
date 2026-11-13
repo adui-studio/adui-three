@@ -40,6 +40,48 @@ async function arrow(page: Page) {
   });
 }
 
+test("finite repeat and ping-pong complete at their native endpoint while another target keeps moving", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/?demo=path");
+  await page.getByRole("button", { name: "暂停场景", exact: true }).click();
+  for (const [name, endpoint] of [
+    ["循环两次", "1.000"],
+    ["往返一次", "0.000"],
+  ] as const) {
+    await page.getByRole("button", { name, exact: true }).click();
+    const start = await page.getByTestId("path-position").textContent();
+    await page.getByRole("button", { name: "运行场景", exact: true }).click();
+    await expect
+      .poll(async () => Number(await page.getByTestId("path-progress").textContent()))
+      .toBeGreaterThan(0.2);
+    await page.getByRole("button", { name: "暂停路径", exact: true }).click();
+    const progress = await page.getByTestId("path-progress").textContent(),
+      peer = await page.getByTestId("path-peer-progress").textContent();
+    await expect(page.getByTestId("path-peer-progress")).not.toHaveText(peer!);
+    await expect(page.getByTestId("path-progress")).toHaveText(progress!);
+    await page.getByRole("button", { name: "继续路径", exact: true }).click();
+    await expect(page.getByTestId("path-state")).toHaveText("completed", { timeout: 10_000 });
+    await expect(page.getByTestId("path-result")).toHaveText("completed");
+    await expect(page.getByTestId("path-progress")).toHaveText(endpoint);
+    await expect(page.getByTestId("path-host")).toHaveText("running");
+    const peerAtEnd = await page.getByTestId("path-peer-progress").textContent();
+    await expect(page.getByTestId("path-peer-progress")).not.toHaveText(peerAtEnd!);
+    await expect(page.getByRole("slider", { name: "路径 A 定位" })).toBeDisabled();
+    await page.getByRole("button", { name: "暂停场景", exact: true }).click();
+    await expect(page.getByTestId("path-position")).toHaveText(start!);
+    const pose = await arrow(page);
+    expect(pose.count).toBeGreaterThan(15);
+    expect(pose.error).toBe(0);
+    await page.mouse.click(pose.x, pose.y);
+    await expect(page.getByTestId("path-picked")).toHaveText("路径 A");
+  }
+  await expect(page.getByTestId("path-error")).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
 test("path timeline samples paused native pixels, retains picking and resumes or rebuilds independently", async ({
   page,
 }) => {

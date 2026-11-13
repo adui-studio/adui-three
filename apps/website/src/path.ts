@@ -24,8 +24,8 @@ root.innerHTML = `<div class="shell">
   <main><section class="intro"><div class="eyebrow"><span class="dot"></span> PATH PLAYGROUND</div><h1>沿着路径，<br><span>保持独立节奏。</span></h1><p>橙色与绿色箭头共享曲线，各自控制。<br>暂停一条路径，另一条继续前进。</p></section>
   <article class="scene-card" data-testid="path-demo"><div class="instances-stage" aria-label="路径运动画布"></div>
     <div class="metrics"><div><span>PATH A</span><strong data-testid="path-state">—</strong></div><div><span>PROGRESS</span><strong data-testid="path-progress">0.000</strong></div><div><span>PATH B</span><strong data-testid="path-peer-progress">0.000</strong></div><div><span>SCENE</span><strong data-testid="path-host">—</strong></div></div>
-    <div class="actions"><button data-action="once">播放一次</button><button data-action="repeat">循环路径</button><button data-action="pingpong">往返路径</button><button data-action="pause">暂停路径</button><button data-action="resume">继续路径</button><button data-action="cancel">取消路径</button><button data-action="stop-host">暂停场景</button><button data-action="start-host">运行场景</button><button data-action="move">手动移动</button><button data-action="remove">移除目标</button><button data-action="rebuild-target">重建目标</button><button data-action="dispose">销毁场景</button><button data-action="rebuild">重建场景</button><button data-action="render">绘制一帧</button></div>
-    <p class="model-feedback">A 位置：<span data-testid="path-position">—</span> · 结束原因：<span data-testid="path-result">—</span> · 选中：<span data-testid="path-picked">—</span></p>
+    <div class="actions"><button data-action="once">播放一次</button><button data-action="repeat">循环路径</button><button data-action="pingpong">往返路径</button><button data-action="repeat-twice">循环两次</button><button data-action="pingpong-once">往返一次</button><button data-action="pause">暂停路径</button><button data-action="resume">继续路径</button><button data-action="cancel">取消路径</button><button data-action="stop-host">暂停场景</button><button data-action="start-host">运行场景</button><button data-action="move">手动移动</button><button data-action="remove">移除目标</button><button data-action="rebuild-target">重建目标</button><button data-action="dispose">销毁场景</button><button data-action="rebuild">重建场景</button><button data-action="render">绘制一帧</button></div>
+    <p class="model-feedback">路径 A 每程 2 s；往返一次含两程。A 位置：<span data-testid="path-position">—</span> · 结束原因：<span data-testid="path-result">—</span> · 选中：<span data-testid="path-picked">—</span></p>
     <label class="animation-timeline">路径 A 定位<input type="range" min="0" max="100" step="1" value="0" data-action="seek" aria-label="路径 A 定位"></label>
     <p class="model-feedback" role="alert" data-testid="path-error" hidden></p>
   </article></main><footer><span>@adui/three · 本地开发预览，尚未发布</span><span>TypeScript / ESM / WebGL 2</span></footer></div>`;
@@ -58,7 +58,11 @@ const refresh = (): void => {
   for (const button of root.querySelectorAll<HTMLButtonElement>("button")) {
     const action = button.dataset.action;
     button.disabled = action !== "rebuild" && (!app || app.state === "disposed");
-    if (["once", "repeat", "pingpong", "move", "remove"].includes(action ?? ""))
+    if (
+      ["once", "repeat", "pingpong", "repeat-twice", "pingpong-once", "move", "remove"].includes(
+        action ?? "",
+      )
+    )
       button.disabled ||= !marker?.parent;
   }
 };
@@ -67,12 +71,13 @@ const report = (error: unknown): void => {
   element.hidden = false;
   element.textContent = String(error);
 };
-const play = (loop: "once" | "repeat" | "pingpong"): void => {
+const play = (loop: "once" | "repeat" | "pingpong", repetitions?: number): void => {
   if (!app || !marker || !curve || !owner) return;
   const next = followPath(app, marker, {
     curve,
     duration: 2,
     loop,
+    repetitions,
     orientToPath: true,
     scope: owner,
   });
@@ -153,6 +158,8 @@ const click = (event: MouseEvent): void => {
     if (action === "rebuild") rebuild();
     else if (action === "dispose") app?.dispose();
     else if (action === "once" || action === "repeat" || action === "pingpong") play(action);
+    else if (action === "repeat-twice") play("repeat", 2);
+    else if (action === "pingpong-once") play("pingpong", 2);
     else if (action === "pause") motion?.pause();
     else if (action === "resume") motion?.resume();
     else if (action === "cancel") motion?.cancel();

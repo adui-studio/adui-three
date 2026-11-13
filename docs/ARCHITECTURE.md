@@ -10,6 +10,8 @@
 
 ## 目标与建议边界
 
+路径有限循环由既有 path-animation 更新内的有界 phase/剩余程数处理，无独立调度；目标借用与作用域清理保持，见 [ADR-0034](adr/0034-path-repetitions.md)。
+
 路径定位继续位于 animation 内部 path-animation 模块，通过既有目标写锁和候选采样复用 followPath；只在控制命令时定位/暂停，不新增调度或对象所有权，见 [ADR-0033](adr/0033-path-seek.md)。
 
 geometry 的 computeObjectBounds 与 camera 的两类取景共用内部 [object-bounds.ts](../packages/three/src/object-bounds.ts)，只依赖原生 CPU 数学和对象，测量不借用宿主或 addon。原生矩阵/边界缓存会同步，返回独立世界 Box3，不接管对象资源，见 [ADR-0032](adr/0032-object-bounds.md)。

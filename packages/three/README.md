@@ -518,17 +518,21 @@ const motion = followPath(app, model.scene, {
 const result = await motion.finished; // completed / cancelled（含原因）/ failed（含 error）
 ```
 
-对象需已挂在本宿主 scene 下且使用自动矩阵，库借用它和曲线；创建时立即设置起点，不启动宿主或绘制。每次宿主更新以 delta/duration 推进，loop 默认为 once，可选 repeat/pingpong 无限循环到取消；progress 为当前局部弧长比例，回程递减。duration 是单向遍历秒数。getPointAt 使用原生近似弧长采样，父级非均匀缩放后不保证世界匀速；曲线控制点和弧长配置在运动期间保持不变，开放曲线 repeat 会跳回起点。
+对象需已挂在本宿主 scene 下且使用自动矩阵，库借用它和曲线；创建时立即设置起点，不启动宿主或绘制。每次宿主更新以 delta/duration 推进，loop 默认为 once，可选 repeat/pingpong 默认无限循环到取消，也可指定有限 repetitions；progress 为当前局部弧长比例，回程递减。duration 是单向遍历秒数。getPointAt 使用原生近似弧长采样，父级非均匀缩放后不保证世界匀速；曲线控制点和弧长配置在运动期间保持不变，开放曲线 repeat 会跳回起点。
 
 orientToPath 默认 false，仅写 position；true 时局部 +Z 沿切线，回程反向，不提供倾斜或平滑转向。暂停保持姿态，resume 不补墙钟时间。finish/cancel/dispose 保留当前姿态并释放宿主、可选 scope 的登记、订阅和 abort 监听，不释放对象或其 GPU 资产。scope 可以是 model.resources，模型结束立即取消且完成后自动解除两处登记。
 
 同一对象的新合法请求替换旧运动；无效/预先 abort 的请求保留旧运动。外部改写所占用的位置/旋转、重新挂接、脱离 scene 或关闭自动矩阵，下次更新以 target-changed 结束；只控制位置时允许外部改旋转，scale 始终由应用管理。自定义曲线回调后重新核对取消/所有者，错误记为 failed 并按宿主帧异常规则抛出。原生字段自定义副作用不承诺事务回滚；不含碰撞、导航网格或相机漫游。独立演示为 `/?demo=path`。
 
+### 有限循环
+
+`repetitions` 可指定正安全整数或 Infinity；once 默认且仅 1，repeat/pingpong 默认无限。单向一程耗时 duration，往返一次为两程，例如 `followPath(app, object, { curve, duration: 2, loop: "pingpong", repetitions: 2 })`。有限 repeat 停在进度 1；pingpong 奇数停在 1、偶数回到 0，开启朝向时保留到达方向，不释放目标或借用资源。progress 仍表示当前曲线比例。
+
 ### 路径定位与预览
 
 对存活的路径运动调用 `motion.seek(0.5)`，会按弧长比例采样并暂停；应用可显式 `app.render()` 展示，再 `motion.resume()` 从该处继续。定位不启动宿主，不改变曲线/duration 或资源归属；返回阶段统一重置为首个正向阶段。
 
-允许 [0,1] 有限值。`seek(1)` 仍暂停预览，继续后的下一次宿主更新才完成 once、回绕 repeat 或转入 pingpong 回程。结束句柄不能重新定位，需创建新的 followPath。采样中改变控制状态或目标/所有者会丢弃旧候选，采样错误终结 failed 并同步抛出；不回滚已发生的业务或自定义变换写入。
+允许 [0,1] 有限值。`seek(1)` 仍暂停预览，定位会重置有限程数历史，继续后的更新按剩余程数处理完成、回绕或换向。结束句柄不能重新定位，需创建新的 followPath。采样中改变控制状态或目标/所有者会丢弃旧候选，采样错误终结 failed 并同步抛出；不回滚已发生的业务或自定义变换写入。
 
 ## 对象拾取
 

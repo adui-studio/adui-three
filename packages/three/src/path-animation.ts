@@ -18,6 +18,8 @@ export interface FollowPathOptions {
   /** Positive finite host seconds per traversal. */
   duration: number;
   loop?: "once" | "repeat" | "pingpong";
+  /** Single-direction traversals: positive safe integer or Infinity. Once only accepts 1. */
+  repetitions?: number;
   /** Map local +Z to the tangent; no banking/Frenet frame. Default false. */
   orientToPath?: boolean;
   signal?: AbortSignal;
@@ -47,7 +49,15 @@ export function followPath(
   object: Object3D,
   options: FollowPathOptions,
 ): PathMotionHandle {
-  const { curve, duration, loop = "once", orientToPath = false, signal, scope } = options;
+  const {
+    curve,
+    duration,
+    loop = "once",
+    repetitions = loop === "once" ? 1 : Infinity,
+    orientToPath = false,
+    signal,
+    scope,
+  } = options;
   const ownerAlive = (): boolean =>
     app.state !== "disposed" && !app.resources.disposed && !app.signal.aborted && !scope?.disposed;
   if (!ownerAlive()) throw new Error("Path owner has been disposed");
@@ -61,6 +71,13 @@ export function followPath(
   if (!Number.isFinite(duration) || duration <= 0 || !["once", "repeat", "pingpong"].includes(loop))
     throw new RangeError(
       "Path duration must be positive and finite; loop must be once/repeat/pingpong",
+    );
+  if (
+    (repetitions !== Infinity && (!Number.isSafeInteger(repetitions) || repetitions <= 0)) ||
+    (loop === "once" && repetitions !== 1)
+  )
+    throw new RangeError(
+      "Path repetitions must be a positive safe integer or Infinity; once requires 1",
     );
   if (
     typeof orientToPath !== "boolean" ||
@@ -142,7 +159,8 @@ export function followPath(
 
     let state: PathMotionState = "running",
       progress = 0,
-      phase = 0;
+      phase = 0,
+      remaining = repetitions;
     let commandRevision = 0;
     let outcome: PathMotionResult | undefined;
     samplingAllowed = (): boolean =>
@@ -238,6 +256,7 @@ export function followPath(
             return;
           }
           progress = phase = value;
+          remaining = repetitions - Math.floor(value);
           state = "paused";
           commandRevision++;
         } catch (error) {
@@ -297,11 +316,18 @@ export function followPath(
             const step = delta / duration;
             if (!Number.isFinite(delta) || delta < 0 || !Number.isFinite(step))
               throw new RangeError("Path delta exceeds the supported numeric range");
-            const next = phase + step;
-            if (!Number.isFinite(next))
-              throw new RangeError("Path phase exceeds the supported numeric range");
-            const local =
-              loop === "once" ? Math.min(1, next) : next % (loop === "pingpong" ? 2 : 1);
+            // Split large integer skips from the bounded fraction so existing progress is not rounded away.
+            const whole = Math.floor(step);
+            const fraction = phase - Math.floor(phase) + (step - whole);
+            const carry = fraction >= 1 ? 1 : 0;
+            const crossed = whole + carry;
+            const completed = remaining !== Infinity && crossed >= remaining;
+            const parity = loop === "pingpong" ? (Math.floor(phase) + (whole % 2) + carry) % 2 : 0;
+            const local = completed
+              ? loop === "pingpong" && repetitions % 2 === 0
+                ? 2
+                : 1
+              : parity + fraction - carry;
             const position = loop === "pingpong" && local > 1 ? 2 - local : local;
             if (!prepare(position, loop === "pingpong" && local > 1 ? -1 : 1)) {
               retained();
@@ -310,7 +336,8 @@ export function followPath(
             if (!apply()) return;
             phase = local;
             progress = position;
-            if (loop === "once" && progress === 1) finish({ status: "completed" });
+            remaining = completed ? 0 : remaining - crossed;
+            if (completed) finish({ status: "completed" });
           } catch (error) {
             const result = finish({ status: "failed", error });
             throw result.status === "failed" ? result.error : error;

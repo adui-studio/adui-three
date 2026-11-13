@@ -18,7 +18,7 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 463 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 475 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
 | `pnpm run test:browser`         | 构建演示并执行 99 项真实 Chromium 多步骤回归                       |
@@ -62,6 +62,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-13 路径有限循环：新增十二项单测；首次参数化测试漏接 loop 参数导致四项 ReferenceError，修正后重跑得到十一项语义先行失败，确认次数被忽略及大整数跳跃丢失 0.75。实现后路径 44/44 通过，ready 通过 475 单测、16 文档测试、176 文件格式、108 源文件静态检查及全部构建。路径浏览器专项 5/5（约 26.5 秒）验证有限 repeat/往返的完成姿态、暂停/继续、另一目标独立、完成后拾取；十二入口 tarball 和四次严格消费通过，含 repetitions。随后补充完成后宿主/对侧继续的断言，完整浏览器 106/106（约 5.3 分钟）通过，零重试、零跳过。
 
 2026-11-13 旧依赖元数据复核：只读旧工程 node_modules 中 three 与 @types/three 的公共 package.json，name/version 分别为 three@0.181.2、@types/three@0.180.0，更新迁移指南与审查记录。未运行旧业务；此事实不扩大当前 0.187.x peer 或浏览器兼容承诺。代码保持标签阶段 463 单测、105/105 浏览器的已验证状态。
 

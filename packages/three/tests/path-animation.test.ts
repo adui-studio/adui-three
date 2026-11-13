@@ -445,6 +445,187 @@ test("a reparented target can transfer to another host without retaining the pre
   next.dispose();
 });
 
+test("finite repeat holds its last endpoint, settles once and releases only the motion after pause", async () => {
+  const env = fixture(),
+    cleanup = vi.fn(),
+    completed = vi.fn();
+  env.value.resources.track({ dispose: cleanup });
+  const handle = followPath(env.app, env.object, {
+    curve: env.curve,
+    duration: 1,
+    loop: "repeat",
+    repetitions: 2,
+  });
+  void handle.finished.then(completed);
+  env.value.state = "running";
+  env.tick(0.75);
+  handle.pause();
+  env.tick(10);
+  expect(handle.progress).toBe(0.75);
+  handle.resume();
+  env.tick(2);
+  expect(handle.state).toBe("completed");
+  expect(handle.progress).toBe(1);
+  expect(env.object.position.x).toBe(4);
+  expect(env.object.parent).toBe(env.parent);
+  expect(env.updates.size).toBe(0);
+  expect(cleanup).not.toHaveBeenCalled();
+  expect(await handle.finished).toEqual({ status: "completed" });
+  expect(completed).toHaveBeenCalledOnce();
+  env.tick(5);
+  expect(env.object.position.x).toBe(4);
+  env.value.resources.dispose();
+  expect(cleanup).toHaveBeenCalledOnce();
+});
+
+test.each([1, 2, 3, 4])(
+  "finite ping-pong %s traversals retain the arriving endpoint and tangent",
+  async (repetitions) => {
+    const env = fixture();
+    const handle = followPath(env.app, env.object, {
+      curve: env.curve,
+      duration: 1,
+      loop: "pingpong",
+      repetitions,
+      orientToPath: true,
+    });
+    env.value.state = "running";
+    env.tick(repetitions + 0.25);
+    expect(handle.state).toBe("completed");
+    expect(handle.progress).toBe(repetitions % 2);
+    expect(env.object.position.x).toBe((repetitions % 2) * 4);
+    expect(new Vector3(0, 0, 1).applyQuaternion(env.object.quaternion).x).toBeCloseTo(
+      repetitions % 2 ? 1 : -1,
+    );
+    expect(env.updates.size).toBe(0);
+    expect(await handle.finished).toEqual({ status: "completed" });
+  },
+);
+
+test.each(["repeat", "pingpong"] as const)("seek resets the finite %s traversal budget", (loop) => {
+  const env = fixture();
+  const handle = followPath(env.app, env.object, {
+    curve: env.curve,
+    duration: 1,
+    loop,
+    repetitions: 2,
+  });
+  env.value.state = "running";
+  env.tick(1.25);
+  handle.seek(0.5);
+  handle.resume();
+  env.tick(1);
+  expect(handle.state).toBe("running");
+  expect(handle.progress).toBe(0.5);
+  env.tick(0.5);
+  expect(handle.state).toBe("completed");
+  expect(handle.progress).toBe(loop === "repeat" ? 1 : 0);
+});
+
+test.each(["repeat", "pingpong"] as const)(
+  "seek at one counts the first finite %s traversal only after resuming",
+  (loop) => {
+    const env = fixture();
+    const handle = followPath(env.app, env.object, {
+      curve: env.curve,
+      duration: 1,
+      loop,
+      repetitions: 2,
+    });
+    env.value.state = "running";
+    handle.seek(1);
+    env.tick(20);
+    expect(handle.state).toBe("paused");
+    expect(handle.progress).toBe(1);
+    handle.resume();
+    env.tick(0);
+    expect(handle.state).toBe("running");
+    expect(handle.progress).toBe(loop === "repeat" ? 0 : 1);
+    env.tick(1);
+    expect(handle.state).toBe("completed");
+    expect(handle.progress).toBe(loop === "repeat" ? 1 : 0);
+  },
+);
+
+test("large safe traversal budgets retain fractional phase while skipping many legs in constant work", () => {
+  const env = fixture();
+  const handle = followPath(env.app, env.object, {
+    curve: env.curve,
+    duration: 1,
+    loop: "pingpong",
+    repetitions: Number.MAX_SAFE_INTEGER,
+  });
+  handle.seek(0.75);
+  handle.resume();
+  env.value.state = "running";
+  env.tick(Number.MAX_SAFE_INTEGER - 1);
+  expect(handle.state).toBe("running");
+  expect(handle.progress).toBe(0.75);
+  expect(env.object.position.x).toBe(3);
+  env.tick(0.25);
+  expect(handle.state).toBe("completed");
+  expect(handle.progress).toBe(1);
+});
+
+test("invalid repetition budgets reject before replacing the current motion or sampling", () => {
+  const env = fixture(),
+    current = env.start();
+  const sample = vi.spyOn(env.curve, "getPointAt");
+  for (const loop of ["repeat", "pingpong"] as const)
+    for (const repetitions of [0, -1, 1.5, NaN, -Infinity, Number.MAX_SAFE_INTEGER + 1])
+      expect(() =>
+        followPath(env.app, env.object, { curve: env.curve, duration: 1, loop, repetitions }),
+      ).toThrow(RangeError);
+  for (const repetitions of [2, Infinity])
+    expect(() =>
+      followPath(env.app, env.object, { curve: env.curve, duration: 1, loop: "once", repetitions }),
+    ).toThrow(RangeError);
+  expect(current.state).toBe("running");
+  expect(env.updates.size).toBe(1);
+  expect(sample).not.toHaveBeenCalled();
+  const cancelled = followPath(env.app, env.object, {
+    curve: env.curve,
+    duration: 1,
+    loop: "repeat",
+    repetitions: 2,
+    signal: AbortSignal.abort(),
+  });
+  expect(cancelled.state).toBe("cancelled");
+  expect(current.state).toBe("running");
+  const infinite = followPath(env.app, env.object, {
+    curve: env.curve,
+    duration: 1,
+    loop: "repeat",
+    repetitions: Infinity,
+  });
+  env.value.state = "running";
+  env.tick(3.25);
+  expect(infinite.state).toBe("running");
+  expect(infinite.progress).toBe(0.25);
+  infinite.dispose();
+});
+
+test("cancelling a finite terminal sample wins over completion without applying the candidate", async () => {
+  const env = fixture();
+  const handle = followPath(env.app, env.object, {
+    curve: env.curve,
+    duration: 1,
+    loop: "repeat",
+    repetitions: 1,
+  });
+  vi.spyOn(env.curve, "getPointAt").mockImplementationOnce((_u, target = new Vector3()) => {
+    handle.cancel();
+    return target.set(4, 0, 0);
+  });
+  env.value.state = "running";
+  env.tick(1);
+  expect(handle.state).toBe("cancelled");
+  expect(handle.progress).toBe(0);
+  expect(env.object.position.x).toBe(0);
+  expect(env.updates.size).toBe(0);
+  expect(await handle.finished).toEqual({ status: "cancelled", reason: "cancelled" });
+});
+
 test("seek samples local arc length, pauses without drawing or settling, and resumes from the sample", async () => {
   const env = fixture(),
     handle = env.start(),

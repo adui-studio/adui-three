@@ -347,6 +347,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-043  | 画布截图契约                      | capture.ts、区域类型及演示选择                   | 坐标/边界/尺寸/取消单测、PNG 区域像素、包消费              |
 | FR-044  | 对象世界边界契约                  | object-bounds.ts、geometry 导出及测量演示        | CPU 姿态/缓存/重入单测、无绘制测量回归、无 DOM 包消费      |
 | FR-045  | 对象路径运动契约                  | path-animation.ts、独立时间轴演示                | 弧长/端点/命令竞争单测、像素/拾取/重建回归、包消费         |
+| FR-046  | 对象路径运动契约                  | path-animation.ts、有限循环演示                  | 计数/端点/精度/竞争单测、完成像素/拾取回归、包消费         |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
@@ -372,7 +373,11 @@ geometry 入口导出 computeObjectBounds(object:Object3D):Box3，独立于宿�
 
 ## 对象路径运动契约
 
-PathMotionHandle.seek(progress:number):void 对 running/paused 句柄按 [0,1] 有限弧长比例立即采样，成功后暂停并将循环 phase 归到首个正向阶段；朝向采用正向切线，无绘制/启停或 finished 事件。非法值拒绝且不改当前运动，已结束句柄拒绝。seek(1) 只暂停预览，resume 后 once 完成、repeat 回绕、pingpong 开始返回。
+FollowPathOptions.repetitions 可选，正安全整数或 Infinity；once 默认/仅 1，repeat/pingpong 默认 Infinity。按单向一程计数，duration 为每程秒数；有限 repeat 在 1 完成，pingpong 奇数在 1 正向、偶数在 0 返回方向完成。保留目标/资源，解除订阅和登记。seek 重置首个正向阶段与预算，端点预览不提前完成，resume 后再处理首程终点；progress 不表示累计程数。
+
+步长分离整数程数和小数，合并到有界 phase 后按剩余预算选择终点；不逐程迭代，避免大整数加法丢掉局部进度。候选成功应用才提交计数，采样中取消等竞争仍按原规则处理；非法次数在替换/采样前拒绝，见 [ADR-0034](adr/0034-path-repetitions.md)。
+
+PathMotionHandle.seek(progress:number):void 对 running/paused 句柄按 [0,1] 有限弧长比例立即采样，成功后暂停并将循环 phase 归到首个正向阶段；朝向采用正向切线，无绘制/启停或 finished 事件。非法值拒绝且不改当前运动，已结束句柄拒绝。seek(1) 只暂停预览，resume 后按有限预算处理完成、回绕或返回。
 
 定位使用共享写锁及两阶段准备/应用；采样期间的控制状态变化用命令版本识别，连同取消/所有者/目标变化中断旧候选。异常终结 failed、解除登记并同步抛出；已发生的自定义原生变换写入不回滚。曲线、宿主和 scope 继续沿用既有生命周期，见 [ADR-0033](adr/0033-path-seek.md)。
 
