@@ -1,7 +1,7 @@
 import { loadTexture, loadKTX2 } from "@adui/three/textures";
 import { captureFrame } from "@adui/three/capture";
 import type { CaptureRegion } from "@adui/three/capture";
-import { createInstancedMesh } from "@adui/three/geometry";
+import { createInstancedMesh, computeObjectBounds } from "@adui/three/geometry";
 import { loadHDR, loadEXR, attachEnvironment } from "@adui/three/environment";
 import { ResourceScope, ThreeApp, OrthographicThreeApp } from "@adui/three";
 import type { AnyThreeApp } from "@adui/three";
@@ -14,11 +14,14 @@ import { attachGLTFAnimations, followPath } from "@adui/three/animation";
 import { attachBloom, attachPostprocessing } from "@adui/three/postprocessing";
 import { computeObjectFrame, fitObject, transitionToObject, computeOrthographicFrame, fitOrthographicObject, transitionOrthographicToObject, captureCameraView, restoreCameraView } from "@adui/three/camera";
 import type { CameraTransitionResult } from "@adui/three/camera";
-import { BoxGeometry, Color, LineCurve3, Matrix4, Mesh, MeshBasicMaterial, Vector3 } from "three";
+import { Box3, BoxGeometry, Color, LineCurve3, Matrix4, Mesh, MeshBasicMaterial, Vector3 } from "three";
 
 // Compile only: all library values come from the installed archive, without workspace paths.
 export async function consume(container: HTMLElement, overlay: HTMLElement, model: GLTFModel) {
   const app = new ThreeApp(container, { maxPixelRatio: 2 });
+  const bounds: Box3 = computeObjectBounds(model.scene);
+  const measuredSize: Vector3 = bounds.getSize(new Vector3());
+  void measuredSize;
   const exr = await loadEXR(app, "/environment.exr", { signal: app.signal });
   attachEnvironment(app, exr, { background: true });
   exr.dispose();

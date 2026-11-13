@@ -3,6 +3,8 @@ import type { BufferAttribute, BufferGeometry, Material } from "three";
 import type { AnyThreeApp } from "./three-app.ts";
 import { ResourceScope } from "./resources.ts";
 
+export { computeObjectBounds } from "./object-bounds.ts";
+
 export interface CreateInstancedMeshOptions {
   /** Borrowed. The caller keeps geometry/material/textures alive. */
   geometry: BufferGeometry;

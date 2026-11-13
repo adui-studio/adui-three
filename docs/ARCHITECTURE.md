@@ -8,6 +8,8 @@
 
 ## 目标与建议边界
 
+geometry 的 computeObjectBounds 与 camera 的两类取景共用内部 [object-bounds.ts](../packages/three/src/object-bounds.ts)，只依赖原生 CPU 数学和对象，测量不借用宿主或 addon。原生矩阵/边界缓存会同步，返回独立世界 Box3，不接管对象资源，见 [ADR-0032](adr/0032-object-bounds.md)。
+
 主 npm 包名 `@adui/three` 已确认。原始边界提案保留在 [ADR-0001](adr/0001-package-boundaries.md)，已实施的版本、模块和生命周期决策见 [ADR-0002](adr/0002-core-mvp.md)。不创建空扩展包。
 
 模型子入口的异步取消与资源快照决策见 [ADR-0003](adr/0003-gltf-lifecycle.md)。

@@ -1,6 +1,7 @@
 import "./style.css";
 import { ThreeApp } from "@adui/three";
 import { captureFrame } from "@adui/three/capture";
+import { computeObjectBounds } from "@adui/three/geometry";
 import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
 import type { OrbitControlsHandle, TransformControlsHandle } from "@adui/three/controls";
 import { fitObject, transitionToObject } from "@adui/three/camera";
@@ -34,6 +35,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   SphereGeometry,
+  Vector3,
 } from "three";
 import type { Object3D } from "three";
 
@@ -63,6 +65,7 @@ function mountPanel(id: string, color: number): void {
     <img class="capture-preview" data-testid="capture-preview" alt="场景截图预览" hidden>
     <div class="resize-actions"><button data-action="width" aria-pressed="false">收窄容器</button><button data-action="zero" aria-pressed="false">零高度</button><button data-action="labels" aria-pressed="true">显示标签</button><button data-action="fit">适配视角</button><button data-action="transition">平滑取景</button><button data-action="cancel-transition">取消过渡</button><button data-action="large-model" aria-pressed="false">大模型</button></div>
     <p class="camera-feedback" role="status">取景过渡：<span data-testid="transition-state">idle</span> · <span data-testid="transition-progress">0</span>%</p>
+    <p class="camera-feedback" role="status"><button data-action="measure">测量对象</button> 世界尺寸（上次测量）：<span data-testid="bounds-size">—</span></p>
     <div class="effect-actions"><button data-action="transform" aria-pressed="false">变换手柄</button><button data-action="transform-mode">切换变换</button><button data-action="remove-transform">释放手柄</button></div>
     <p class="camera-feedback" role="status">变换：<span data-testid="transform-mode">idle</span> · <span data-testid="transform-position">—</span></p>
     <div class="effect-actions"><button data-action="bloom" aria-pressed="false">泛光</button><button data-action="bloom-strength" aria-pressed="false">增强泛光</button><button data-action="outline" aria-pressed="false">选择描边</button><button data-action="remove-bloom">释放后处理</button><span data-testid="bloom-state">idle</span></div>
@@ -184,6 +187,7 @@ function mountPanel(id: string, color: number): void {
     button("stop").disabled = !app || state !== "running";
     button("dispose").disabled = !app || state === "disposed";
     button("fit").disabled = !app || state === "disposed" || !app.size.width || !app.size.height;
+    button("measure").disabled = !app || state === "disposed";
     button("render").disabled = button("fit").disabled;
     card.dataset.renderCount = String(draws);
     card.dataset.textureState = textureState;
@@ -353,6 +357,7 @@ function mountPanel(id: string, color: number): void {
   }
 
   function clearModel(): void {
+    card.querySelector('[data-testid="bounds-size"]')!.textContent = "—";
     transition?.cancel();
     largeModel = false;
     fittedDistance = undefined;
@@ -988,6 +993,16 @@ function mountPanel(id: string, color: number): void {
           // The host stays stopped; the demo explicitly draws a single updated view when paused.
           if (app.state !== "running") app.render();
           labels?.update();
+        }
+      }
+      if (action === "measure" && app && app.state !== "disposed") {
+        const target = model && !model.disposed ? model.scene : placeholder;
+        if (target) {
+          const size = computeObjectBounds(target).getSize(new Vector3());
+          card.querySelector('[data-testid="bounds-size"]')!.textContent = size
+            .toArray()
+            .map((value) => value.toFixed(3))
+            .join(" × ");
         }
       }
       if (action === "transition" && app) {

@@ -1,7 +1,8 @@
-import { Box3, MathUtils, Vector3 } from "three";
-import type { Object3D, PerspectiveCamera, SkinnedMesh } from "three";
+import { MathUtils, Vector3 } from "three";
+import type { Box3, Object3D, PerspectiveCamera } from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { ThreeApp } from "./three-app.ts";
+import { computeObjectBounds } from "./object-bounds.ts";
 
 export interface ObjectFrameOptions {
   /** Bounding-sphere margin, >= 1. Default 1.2. */
@@ -31,23 +32,6 @@ export interface FitObjectOptions extends ObjectFrameOptions {
 
 function finite(values: readonly number[]): boolean {
   return values.every(Number.isFinite);
-}
-
-/** Internal common world-bound preparation, including bones outside the framed subtree. */
-export function computeFrameBounds(object: Object3D): Box3 {
-  object.updateWorldMatrix(true, true);
-  object.traverse((node) => {
-    const mesh = node as SkinnedMesh;
-    if (!mesh.isSkinnedMesh) return;
-    // Precise Box3 sampling does not refresh bones outside the requested subtree.
-    for (const bone of mesh.skeleton.bones) bone.updateWorldMatrix(true, false);
-    // Unlike updateWorldMatrix, this path refreshes SkinnedMesh.bindMatrixInverse.
-    mesh.updateMatrixWorld(true);
-  });
-  const bounds = new Box3().setFromObject(object, true);
-  if (bounds.isEmpty() || !finite([...bounds.min.toArray(), ...bounds.max.toArray()]))
-    throw new RangeError("Object has no finite bounds");
-  return bounds;
 }
 
 /** Conservative world AABB sphere fit, accounting for zoom and both axes of a centered frustum. */
@@ -90,7 +74,7 @@ export function computeObjectFrame(
   if (!Number.isFinite(magnitude) || magnitude === 0)
     throw new RangeError("Invalid view direction");
   outward.divideScalar(magnitude).normalize();
-  const bounds = computeFrameBounds(object);
+  const bounds = computeObjectBounds(object);
   const size = bounds.getSize(new Vector3());
   const radius = Math.hypot(size.x, size.y, size.z) / 2;
   const center = bounds.getCenter(new Vector3());

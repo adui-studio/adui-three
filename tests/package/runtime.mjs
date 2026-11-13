@@ -30,7 +30,7 @@ const expected = {
   "@adui/three/environment": ["loadHDR", "loadEXR", "attachEnvironment"],
   "@adui/three/textures": ["loadTexture", "loadKTX2"],
   "@adui/three/capture": ["captureFrame"],
-  "@adui/three/geometry": ["createInstancedMesh"],
+  "@adui/three/geometry": ["createInstancedMesh", "computeObjectBounds"],
 };
 const development = process.argv.includes("--resolve-only");
 for (const [specifier, names] of Object.entries(expected)) {
@@ -55,6 +55,12 @@ if (!development) {
   const { BoxGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera } = await import("three");
   const { computeObjectFrame } = await import("@adui/three/camera");
   const mesh = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
+  const { computeObjectBounds } = await import("@adui/three/geometry");
+  const bounds = computeObjectBounds(mesh);
+  assert.deepEqual(bounds.min.toArray(), [-0.5, -0.5, -0.5]);
+  assert.deepEqual(bounds.max.toArray(), [0.5, 0.5, 0.5]);
+  bounds.min.setScalar(-100);
+  assert.deepEqual(computeObjectBounds(mesh).min.toArray(), [-0.5, -0.5, -0.5]);
   const camera = new PerspectiveCamera();
   camera.position.set(3, 2, 5);
   camera.lookAt(0, 0, 0);
@@ -79,7 +85,7 @@ if (!development) {
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");
   assert.ok(
-    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|computeObjectFrame|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath/.test(
+    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath/.test(
       core,
     ),
   );

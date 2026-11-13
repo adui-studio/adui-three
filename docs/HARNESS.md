@@ -18,7 +18,7 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 428 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 435 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
 | `pnpm run test:browser`         | 构建演示并执行 99 项真实 Chromium 多步骤回归                       |
@@ -60,6 +60,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-13 对象世界边界：新增七项原生数学单测，含蒙皮/形变、负缩放/隐藏、实例缓存/数量/CPU 顶点、批次删除、快照所有权、空/非有限/零尺寸及异常重入；与相机定向共 68/68 通过。首次静态检查发现测试读取通用属性联合类型的 version，改为已知 Float32BufferAttribute 类型后通过。首次 ready 因漏补 FR-044 的 SDD 追踪失败，补齐后 ready 通过 435 单测、16 文档测试、172 文件格式、107 源文件静态检查及全部构建。独立 tarball 十二入口与四次严格消费通过，包括无 DOM 测量和 Box3 声明。浏览器测量专项 2/2（约 6.4 秒）验证暂停骨骼/父缩放、无绘制/时间推进、零尺寸容器、独立宿主与重建；完整浏览器 101/101（265216.74 毫秒，约 4.4 分钟）通过，零重试、零跳过。
 
 2026-11-13 renderer 配置所有权补查：四项先行失败单测复现更宽原生配置对象绕过 Omit、外部上下文透传以及配置 getter 期间的字段注入。创建 canvas/renderer 前复制并验证，拒绝非空外部句柄，去掉 nil 字段。宿主定向 54/54 通过；真实 WebGL 专项 1/1（约 4.6 秒）验证两类宿主的四次拒绝无 DOM 挂载，原宿主红色像素/上下文不变，正常新宿主仍独立。首次静态检查指出测试的 native context 声明不含 null 和未绑定方法引用，改为显式 nullable 测试形状/闭包后通过；ready 通过 428 项单测、16 项文档测试、168 文件格式、104 源文件静态检查与全部构建；十二入口独立 tarball 和四次严格声明/消费通过。完整浏览器 99/99（约 4.4 分钟）通过，零重试、零跳过，包含三项触摸集成。无依赖升级、CI 或发布。
 

@@ -2,7 +2,7 @@ import { OrthographicCamera, Vector3 } from "three";
 import type { Object3D } from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { OrthographicThreeApp } from "./three-app.ts";
-import { computeFrameBounds } from "./camera-frame.ts";
+import { computeObjectBounds } from "./object-bounds.ts";
 import type { FitObjectOptions, ObjectFrame, ObjectFrameOptions } from "./camera-frame.ts";
 import { beginCameraWrite, cancelCameraMotion } from "./camera-runtime.ts";
 
@@ -55,7 +55,7 @@ export function computeOrthographicFrame(
   if (!Number.isFinite(magnitude) || magnitude === 0)
     throw new RangeError("Invalid view direction");
   outward.divideScalar(magnitude).normalize();
-  const bounds = computeFrameBounds(object);
+  const bounds = computeObjectBounds(object);
   const size = bounds.getSize(new Vector3()),
     center = bounds.getCenter(new Vector3());
   const radius = Math.hypot(size.x, size.y, size.z) / 2;

@@ -339,6 +339,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-041  | 相机视图契约                      | camera-view.ts、投影演示                         | JSON/镜头/控件/异常单测、相同像素浏览器、包消费            |
 | FR-042  | EXR 环境契约                      | environment.ts、原创 EXR fixture                 | 原生半浮点/隔离单测、实际照明/GPU 回归、包消费             |
 | FR-043  | 画布截图契约                      | capture.ts、区域类型及演示选择                   | 坐标/边界/尺寸/取消单测、PNG 区域像素、包消费              |
+| FR-044  | 对象世界边界契约                  | object-bounds.ts、geometry 导出及测量演示        | CPU 姿态/缓存/重入单测、无绘制测量回归、无 DOM 包消费      |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
@@ -355,6 +356,12 @@ geometry 入口导出 createInstancedMesh(app,options)、CreateInstancedMeshOpti
 handle 登记宿主 scope，拥有节点、instanceMatrix、instanceColor、morphTexture 和扩展 resources；不拥有几何体、材质、它们的纹理或外来子节点。清理标记结束并解除登记，尝试全部独立清理后聚合异常，重复 dispose 无操作。同步添加节点时宿主结束则回滚。公开 mesh 保留原生能力；直接替换自有 buffer 或绕过 helper 修改 count/矩阵须由调用方承担上传、边界和清理一致性。决策见 [ADR-0022](adr/0022-managed-instancing.md)。
 
 原生 dispose 监听异常不保证 WebGL GPU 清理：首次绘制前的消费者监听可能阻断后续 renderer 监听，而 BufferAttribute.dispose 仅对 WebGPU 有 GPU 释放语义。扩展清理登记 resources 可独立聚合失败；原生监听不得抛错。已阻断时消费者移除出错监听后可显式 mesh.dispose，handle.dispose 不重试。真实浏览器故障注入回归记录此边界，见 ADR-0022。
+
+## 对象世界边界契约
+
+geometry 入口导出 computeObjectBounds(object:Object3D):Box3，独立于宿主、相机和 DOM。先更新祖先/子树矩阵和引用骨骼/绑定逆矩阵，再以原生 Box3 precise 路径采样 CPU 顶点。InstancedMesh 显式重算几何体/实例盒，BatchedMesh 重算聚合盒并沿用原生每几何体缓存；返回独立世界 AABB，通过 getSize/getCenter 读取数值。两类取景复用此准备，仍保留原相机锁及控件契约。
+
+包括隐藏子树，普通 Mesh 包含当前 CPU 骨骼和形变；实例/批次保留原生保守盒，不保证逐实例形变紧边界。忽略可见性/layers/drawRange 和 shader 位移；扫描成本由数据规模决定。只更新原生矩阵、bindMatrixInverse 和包围盒缓存，不写 needsUpdate、不推进 Mixer、绘制或接管资源。非对象 TypeError，空/非有限 RangeError；零尺寸允许，同根准备重入拒绝，异常后解锁但不回滚原生准备副作用，见 [ADR-0032](adr/0032-object-bounds.md)。
 
 ## 对象路径运动契约
 

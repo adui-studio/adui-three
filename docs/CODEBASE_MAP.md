@@ -27,6 +27,8 @@
 
 ## 测试入口
 
+- [世界边界](../packages/three/src/object-bounds.ts) 由 geometry 导出并与两类取景共享；[数学单测](../packages/three/tests/object-bounds.test.ts) 和 [浏览器回归](../tests/browser/object-bounds.spec.ts) 覆盖当前姿态、缓存、独立快照与按需测量。
+
 - [泛光实现](../packages/three/src/postprocessing.ts) / [单测](../packages/three/tests/postprocessing.test.ts) / [浏览器回归](../tests/browser/postprocessing.spec.ts)：HDR/描边像素、组合顺序、原生目标清理、场景异常恢复及尺寸与帧内销毁。
 
 - [宿主管线和单次绘制](../packages/three/tests/three-app.test.ts) / [浏览器单次绘制](../tests/browser/render.spec.ts)：独占、尺寸、暂停、错误、重入与完成阶段。

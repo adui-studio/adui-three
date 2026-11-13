@@ -6,7 +6,7 @@
 
 - 宿主：[生命周期 API](#api)、[正交相机](#正交相机)、[资源归属](#资源与边界)、[绘制管线](#绘制管线与单次绘制)。
 - 相机：[自动取景](#相机取景)、[平滑过渡](#相机平滑过渡)、[保存和恢复视角](#保存和恢复视角)。
-- 模型：[资产复用](#复用模型资产)、[压缩解码](#压缩模型)、[动画](#模型动画)、[路径运动](#对象路径运动)、[实例化网格](#实例化网格)。
+- 模型：[资产复用](#复用模型资产)、[压缩解码](#压缩模型)、[动画](#模型动画)、[路径运动](#对象路径运动)、[实例化网格](#实例化网格)、[世界边界](#对象世界边界)。
 - 交互：[拾取](#对象拾取)、[DOM 标签](#dom-标签)、[变换手柄](#对象变换手柄)、[截图](#截图)。
 - 外观：[图片纹理](#独立图片纹理)、[KTX2 纹理](#独立-ktx2-纹理)、[HDR 环境](#hdr-环境)、[EXR 环境](#exr-环境图)、[泛光和描边](#选择描边与组合效果)。
 
@@ -151,6 +151,23 @@ capacity 是正整数，count 默认 0 且不能超过容量；支持预填尚�
 handle 拥有节点、实例属性、morphTexture 和扩展 resources，登记宿主 scope 并幂等清理；几何体、材质/纹理和外来子节点由调用方管理。material 数组快照列表，addToScene 可设 false，仍由宿主结束清理。公开 mesh 可作原生配置；直接替换自有 buffer 或绕过 helper 改 count/矩阵时，由调用方负责上传、边界和所有权一致性。演示地址 `/?demo=instances`。
 
 原生事件的异常仍遵循 Three.js 的派发语义：调用方在首次绘制前注册的 mesh dispose 监听若抛错，会阻断后续 renderer 监听，WebGL 实例 buffer 可能不能立即释放；BufferAttribute.dispose 在 WebGL 下不能补救这个路径。把会失败的自有清理登记到 instances.resources，避免从原生 dispose 监听抛错。若已经触发，调用方可移除出错监听后显式 mesh.dispose 让原生清理继续；handle.dispose 本身仍幂等且不会重试已结束的 handle。
+
+## 对象世界边界
+
+需要尺寸或中心时，可直接测量原生对象，无需创建宿主或相机：
+
+```ts
+import { computeObjectBounds } from "@adui/three/geometry";
+import { Vector3 } from "three";
+
+const bounds = computeObjectBounds(object);
+const size = bounds.getSize(new Vector3());
+const center = bounds.getCenter(new Vector3());
+```
+
+返回独立的世界轴对齐盒快照，单位由应用决定。包含隐藏子树和普通网格当前 CPU 骨骼/形变；刷新原生世界矩阵、蒙皮绑定逆矩阵及实例/批次包围盒缓存。实例/批次沿用保守原生盒，不承诺逐实例形变紧边界、shader 位移或实际可见像素尺寸。手动矩阵模式遵循原生更新开关。
+
+函数不绘制、不推进动画、不上传数据或接管对象资源；按需调用，扫描成本取决于顶点/骨骼/实例数量。空或非有限边界抛 RangeError，零尺寸有效，非法对象抛 TypeError；同根同步重入拒绝，准备失败可能保留已更新的原生矩阵/缓存。
 
 ## 截图
 
