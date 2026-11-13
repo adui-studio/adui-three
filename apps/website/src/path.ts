@@ -25,8 +25,9 @@ root.innerHTML = `<div class="shell">
   <article class="scene-card" data-testid="path-demo"><div class="instances-stage" aria-label="路径运动画布"></div>
     <div class="metrics"><div><span>PATH A</span><strong data-testid="path-state">—</strong></div><div><span>PROGRESS</span><strong data-testid="path-progress">0.000</strong></div><div><span>PATH B</span><strong data-testid="path-peer-progress">0.000</strong></div><div><span>SCENE</span><strong data-testid="path-host">—</strong></div></div>
     <div class="actions"><button data-action="once">播放一次</button><button data-action="repeat">循环路径</button><button data-action="pingpong">往返路径</button><button data-action="repeat-twice">循环两次</button><button data-action="pingpong-once">往返一次</button><button data-action="pause">暂停路径</button><button data-action="resume">继续路径</button><button data-action="cancel">取消路径</button><button data-action="stop-host">暂停场景</button><button data-action="start-host">运行场景</button><button data-action="move">手动移动</button><button data-action="remove">移除目标</button><button data-action="rebuild-target">重建目标</button><button data-action="dispose">销毁场景</button><button data-action="rebuild">重建场景</button><button data-action="render">绘制一帧</button></div>
-    <p class="model-feedback">路径 A 每程 2 s；往返一次含两程。A 位置：<span data-testid="path-position">—</span> · 结束原因：<span data-testid="path-result">—</span> · 选中：<span data-testid="path-picked">—</span></p>
+    <p class="model-feedback">路径 A 基准每程 2 s；往返一次含两程，倍速仅影响 A。A 位置：<span data-testid="path-position">—</span> · 结束原因：<span data-testid="path-result">—</span> · 选中：<span data-testid="path-picked">—</span></p>
     <label class="animation-timeline">路径 A 定位<input type="range" min="0" max="100" step="1" value="0" data-action="seek" aria-label="路径 A 定位"></label>
+    <label class="animation-timeline">路径 A 倍速<input type="range" min="0" max="2" step="0.25" value="1" data-action="rate" aria-label="路径 A 倍速"><span data-testid="path-rate">1.00</span>×</label>
     <p class="model-feedback" role="alert" data-testid="path-error" hidden></p>
   </article></main><footer><span>@adui/three · 本地开发预览，尚未发布</span><span>TypeScript / ESM / WebGL 2</span></footer></div>`;
 let app: ThreeApp | undefined,
@@ -48,6 +49,10 @@ const refresh = (): void => {
   timeline.disabled =
     !app || app.state === "disposed" || !motion || !["running", "paused"].includes(motion.state);
   timeline.value = String(Math.round((motion?.progress ?? 0) * 100));
+  const rate = root.querySelector<HTMLInputElement>('[data-action="rate"]')!;
+  rate.disabled = timeline.disabled;
+  rate.value = String(motion?.playbackRate ?? 1);
+  display("rate", (motion?.playbackRate ?? 1).toFixed(2));
   display(
     "position",
     marker?.position
@@ -175,29 +180,32 @@ const click = (event: MouseEvent): void => {
   }
 };
 root.addEventListener("click", click);
-const seek = (event: Event): void => {
+const controlMotion = (event: Event): void => {
   const input = event.target;
   if (
     !(input instanceof HTMLInputElement) ||
-    input.dataset.action !== "seek" ||
+    !["seek", "rate"].includes(input.dataset.action ?? "") ||
     !motion ||
     !app ||
     app.state === "disposed"
   )
     return;
   try {
-    motion.seek(input.valueAsNumber / 100);
-    app.render(); // Consumer explicitly presents the sampled pose; the library never draws or starts.
+    if (input.dataset.action === "rate") motion.setPlaybackRate(input.valueAsNumber);
+    else {
+      motion.seek(input.valueAsNumber / 100);
+      app.render(); // Consumer explicitly presents the sampled pose; the library never draws or starts.
+    }
     refresh();
   } catch (error) {
     report(error);
   }
 };
-root.addEventListener("input", seek);
+root.addEventListener("input", controlMotion);
 rebuild();
 const cleanup = (): void => {
   root.removeEventListener("click", click);
-  root.removeEventListener("input", seek);
+  root.removeEventListener("input", controlMotion);
   app?.dispose();
 };
 window.addEventListener("pagehide", cleanup, { once: true });

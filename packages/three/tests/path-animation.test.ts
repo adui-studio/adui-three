@@ -72,6 +72,190 @@ test("path motion samples immediately, uses host seconds and releases all hooks 
   expect(handle.state).toBe("completed");
 });
 
+test("path playback rate changes future traversal time without sampling or moving immediately", async () => {
+  const env = fixture(),
+    handle = env.start();
+  env.value.state = "running";
+  expect(handle.playbackRate).toBe(1);
+  env.tick(0.5);
+  const sample = vi.spyOn(env.curve, "getPointAt"),
+    position = env.object.position.clone();
+  handle.setPlaybackRate(2);
+  expect(sample).not.toHaveBeenCalled();
+  expect(env.object.position.equals(position)).toBe(true);
+  expect(handle.progress).toBe(0.25);
+  env.tick(0.25);
+  expect(handle.progress).toBe(0.5);
+  env.tick(0.5);
+  expect(await handle.finished).toEqual({ status: "completed" });
+  expect(handle.playbackRate).toBe(2);
+  expect(() => handle.setPlaybackRate(1)).toThrow(/ended/);
+  env.value.resources.dispose();
+});
+
+test("an unrepresentable scaled path step fails before sampling a new pose", async () => {
+  const env = fixture(),
+    handle = env.start();
+  env.value.state = "running";
+  handle.setPlaybackRate(Number.MAX_VALUE);
+  const sample = vi.spyOn(env.curve, "getPointAt");
+  expect(() => env.tick(4)).toThrow(/numeric range/);
+  expect(sample).not.toHaveBeenCalled();
+  expect((await handle.finished).status).toBe("failed");
+  expect(handle.progress).toBe(0);
+  env.value.resources.dispose();
+});
+
+test("zero path rate freezes sampling while another target and the host continue", () => {
+  const env = fixture(),
+    handle = env.start(),
+    other = new Group();
+  env.parent.add(other);
+  const peer = followPath(env.app, other, { curve: env.curve, duration: 2, loop: "repeat" });
+  env.value.state = "running";
+  env.tick(0.5);
+  handle.setPlaybackRate(0);
+  const sample = vi.spyOn(env.curve, "getPointAt");
+  env.tick(0.5);
+  expect(handle.progress).toBe(0.25);
+  expect(handle.state).toBe("running");
+  expect(peer.progress).toBe(0.5);
+  expect(sample).toHaveBeenCalledTimes(1);
+  handle.setPlaybackRate(0.5);
+  env.tick(0.5);
+  expect(handle.progress).toBe(0.375);
+  expect(env.value.state).toBe("running");
+  expect(env.value.start).not.toHaveBeenCalled();
+  expect(env.value.renderer.render).not.toHaveBeenCalled();
+  env.value.resources.dispose();
+});
+
+test.each(["repeat", "pingpong"] as const)(
+  "path rate preserves finite traversal history: %s",
+  async (loop) => {
+    const env = fixture(),
+      handle = followPath(env.app, env.object, {
+        curve: env.curve,
+        duration: 1,
+        loop,
+        repetitions: 2,
+      });
+    env.value.state = "running";
+    env.tick(1.25);
+    handle.setPlaybackRate(0.5);
+    env.tick(1);
+    expect(handle.state).toBe("running");
+    expect(handle.progress).toBeCloseTo(loop === "repeat" ? 0.75 : 0.25);
+    handle.setPlaybackRate(2);
+    env.tick(0.125);
+    expect(await handle.finished).toEqual({ status: "completed" });
+    expect(handle.progress).toBe(loop === "repeat" ? 1 : 0);
+    env.value.resources.dispose();
+  },
+);
+
+test("rate changes preserve pause and seek retains the selected speed", () => {
+  const env = fixture(),
+    handle = env.start();
+  env.value.state = "running";
+  handle.pause();
+  handle.setPlaybackRate(2);
+  env.tick(1);
+  expect(handle.state).toBe("paused");
+  expect(handle.progress).toBe(0);
+  handle.seek(0.5);
+  expect(handle.playbackRate).toBe(2);
+  handle.resume();
+  env.tick(0.25);
+  expect(handle.progress).toBe(0.75);
+  env.value.resources.dispose();
+});
+
+test.each([-1, NaN, Infinity, -Infinity, undefined, null, "2"])(
+  "invalid path playback rate preserves the active motion: %s",
+  (rate) => {
+    const env = fixture(),
+      handle = env.start();
+    handle.setPlaybackRate(0.5);
+    expect(() => handle.setPlaybackRate(rate as number)).toThrow(RangeError);
+    expect(handle.playbackRate).toBe(0.5);
+    expect(handle.state).toBe("running");
+    env.value.resources.dispose();
+  },
+);
+
+test("rate edits cannot reenter native curve sampling and caught requests preserve the previous speed", () => {
+  const env = fixture(),
+    handle = env.start(),
+    sample = env.curve.getPointAt.bind(env.curve);
+  env.value.state = "running";
+  const spy = vi.spyOn(env.curve, "getPointAt").mockImplementation((t, target) => {
+    expect(() => handle.setPlaybackRate(2)).toThrow(/progress/);
+    return sample(t, target);
+  });
+  env.tick(0.5);
+  expect(handle.playbackRate).toBe(1);
+  expect(handle.progress).toBe(0.25);
+  spy.mockRestore();
+  handle.setPlaybackRate(2);
+  env.tick(0.25);
+  expect(handle.progress).toBe(0.5);
+  env.value.resources.dispose();
+});
+
+test("an uncaught sampling reentry fails and ends the rate control", async () => {
+  const env = fixture(),
+    handle = env.start();
+  env.value.state = "running";
+  const sample = vi.spyOn(env.curve, "getPointAt").mockImplementation(() => {
+    handle.setPlaybackRate(2);
+    return new Vector3();
+  });
+  expect(() => env.tick(0.5)).toThrow(/progress/);
+  expect((await handle.finished).status).toBe("failed");
+  expect(() => handle.setPlaybackRate(1)).toThrow(/ended/);
+  sample.mockRestore();
+  env.value.resources.dispose();
+});
+
+test.each(["external", "scope", "abort"] as const)(
+  "zero-rate paths retain cancellation and ownership checks: %s",
+  async (reason) => {
+    const env = fixture(),
+      handle = env.start();
+    handle.setPlaybackRate(0);
+    env.value.state = "running";
+    if (reason === "external") {
+      env.object.position.x = 99;
+      env.tick(1);
+    }
+    if (reason === "scope") env.value.resources.dispose();
+    if (reason === "abort") env.controller.abort();
+    expect((await handle.finished).status).toBe("cancelled");
+    expect(() => handle.setPlaybackRate(1)).toThrow(/ended/);
+    env.value.resources.dispose();
+  },
+);
+
+test("pre-aborted and replaced paths have inert ended rate controls; new paths start at one", () => {
+  const env = fixture(),
+    abort = new AbortController();
+  abort.abort();
+  const aborted = followPath(env.app, env.object, {
+    curve: env.curve,
+    duration: 2,
+    signal: abort.signal,
+  });
+  expect(aborted.playbackRate).toBe(1);
+  expect(() => aborted.setPlaybackRate(2)).toThrow(/ended/);
+  const first = env.start();
+  first.setPlaybackRate(0.5);
+  const next = env.start();
+  expect(() => first.setPlaybackRate(2)).toThrow(/ended/);
+  expect(next.playbackRate).toBe(1);
+  env.value.resources.dispose();
+});
+
 test("controller and host pauses retain elapsed motion without replaying wall time", () => {
   const env = fixture(),
     handle = env.start();

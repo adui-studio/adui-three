@@ -25,20 +25,20 @@ pnpm add ./vendor/adui-three-0.0.0.tgz
 
 ## 模块对照
 
-| 旧模块或职责                        | 当前入口与接法                                         | 迁移边界                                                          |
-| ----------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------- |
-| CustomThree.js 场景、相机、renderer | `ThreeApp` / `OrthographicThreeApp`                    | 构造参数显式传容器，自有 canvas/context；运行时拒绝外部句柄       |
-| 原 OrbitControls                    | `@adui/three/controls` 的 attachOrbitControls          | 使用返回的原生 controls 配置，不增加第二个更新循环                |
-| CustomModel.js 的 GLTF/GLB          | `@adui/three/loaders` 的 loadGLTF                      | 保留原材质与尺寸；Draco/Meshopt/KTX2 解码显式配置                 |
-| 旧模型 clone                        | cloneGLTF                                              | 节点/动画独立，几何体/材质/纹理按租约共享，不能提前释放共享资产   |
-| CustomLabel.js 的 DOM 标签          | `@adui/three/labels` 的 attachDOMLabels                | 显式 overlay、目标与 detached element；Vue 组件挂载/卸载属于应用  |
-| 原点击、悬停                        | `@adui/three/interaction` 的 attachPicking             | 动态读取目标，返回原生 Intersection；过滤拖拽，不修改全局光标     |
-| 原相机取景、相机动画                | `@adui/three/camera` 的 fitObject / transitionToObject | 正交使用独立命名函数；复用宿主 delta，交接控件和过渡              |
-| 原动画播放逻辑                      | `@adui/three/animation` 的 attachGLTFAnimations        | 单模型 Mixer，模型/宿主结束时清理；播放、定位和渐变由句柄控制     |
-| CustomBloom.js / CustomOutline.js   | `@adui/three/postprocessing`                           | 同一渲染出口，固定效果顺序；手动释放或由登记的所有者清理          |
-| 原路径曲线运动                      | followPath                                             | 局部曲线采样、独立暂停/定位与可选切线朝向；没有导航网格或碰撞求解 |
-| CustomLight.js                      | 原生 Three.js 灯光                                     | 当前没有独立灯光封装；应用管理灯光策略及自有阴影资源              |
-| 原对象尺寸计算                      | `@adui/three/geometry` 的 computeObjectBounds          | 独立世界 Box3，当前 CPU 姿态；实例/批次保留原生保守边界           |
+| 旧模块或职责                        | 当前入口与接法                                         | 迁移边界                                                                    |
+| ----------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------- |
+| CustomThree.js 场景、相机、renderer | `ThreeApp` / `OrthographicThreeApp`                    | 构造参数显式传容器，自有 canvas/context；运行时拒绝外部句柄                 |
+| 原 OrbitControls                    | `@adui/three/controls` 的 attachOrbitControls          | 使用返回的原生 controls 配置，不增加第二个更新循环                          |
+| CustomModel.js 的 GLTF/GLB          | `@adui/three/loaders` 的 loadGLTF                      | 保留原材质与尺寸；Draco/Meshopt/KTX2 解码显式配置                           |
+| 旧模型 clone                        | cloneGLTF                                              | 节点/动画独立，几何体/材质/纹理按租约共享，不能提前释放共享资产             |
+| CustomLabel.js 的 DOM 标签          | `@adui/three/labels` 的 attachDOMLabels                | 显式 overlay、目标与 detached element；Vue 组件挂载/卸载属于应用            |
+| 原点击、悬停                        | `@adui/three/interaction` 的 attachPicking             | 动态读取目标，返回原生 Intersection；过滤拖拽，不修改全局光标               |
+| 原相机取景、相机动画                | `@adui/three/camera` 的 fitObject / transitionToObject | 正交使用独立命名函数；复用宿主 delta，交接控件和过渡                        |
+| 原动画播放逻辑                      | `@adui/three/animation` 的 attachGLTFAnimations        | 单模型 Mixer，模型/宿主结束时清理；播放、定位和渐变由句柄控制               |
+| CustomBloom.js / CustomOutline.js   | `@adui/three/postprocessing`                           | 同一渲染出口，固定效果顺序；手动释放或由登记的所有者清理                    |
+| 原路径曲线运动                      | followPath                                             | 局部曲线采样、运行倍速、独立暂停/定位与可选切线朝向；没有导航网格或碰撞求解 |
+| CustomLight.js                      | 原生 Three.js 灯光                                     | 当前没有独立灯光封装；应用管理灯光策略及自有阴影资源                        |
+| 原对象尺寸计算                      | `@adui/three/geometry` 的 computeObjectBounds          | 独立世界 Box3，当前 CPU 姿态；实例/批次保留原生保守边界                     |
 
 OBJ/FBX、CSS3D、RGB 偏移、雷达、寻路、碰撞、漫游和框架适配没有在本轮实现。业务解密、鉴权、CORS 与私有路径留在应用及资产服务，不迁入通用主包。完整公开用法见 [包 README](../packages/three/README.md)。
 

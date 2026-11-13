@@ -355,6 +355,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-043  | 画布截图契约                      | capture.ts、区域类型及演示选择                   | 坐标/边界/尺寸/取消单测、PNG 区域像素、包消费              |
 | FR-044  | 对象世界边界契约                  | object-bounds.ts、geometry 导出及测量演示        | CPU 姿态/缓存/重入单测、无绘制测量回归、无 DOM 包消费      |
 | FR-045  | 对象路径运动契约                  | path-animation.ts、独立时间轴演示                | 弧长/端点/命令竞争单测、像素/拾取/重建回归、包消费         |
+| FR-050  | 对象路径运动契约                  | path-animation.ts、路径倍速滑块                  | 速度/预算/重入单测、GPU 冻结/终点/拾取、严格包消费         |
 | FR-049  | 相机视图契约                      | camera-runtime.ts、两种过渡、投影演示            | 暂停/租约/回调单测、原生 GPU 绘制与像素、严格包消费        |
 | FR-048  | 模型动画契约                      | animation.ts、模型倍速滑块                       | 速度/渐变/通知排队单测、GPU 冻结与完成、严格包消费         |
 | FR-047  | 相机视图平滑恢复契约              | camera-view-transition.ts、投影演示              | 插值/取消/租约/重入单测、GPU 书签恢复、严格包消费          |
@@ -383,6 +384,8 @@ geometry 入口导出 computeObjectBounds(object:Object3D):Box3，独立于宿�
 包括隐藏子树，普通 Mesh 包含当前 CPU 骨骼和形变；实例/批次保留原生保守盒，不保证逐实例形变紧边界。忽略可见性/layers/drawRange 和 shader 位移；扫描成本由数据规模决定。只更新原生矩阵、bindMatrixInverse 和包围盒缓存，不写 needsUpdate、不推进 Mixer、绘制或接管资源。非对象 TypeError，空/非有限 RangeError；零尺寸允许，所有根对象间的封装准备同步重入拒绝，异常后解锁但不回滚原生准备副作用，见 [ADR-0032](adr/0032-object-bounds.md)。
 
 ## 对象路径运动契约
+
+PathMotionHandle.playbackRate 初始 1，setPlaybackRate(rate:number):void 接受非负有限数，仅改变后续 (delta/duration)*rate，保留进度、朝向、剩余预算和控制状态；seek 保留速度，新句柄默认 1。0 跳过采样但仍检查所有者/目标，不暂停宿主，不提前结算端点。结束/预取消不能设置，采样/写入期间拒绝重入，非有限缩放步长在新采样前 failed；见 [ADR-0038](adr/0038-path-playback-rate.md)。
 
 FollowPathOptions.repetitions 可选，正安全整数或 Infinity；once 默认/仅 1，repeat/pingpong 默认 Infinity。按单向一程计数，duration 为每程秒数；有限 repeat 在 1 完成，pingpong 奇数在 1 正向、偶数在 0 返回方向完成。保留目标/资源，解除订阅和登记。seek 重置首个正向阶段与预算，端点预览不提前完成，resume 后再处理首程终点；progress 不表示累计程数。
 

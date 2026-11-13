@@ -536,10 +536,11 @@ const motion = followPath(app, model.scene, {
   scope: model.resources,
 });
 // motion.pause(); motion.resume(); motion.cancel();
+// motion.setPlaybackRate(0.5); // 只改变后续步长；0 冻结该对象的采样。
 const result = await motion.finished; // completed / cancelled（含原因）/ failed（含 error）
 ```
 
-对象需已挂在本宿主 scene 下且使用自动矩阵，库借用它和曲线；创建时立即设置起点，不启动宿主或绘制。每次宿主更新以 delta/duration 推进，loop 默认为 once，可选 repeat/pingpong 默认无限循环到取消，也可指定有限 repetitions；progress 为当前局部弧长比例，回程递减。duration 是单向遍历秒数。getPointAt 使用原生近似弧长采样，父级非均匀缩放后不保证世界匀速；曲线控制点和弧长配置在运动期间保持不变，开放曲线 repeat 会跳回起点。
+对象需已挂在本宿主 scene 下且使用自动矩阵，库借用它和曲线；创建时立即设置起点，不启动宿主或绘制。每次宿主更新以 (delta/duration)*playbackRate 推进，loop 默认为 once，可选 repeat/pingpong 默认无限循环到取消，也可指定有限 repetitions；progress 为当前局部弧长比例，回程递减。duration 是基准单向遍历秒数。getPointAt 使用原生近似弧长采样，父级非均匀缩放后不保证世界匀速；曲线控制点和弧长配置在运动期间保持不变，开放曲线 repeat 会跳回起点。
 
 orientToPath 默认 false，仅写 position；true 时局部 +Z 沿切线，回程反向，不提供倾斜或平滑转向。暂停保持姿态，resume 不补墙钟时间。finish/cancel/dispose 保留当前姿态并释放宿主、可选 scope 的登记、订阅和 abort 监听，不释放对象或其 GPU 资产。scope 可以是 model.resources，模型结束立即取消且完成后自动解除两处登记。
 
@@ -547,7 +548,11 @@ orientToPath 默认 false，仅写 position；true 时局部 +Z 沿切线，回�
 
 ### 有限循环
 
-`repetitions` 可指定正安全整数或 Infinity；once 默认且仅 1，repeat/pingpong 默认无限。单向一程耗时 duration，往返一次为两程，例如 `followPath(app, object, { curve, duration: 2, loop: "pingpong", repetitions: 2 })`。有限 repeat 停在进度 1；pingpong 奇数停在 1、偶数回到 0，开启朝向时保留到达方向，不释放目标或借用资源。progress 仍表示当前曲线比例。
+`repetitions` 可指定正安全整数或 Infinity；once 默认且仅 1，repeat/pingpong 默认无限。基准单向一程耗时 duration，往返一次为两程，例如 `followPath(app, object, { curve, duration: 2, loop: "pingpong", repetitions: 2 })`。有限 repeat 停在进度 1；pingpong 奇数停在 1、偶数回到 0，开启朝向时保留到达方向，不释放目标或借用资源。progress 仍表示当前曲线比例。
+
+### 路径倍速
+
+路径也提供 `motion.playbackRate` / `motion.setPlaybackRate(rate)`：初始 1，非负有限数，仅缩放后续步长，保留位置、朝向、有限程数和暂停状态。0 跳过采样但继续检查所有者/外部修改；宿主和另一目标继续。seek 保留速度，新句柄默认 1；已结束或采样/写入重入时拒绝设置，不改变原速度。非有限缩放步长在新采样前失败，不保证全部 Number 极值组合可表示。
 
 ### 路径定位与预览
 

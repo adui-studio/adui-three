@@ -40,6 +40,69 @@ async function arrow(page: Page) {
   });
 }
 
+test("path speed freezes only the orange native pose, retains picking and survives pause and owner replacement", async ({
+  page,
+}) => {
+  await page.goto("/?demo=path");
+  await page.getByRole("button", { name: "暂停场景", exact: true }).click();
+  await page.getByRole("slider", { name: "路径 A 定位" }).fill("25");
+  await page.getByRole("slider", { name: "路径 A 倍速" }).fill("0");
+  await expect(page.getByTestId("path-state")).toHaveText("paused");
+  await page.getByRole("button", { name: "继续路径", exact: true }).click();
+  const frozen = await arrow(page),
+    position = await page.getByTestId("path-position").textContent(),
+    peer = await page.getByTestId("path-peer-progress").textContent();
+  await page.getByRole("button", { name: "运行场景", exact: true }).click();
+  await expect(page.getByTestId("path-peer-progress")).not.toHaveText(peer!);
+  await expect(page.getByTestId("path-position")).toHaveText(position!);
+  await expect(page.getByTestId("path-state")).toHaveText("running");
+  expect(await arrow(page)).toEqual(frozen);
+  await page.mouse.click(frozen.x, frozen.y);
+  await expect(page.getByTestId("path-picked")).toHaveText("路径 A");
+  await page.getByRole("slider", { name: "路径 A 倍速" }).fill("2");
+  await expect(page.getByTestId("path-position")).not.toHaveText(position!);
+  await page.getByRole("button", { name: "暂停路径", exact: true }).click();
+  await page.getByRole("slider", { name: "路径 A 倍速" }).fill("0.5");
+  const paused = await page.getByTestId("path-position").textContent(),
+    peerAtPause = await page.getByTestId("path-peer-progress").textContent();
+  await expect(page.getByTestId("path-peer-progress")).not.toHaveText(peerAtPause!);
+  await expect(page.getByTestId("path-position")).toHaveText(paused!);
+  await page.getByRole("button", { name: "重建目标", exact: true }).click();
+  await expect(page.getByTestId("path-rate")).toHaveText("1.00");
+  await page.getByRole("slider", { name: "路径 A 倍速" }).fill("0");
+  await page.getByRole("button", { name: "手动移动", exact: true }).click();
+  await expect(page.getByTestId("path-result")).toHaveText("target-changed");
+  await expect(page.getByRole("slider", { name: "路径 A 倍速" })).toBeDisabled();
+  await page.getByRole("button", { name: "重建场景", exact: true }).click();
+  await expect(page.getByTestId("path-rate")).toHaveText("1.00");
+  await expect(page.getByTestId("path-error")).toBeHidden();
+});
+
+test("path speed changes preserve finite ping-pong completion, endpoint pixels and the live peer", async ({
+  page,
+}) => {
+  await page.goto("/?demo=path");
+  await page.getByRole("button", { name: "暂停场景", exact: true }).click();
+  await page.getByRole("button", { name: "往返一次", exact: true }).click();
+  const position = await page.getByTestId("path-position").textContent();
+  await page.getByRole("slider", { name: "路径 A 倍速" }).fill("2");
+  await page.getByRole("button", { name: "运行场景", exact: true }).click();
+  await expect(page.getByTestId("path-state")).toHaveText("completed");
+  await expect(page.getByTestId("path-progress")).toHaveText("0.000");
+  await expect(page.getByTestId("path-position")).toHaveText(position!);
+  await expect(page.getByTestId("path-host")).toHaveText("running");
+  const peer = await page.getByTestId("path-peer-progress").textContent();
+  await expect(page.getByTestId("path-peer-progress")).not.toHaveText(peer!);
+  await page.getByRole("button", { name: "暂停场景", exact: true }).click();
+  const pose = await arrow(page);
+  expect(pose.count).toBeGreaterThan(15);
+  expect(pose.error).toBe(0);
+  await page.mouse.click(pose.x, pose.y);
+  await expect(page.getByTestId("path-picked")).toHaveText("路径 A");
+  await expect(page.getByRole("slider", { name: "路径 A 倍速" })).toBeDisabled();
+  await expect(page.getByTestId("path-error")).toBeHidden();
+});
+
 test("finite repeat and ping-pong complete at their native endpoint while another target keeps moving", async ({
   page,
 }) => {

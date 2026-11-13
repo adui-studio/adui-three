@@ -15,7 +15,7 @@ export type PathMotionResult =
 export interface FollowPathOptions {
   /** Borrowed, immutable while moving. Coordinates are local to the target's parent. */
   curve: Curve<Vector3>;
-  /** Positive finite host seconds per traversal. */
+  /** Positive finite base host seconds per traversal at playbackRate=1. */
   duration: number;
   loop?: "once" | "repeat" | "pingpong";
   /** Single-direction traversals: positive safe integer or Infinity. Once only accepts 1. */
@@ -31,6 +31,10 @@ export interface PathMotionHandle {
   readonly state: PathMotionState;
   /** Current arc-length fraction [0,1], decreasing on a return traversal. */
   readonly progress: number;
+  /** Future traversal speed. Starts at 1; 0 freezes sampling without changing state. */
+  readonly playbackRate: number;
+  /** Nonnegative finite rate. Live handles only; cannot reenter native curve/transform sampling. */
+  setPlaybackRate(this: void, rate: number): void;
   readonly finished: Promise<PathMotionResult>;
   /** Sample arc-length fraction [0,1] in the first forward traversal and pause. Live handles only. */
   seek(this: void, progress: number): void;
@@ -91,6 +95,10 @@ export function followPath(
     return {
       state: "cancelled",
       progress: 0,
+      playbackRate: 1,
+      setPlaybackRate(): never {
+        throw new Error("Path motion has ended");
+      },
       finished: Promise.resolve({ status: "cancelled", reason: "aborted" }),
       seek(): never {
         throw new Error("Path motion has ended");
@@ -161,6 +169,7 @@ export function followPath(
       progress = 0,
       phase = 0,
       remaining = repetitions;
+    let playbackRate = 1;
     let commandRevision = 0;
     let outcome: PathMotionResult | undefined;
     samplingAllowed = (): boolean =>
@@ -238,6 +247,18 @@ export function followPath(
       get progress() {
         return progress;
       },
+      get playbackRate() {
+        return playbackRate;
+      },
+      setPlaybackRate(rate): void {
+        if (outcome) throw new Error("Path motion has ended");
+        if (!Number.isFinite(rate) || rate < 0)
+          throw new RangeError("Playback rate must be nonnegative and finite");
+        if (writing.has(object))
+          throw new Error("A path update is already in progress for this object");
+        if (!retained()) throw new Error("Path motion has ended");
+        playbackRate = rate;
+      },
       finished,
       seek(value): void {
         if (outcome) throw new Error("Path motion has ended");
@@ -309,11 +330,12 @@ export function followPath(
       if (apply()) {
         const unsubscribe = app.onUpdate(({ delta }) => {
           if (!retained() || state !== "running") return;
+          if (playbackRate === 0) return;
           if (writing.has(object))
             throw new Error("A path update is already in progress for this object");
           writing.add(object);
           try {
-            const step = delta / duration;
+            const step = (delta / duration) * playbackRate;
             if (!Number.isFinite(delta) || delta < 0 || !Number.isFinite(step))
               throw new RangeError("Path delta exceeds the supported numeric range");
             // Split large integer skips from the bounded fraction so existing progress is not rounded away.

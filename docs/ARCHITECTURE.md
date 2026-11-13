@@ -71,6 +71,8 @@ animation 的 seek 复用既有 Mixer、队列与零 delta 采样，定位与场
 
 ## 关键取舍
 
+路径倍速仅缩放既有宿主步长，0 倍速跳过采样而保留所有者/目标检查；与 seek 共享写入保护，不创建 Mixer 或第二时钟，见 [ADR-0038](adr/0038-path-playback-rate.md)。
+
 取景和书签过渡共享 camera-runtime 暂停门控，保留单宿主调度与相机登记；内部结算状态独立于公开 paused，原生回调请求在当前写入结束交接，见 [ADR-0037](adr/0037-camera-pause.md)。
 
 模型级运行倍速使用现有 Mixer.timeScale，GLTFAnimationsHandle 的 setter 复用播放命令队列；全部动作和渐变使用同一模型时钟，不增加调度或动作所有者。动作级 timeScale 仍独立，见 [ADR-0036](adr/0036-animation-playback-rate.md)。

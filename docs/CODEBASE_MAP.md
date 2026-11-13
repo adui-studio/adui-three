@@ -137,4 +137,6 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 相机独立暂停在 camera-runtime.ts 共享门控，[暂停单测](../packages/three/tests/camera-pause.test.ts) 覆盖四种运动和原生回调；[浏览器专项](../tests/browser/camera-pause.spec.ts) 同时采集原生绘制命令与像素，避免用静态标签证明宿主仍运行。
 
+路径倍速复用 path-animation.ts 现有步长与写入保护；path-animation 单测覆盖零速度/预算/重入，path.spec.ts 增加实际箭头像素、拾取和所有者重建，演示滑块只控制 A。
+
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。
