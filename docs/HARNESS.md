@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 413 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包的 415 项单元测试                                              |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 90 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行 92 项真实 Chromium 多步骤回归                       |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR / 未压缩 EXR 环境                      |
@@ -60,6 +60,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-06 标签反向深度补查：两项先行失败数学回归复现原 abs(z)≤1 误放过远平面外的负 NDC 深度；改为读取原生 reversedDepth 后按 [0,1] 裁剪，保留默认 [-1,1]。标签定向 16/16 通过；两项真实 GPU 专项 2/2（约 6 秒）通过，本机实际 EXT_clip_control 与 camera.reversedDepth 均启用，没有跳过或写私有模式。对比真实红色网格像素和 DOM 隐藏状态，覆盖近/远/背后与回到可见，截图已目视检查。ready 通过 415 项单测、13 项文档测试、163 文件格式、100 源文件静态检查和全部构建；完整浏览器 92/92（276911.765 ms，约 4.6 分钟）通过，零重试、零跳过。2026-11-13 接续时核对原始报告补录，不将日期变化称为重新运行。未改公共导出/依赖/打包，沿用十二入口包消费验证。
 
 2026-11-06 环境绑定准备期补查：两项先行失败测试复现 getter 结束宿主后仍写入已释放纹理，以及 getter 内新绑定被外层覆盖。读取并校验选项后重新检查宿主、资产/扩展 scope 与独占绑定，写入前拒绝失效外层操作。HDR/EXR 定向 21/21 通过，覆盖三种所有者结束及嵌套绑定原状态恢复；ready 通过 413 项单测、13 项文档测试、162 文件格式、99 源文件静态检查与全部构建；完整浏览器 90/90（约 5.5 分钟），零重试。没有公共接口/导出/打包变更，沿用上一阶段十二入口消费验证，不重复 package 检查。
 

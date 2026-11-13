@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vite-plus/test";
-import { Group, Object3D, PerspectiveCamera, Scene } from "three";
+import { Group, Object3D, OrthographicCamera, PerspectiveCamera, Scene, Vector3 } from "three";
 import type { ThreeApp, ThreeAppState } from "../src/index.ts";
 import { ResourceScope } from "../src/resources.ts";
 import { attachDOMLabels } from "../src/labels.ts";
@@ -39,7 +39,9 @@ class ElementStub {
   }
 }
 
-function fixture() {
+function fixture(
+  camera: PerspectiveCamera | OrthographicCamera = new PerspectiveCamera(50, 2, 0.1, 100),
+) {
   const callbacks = new Set<() => void>();
   const observations: Array<() => void> = [];
   const disconnect = vi.fn();
@@ -58,7 +60,6 @@ function fixture() {
   const element = (): ElementStub => document.createElement();
   const canvas = element();
   const container = element();
-  const camera = new PerspectiveCamera(50, 2, 0.1, 100);
   camera.position.z = 5;
   const state = {
     state: "ready" as ThreeAppState,
@@ -148,6 +149,35 @@ test("hides behind-camera, offscreen, near/far and non-finite anchors", () => {
   env.target.position.set(0, 0, 0);
   env.layer.update();
   expect(env.wrapper().hidden).toBe(false);
+});
+
+test.each([
+  ["perspective", () => new PerspectiveCamera(50, 2, 1, 10)],
+  ["orthographic", () => new OrthographicCamera(-2, 2, 1, -1, 1, 10)],
+] as const)("reversed %s depth hides anchors beyond the far clip plane", (_kind, camera) => {
+  const env = fixture(camera());
+  // Model the public read-only mode selected by a native reversed-depth renderer.
+  const mode = vi.spyOn(env.state.camera, "reversedDepth", "get").mockReturnValue(true);
+  env.state.camera.updateProjectionMatrix();
+  env.add();
+  expect(env.wrapper().hidden).toBe(false);
+  env.target.position.z = -6;
+  env.state.camera.updateWorldMatrix(true, false);
+  const depth = env.target.position.clone().project(env.state.camera).z;
+  expect(depth).toBeLessThan(0);
+  expect(depth).toBeGreaterThan(-1);
+  env.layer.update();
+  expect(env.wrapper().hidden).toBe(true);
+  env.target.position.z = 4.5;
+  env.layer.update();
+  expect(env.wrapper().hidden).toBe(true);
+  env.target.position.z = 0;
+  env.layer.update();
+  expect(env.wrapper().hidden).toBe(false);
+  expect(new Vector3(0, 0, 4).project(env.state.camera).z).toBeCloseTo(1);
+  expect(new Vector3(0, 0, -5).project(env.state.camera).z).toBeCloseTo(0);
+  mode.mockRestore();
+  env.layer.dispose();
 });
 
 test("honors label visibility, ancestor visibility, scene membership and camera layers", () => {

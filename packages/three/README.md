@@ -502,6 +502,8 @@ on 返回幂等取消函数，同一回调可独立订阅多次；派发中新�
 
 ## DOM 标签
 
+WebGL 标签深度裁剪读取原生 camera.reversedDepth：普通模式接受 NDC z∈[-1,1]，反向模式接受 z∈[0,1]；x/y 和相机背后检查不变。库不写入相机深度模式。反向模式需由原生 renderer 和 EXT_clip_control 支持，当前仅验证 Chromium/SwiftShader，不外推完整设备或后处理组合矩阵。
+
 标签是屏幕空间的 HTML 投影，不改变目标对象或模型场景树。先在容器中建立与画布重合的覆盖层：
 
 ```html

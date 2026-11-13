@@ -111,6 +111,8 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专用单测](../packages/three/tests/environment-exr.test.ts) 覆盖解码/输入/生命周期。[生成器](../scripts/generate-exr-fixture.mjs) 由原环境生成命令调用，[浏览器回归](../tests/browser/environment-exr.spec.ts) 检查照明与实际 GPU 目标释放；public/licenses 保留原生 EXR/fflate 声明。
 
+反向深度标签回归见 [labels-depth.spec.ts](../tests/browser/labels-depth.spec.ts)：消费真实库产物和锁定的 Three.js build，按实际 EXT_clip_control 能力验收透视/正交近远裁剪像素；无扩展时显式跳过，不模拟 GPU 模式。
+
 ## 维护
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

@@ -2,7 +2,7 @@
 
 ## 目标与当前阶段
 
-更新日期：2026-11-06。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。最近交付相机视图保存/恢复 77038e6、EXR 环境 cbca791；本轮补强环境绑定准备期的所有者与独占校验。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
+更新日期：2026-11-13。重新封装 Three.js，主 npm 包为 @adui/three，版本 0.0.0，尚未发布。最近交付 EXR 环境 cbca791、绑定准备期加固 03152a4；本轮收尾反向深度标签裁剪与包 README 导航。当前功能以代码和 [SDD](SDD.md) 为准，目标以 [需求](REQUIREMENTS.md) 为准。
 
 用户授权持续封装、分步提交推送；提交描述和正文使用中文，格式 type(scope): emoji 中文描述。不得改写已有提交或擅自发布 npm。用户明确“不做任何 CI”：不新增/启用工作流，不调整组织或仓库 Actions 设置。历史工作流已由 e6ea2c2 移除，保留当时的本地输入回归修复。
 
@@ -13,7 +13,7 @@
 - 核心 ThreeApp、OrthographicThreeApp、ResourceScope：透视/正交具体相机类型，共用内部 SceneHost 的单 RAF、启停/隐藏/零尺寸、DPR、显式所有权、异步 signal、独占借用 RenderPipeline 与单次 render。正交保留竖向跨度、中心和 zoom；通用模块接受 AnyThreeApp。原生缓冲/投影和管线尺寸失败分别保留待重试状态；尺寸处理中拒绝递归绘制/resize/重挂接。
 - controls：OrbitControls；TransformControls 负责 helper/初始 GPU 快照，借用模型与轨道控制，拖拽/取消按值恢复配置，无第二循环。
 - loaders：GLTF/GLB 逻辑取消、迟到清理、模型资源快照/扩展 scope，显式 Draco/Meshopt/KTX2。cloneGLTF 复制默认树与独立动画数据，共享资产租约到最后一个使用者结束。任务自有解码器，运输可能继续，运行资源本地托管。
-- interaction / labels：原生 Raycaster 点击/悬停、动态目标及事件清理，默认按需刷新蒙皮边界/骨骼矩阵并防 pick 重入；DOM 标签在完成阶段投影，明确元素和模型借用边界。
+- interaction / labels：原生 Raycaster 点击/悬停、动态目标及事件清理，默认按需刷新蒙皮边界/骨骼矩阵并防 pick 重入；DOM 标签在完成阶段投影，明确元素和模型借用边界；标签按原生反向/普通 NDC 深度区间裁剪，两类相机的真实 EXT_clip_control 专项已验证。
 - 实例交互：hover 和 click 匹配同时比较 object、instanceId、batchId 的快照；同一网格内跨实例会派发 hover，按下后换实例则取消点击，保留原始 Intersection。
 - animation：单 Mixer、片段播放/暂停/恢复/停止、原生事件队列和双范围清理，支持有限 repeat/once/pingpong 和规范化往返终点；seek 按秒定位到首个正向阶段后暂停并重置循环历史；crossFadeTo 根据当前权重渐变到目标，支持中断、暂停和清理。on 提供采样完成后的类型化 loop/finished，回调播放命令排队、销毁跳过剩余通知，异常传播宿主帧策略。
 - followPath：借用原生三维 Curve 与目标，在父级局部空间采样位置/可选朝向，使用同一宿主更新，支持独立暂停、循环/往返、替换和外部修改取消；可选模型 scope 在结束时自动解除登记。
@@ -29,7 +29,7 @@
 
 ## 验证状态
 
-当前 ready 通过：13 项文档检查器测试、413 项主包单测、格式/Lint/类型及全部构建。十二入口 tarball 和四次严格消费通过，environment 的 loadEXR 导出与实际消费类型已验证。EXR/HDR 浏览器专项 6/6 通过，完整 90/90 通过（约 5.5 分钟），零重试。EXR 仅以原创单 part 未压缩 RGB 样例验收，不外推所有编码格式。反向深度数值探针和历史证据见 [Harness](HARNESS.md)，未将数学用例外推为完整硬件兼容。
+当前 ready 通过：13 项文档检查器测试、415 项主包单测、格式/Lint/类型及全部构建。十二入口 tarball 和四次严格消费通过，environment 的 loadEXR 导出与实际消费类型已验证。EXR/HDR 浏览器专项 6/6 通过，完整 92/92 通过（约 4.6 分钟），零重试。EXR 仅以原创单 part 未压缩 RGB 样例验收，不外推所有编码格式。反向深度数值探针和历史证据见 [Harness](HARNESS.md)，未将数学用例外推为完整硬件兼容。
 
 浏览器环境是 Chromium/SwiftShader，单 worker、零自动重试；完整设备/格式/浏览器矩阵、长期 GPU 泄漏和性能基准尚未完成。保留 TypeScript 7 API 实验性和演示大 chunk 构建提示，不将本地通过称为远端 CI 通过。失败诊断、历史统计和阶段未提交记录统一保留在 Harness，不在接手入口复制过期状态。
 

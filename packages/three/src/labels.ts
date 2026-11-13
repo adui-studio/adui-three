@@ -117,7 +117,8 @@ export function attachDOMLabels(app: AnyThreeApp, container: HTMLElement): DOMLa
         ![projected.x, projected.y, projected.z].every(Number.isFinite) ||
         Math.abs(projected.x) > 1 ||
         Math.abs(projected.y) > 1 ||
-        Math.abs(projected.z) > 1
+        projected.z < (app.camera.reversedDepth ? 0 : -1) ||
+        projected.z > 1
       ) {
         wrapper.hidden = true;
         continue;
