@@ -36,6 +36,8 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   const restoredView = restoreCameraView(orthographic, savedView);
   const easing: TransitionEasing = "linear";
   const viewMotion = transitionToCameraView(orthographic, savedView, { duration: 1, signal: orthographic.signal, easing });
+  viewMotion.setPlaybackRate(0.5);
+  const cameraRate: number = viewMotion.playbackRate; void cameraRate;
   const viewResult: CameraViewTransitionResult = await viewMotion.finished;
   if (viewResult.status === "completed" && viewResult.view.kind === "orthographic") {
     const height: number = viewResult.view.top - viewResult.view.bottom; void height;
@@ -133,6 +135,7 @@ export async function consume(container: HTMLElement, overlay: HTMLElement, mode
   computeObjectFrame(app.camera, object, { direction: [1, 1, 1] });
   fitObject(app, object, { controls });
   const motion = transitionToObject(app, object, { controls, duration: 1, signal: app.signal, easing });
+  motion.setPlaybackRate(2);
   const result: CameraTransitionResult = await motion.finished;
   if (result.status === "completed") result.frame.position.toArray();
   if (result.status === "failed") console.error(result.error);

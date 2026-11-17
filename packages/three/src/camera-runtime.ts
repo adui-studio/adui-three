@@ -24,24 +24,46 @@ interface CameraMotion {
   cancel(): void;
 }
 
-interface CameraPauseController {
+interface CameraClockController {
   readonly paused: boolean;
+  readonly playbackRate: number;
   setPaused(this: void, paused: boolean): void;
+  setPlaybackRate(this: void, rate: number): void;
+  end(this: void): void;
   hold(this: void): () => void;
 }
 
-/** Commit pause requests after the current initialization/frame, never halfway through a native pose write. */
-export function createCameraPauseController(): CameraPauseController {
+/** Commit clock requests after the current initialization/frame, never halfway through a native pose write. */
+export function createCameraClockController(): CameraClockController {
   let paused = false,
     holds = 0,
     requested: boolean | undefined;
+  let playbackRate = 1,
+    requestedRate: number | undefined,
+    ended = false;
   return {
     get paused() {
       return paused;
     },
     setPaused(value): void {
+      if (ended) return;
       if (holds) requested = value;
       else paused = value;
+    },
+    get playbackRate() {
+      return playbackRate;
+    },
+    setPlaybackRate(rate): void {
+      if (ended) throw new Error("Camera transition has ended");
+      if (!Number.isFinite(rate) || rate < 0)
+        throw new RangeError("Playback rate must be nonnegative and finite");
+      if (holds) requestedRate = rate;
+      else playbackRate = rate;
+    },
+    end(): void {
+      ended = true;
+      requested = undefined;
+      requestedRate = undefined;
     },
     hold(): () => void {
       holds++;
@@ -49,9 +71,15 @@ export function createCameraPauseController(): CameraPauseController {
       return () => {
         if (released) return;
         released = true;
-        if (--holds === 0 && requested !== undefined) {
-          paused = requested;
-          requested = undefined;
+        if (--holds === 0 && !ended) {
+          if (requested !== undefined) {
+            paused = requested;
+            requested = undefined;
+          }
+          if (requestedRate !== undefined) {
+            playbackRate = requestedRate;
+            requestedRate = undefined;
+          }
         }
       };
     },

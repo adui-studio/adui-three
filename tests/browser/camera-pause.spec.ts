@@ -86,10 +86,28 @@ for (const kind of ["orthographic", "perspective"]) {
       await expect(panel.getByTestId(progress)).toHaveText("0.000");
       expect(await pixels(panel)).toEqual(before);
       expect(await pixels(peer)).toEqual(other);
+      await panel.getByRole("slider", { name: "相机倍速" }).fill("0");
       await panel.getByRole("button", { name: "继续相机", exact: true }).click();
+      await expect(panel.getByTestId(state)).toHaveText("running");
+      const frozenCount = await page.evaluate(
+        (kind) => (window as unknown as ProbeWindow).__cameraDraws[kind] ?? 0,
+        kind,
+      );
+      await expect
+        .poll(() =>
+          page.evaluate(
+            (kind) => (window as unknown as ProbeWindow).__cameraDraws[kind] ?? 0,
+            kind,
+          ),
+        )
+        .toBeGreaterThan(frozenCount + 4);
+      await expect(panel.getByTestId(progress)).toHaveText("0.000");
+      expect(await pixels(panel)).toEqual(before);
+      await panel.getByRole("slider", { name: "相机倍速" }).fill("2");
       await expect(panel.getByTestId(state)).toHaveText("completed");
       await panel.getByRole("button", { name: "暂停场景", exact: true }).click();
       const final = await pixels(panel);
+      await expect(panel.getByRole("slider", { name: "相机倍速" })).toBeDisabled();
       expect(final.error).toBe(0);
       expect(final.red).toBeGreaterThan(10);
       if (view) expect(final).toEqual(original);

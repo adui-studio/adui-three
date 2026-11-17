@@ -16,7 +16,7 @@ import {
   removeCameraMotion,
   mixCameraNumber,
   nearCameraVector,
-  createCameraPauseController,
+  createCameraClockController,
 } from "./camera-runtime.ts";
 
 export type CameraTransitionState = "running" | "paused" | "completed" | "cancelled" | "failed";
@@ -26,9 +26,9 @@ export type CameraTransitionResult<F extends ObjectFrame = ObjectFrame> =
   | { status: "failed"; error: unknown };
 
 export interface CameraTransitionOptions extends FitObjectOptions {
-  /** Positive finite duration, in host delta seconds. Default 0.8. */
+  /** Positive finite base host seconds at playbackRate=1. Default 0.8. */
   duration?: number;
-  /** Interpolation preset. Default smoothstep. Raw progress remains linear in host time. */
+  /** Interpolation preset. Default smoothstep. Raw progress remains uneased. */
   easing?: TransitionEasing;
   signal?: AbortSignal;
 }
@@ -37,6 +37,9 @@ export interface CameraTransitionHandle<F extends ObjectFrame = ObjectFrame> {
   readonly state: CameraTransitionState;
   /** Uneased progress in [0, 1]. */
   readonly progress: number;
+  readonly playbackRate: number;
+  /** Nonnegative finite speed for future elapsed time. Live handles only. */
+  setPlaybackRate(this: void, rate: number): void;
   /** Always resolves, including cancellation and update/cleanup failure. */
   readonly finished: Promise<CameraTransitionResult<F>>;
   cancel(this: void): void;
@@ -93,6 +96,10 @@ function transitionFrame<F extends ObjectFrame>(
   const cancelled = (): CameraTransitionHandle<F> => ({
     state: "cancelled",
     progress: 0,
+    playbackRate: 1,
+    setPlaybackRate(): never {
+      throw new Error("Camera transition has ended");
+    },
     finished: Promise.resolve({ status: "cancelled" }),
     cancel(): void {},
     dispose(): void {},
@@ -132,7 +139,7 @@ function transitionFrame<F extends ObjectFrame>(
   cancelCameraMotion(camera);
   // Settlement state remains running while the pause controller freezes only the clock.
   let state: Exclude<CameraTransitionState, "paused"> = "running";
-  const pauseController = createCameraPauseController();
+  const clock = createCameraClockController();
   let progress = 0;
   let elapsed = 0;
   let resolve!: (result: CameraTransitionResult<F>) => void;
@@ -143,6 +150,7 @@ function transitionFrame<F extends ObjectFrame>(
   const finish = (result: CameraTransitionResult<F>): void => {
     if (state !== "running") return;
     state = result.status;
+    clock.end();
     removeCameraMotion(camera, handle);
     app.resources.untrack(handle);
     const errors: unknown[] = [];
@@ -164,11 +172,15 @@ function transitionFrame<F extends ObjectFrame>(
   };
   const handle: CameraTransitionHandle<F> = {
     get state() {
-      return state === "running" && pauseController.paused ? "paused" : state;
+      return state === "running" && clock.paused ? "paused" : state;
     },
     get progress() {
       return progress;
     },
+    get playbackRate() {
+      return clock.playbackRate;
+    },
+    setPlaybackRate: clock.setPlaybackRate,
     finished,
     cancel(): void {
       finish({ status: "cancelled" });
@@ -177,14 +189,14 @@ function transitionFrame<F extends ObjectFrame>(
       finish({ status: "cancelled" });
     },
     pause(): void {
-      if (state === "running") pauseController.setPaused(true);
+      if (state === "running") clock.setPaused(true);
     },
     resume(): void {
-      if (state === "running") pauseController.setPaused(false);
+      if (state === "running") clock.setPaused(false);
     },
   };
   const endWrite = beginCameraWrite(camera);
-  const releasePreparationPause = pauseController.hold();
+  const releasePreparationPause = clock.hold();
   try {
     app.resources.track(handle);
     registerCameraMotion(camera, handle);
@@ -320,13 +332,14 @@ function transitionFrame<F extends ObjectFrame>(
           handle.cancel();
           return;
         }
-        if (pauseController.paused) return;
+        if (clock.paused || clock.playbackRate === 0) return;
         const releaseWrite = beginCameraWrite(camera);
-        const releasePause = pauseController.hold();
+        const releasePause = clock.hold();
         try {
-          if (!Number.isFinite(delta) || delta < 0)
+          const step = delta * clock.playbackRate;
+          if (!Number.isFinite(delta) || delta < 0 || !Number.isFinite(step))
             throw new RangeError("Invalid transition delta");
-          elapsed = Math.min(duration, elapsed + delta);
+          elapsed = Math.min(duration, elapsed + step);
           progress = elapsed / duration;
           const t = sampleProgress(progress);
           if (endZoom !== undefined) {

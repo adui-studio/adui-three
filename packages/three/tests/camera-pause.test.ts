@@ -87,11 +87,74 @@ function fixture(mode: Mode) {
 }
 
 for (const mode of modes) {
+  test(`${mode} speed changes preserve progress and zero freezes only the camera clock`, async () => {
+    const env = fixture(mode),
+      motion = env.start();
+    expect(motion.playbackRate).toBe(1);
+    const position = env.camera.position.clone();
+    motion.setPlaybackRate(2);
+    expect(env.camera.position.equals(position)).toBe(true);
+    env.tick(0.25);
+    expect(motion.progress).toBe(0.5);
+    motion.setPlaybackRate(0);
+    const frozen = env.camera.position.clone();
+    env.tick(100);
+    expect(motion.state).toBe("running");
+    expect(motion.progress).toBe(0.5);
+    expect(env.camera.position.equals(frozen)).toBe(true);
+    motion.pause();
+    motion.setPlaybackRate(0.5);
+    env.tick(100);
+    expect(motion.state).toBe("paused");
+    expect(motion.progress).toBe(0.5);
+    motion.resume();
+    env.tick(1);
+    expect((await motion.finished).status).toBe("completed");
+    expect(motion.playbackRate).toBe(0.5);
+    expect(() => motion.setPlaybackRate(1)).toThrow(/ended/);
+    env.resources.dispose();
+  });
+
+  test(`${mode} native speed requests wait until the current frame commits`, async () => {
+    const env = fixture(mode),
+      motion = env.start(),
+      native = env.controls.update.bind(env.controls);
+    const spy = vi.spyOn(env.controls, "update").mockImplementation((delta) => {
+      motion.setPlaybackRate(2);
+      expect(motion.playbackRate).toBe(1);
+      return native(delta);
+    });
+    env.tick(0.25);
+    expect(motion.progress).toBe(0.25);
+    expect(motion.playbackRate).toBe(2);
+    spy.mockRestore();
+    env.tick(0.375);
+    expect((await motion.finished).status).toBe("completed");
+    env.resources.dispose();
+  });
+
+  test(`${mode} initial speed requests retain an operational subscription`, async () => {
+    const env = fixture(mode),
+      track = env.resources.track.bind(env.resources);
+    const spy = vi.spyOn(env.resources, "track").mockImplementation((resource) => {
+      const result = track(resource);
+      (resource as Motion).setPlaybackRate(2);
+      return result;
+    });
+    const motion = env.start();
+    spy.mockRestore();
+    expect(motion.playbackRate).toBe(2);
+    env.tick(0.5);
+    expect((await motion.finished).status).toBe("completed");
+    env.resources.dispose();
+  });
   test(`${mode} terminal sampling wins over a deferred pause and pre-aborted controls are inert`, async () => {
     const env = fixture(mode),
       abort = new AbortController();
     abort.abort();
     const cancelled = env.start(abort.signal);
+    expect(cancelled.playbackRate).toBe(1);
+    expect(() => cancelled.setPlaybackRate(2)).toThrow(/ended/);
     cancelled.pause();
     cancelled.resume();
     expect(await cancelled.finished).toMatchObject({ status: "cancelled" });
@@ -99,10 +162,12 @@ for (const mode of modes) {
       native = env.controls.update.bind(env.controls);
     const update = vi.spyOn(env.controls, "update").mockImplementation((delta) => {
       motion.pause();
+      motion.setPlaybackRate(2);
       return native(delta);
     });
     env.tick(1);
     expect((await motion.finished).status).toBe("completed");
+    expect(motion.playbackRate).toBe(1);
     update.mockRestore();
     env.resources.dispose();
   });
@@ -242,3 +307,30 @@ for (const mode of modes) {
     env.resources.dispose();
   });
 }
+
+test.each([-1, NaN, Infinity, -Infinity, null, undefined, "2"])(
+  "invalid camera speed retains the current rate and motion: %s",
+  (rate) => {
+    const env = fixture("perspective-frame"),
+      motion = env.start();
+    motion.setPlaybackRate(0.5);
+    expect(() => motion.setPlaybackRate(rate as number)).toThrow(RangeError);
+    expect(motion.playbackRate).toBe(0.5);
+    expect(motion.state).toBe("running");
+    motion.cancel();
+    env.resources.dispose();
+  },
+);
+
+test("unrepresentable camera speed steps fail before pose writes and release the input lease", async () => {
+  const env = fixture("perspective-view"),
+    motion = env.start();
+  motion.setPlaybackRate(Number.MAX_VALUE);
+  const position = env.camera.position.clone();
+  expect(() => env.tick(2)).toThrow(/delta/);
+  expect((await motion.finished).status).toBe("failed");
+  expect(env.camera.position.equals(position)).toBe(true);
+  expect(env.controls.enabled).toBe(true);
+  expect(env.updates.size).toBe(0);
+  env.resources.dispose();
+});

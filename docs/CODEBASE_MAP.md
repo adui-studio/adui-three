@@ -141,4 +141,6 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 过渡节奏位于 [easing.ts](../packages/three/src/easing.ts)，camera/animation 共享固定数学预设，两个入口只公开 TransitionEasing 类型与选项。相机/渐变单测覆盖四分之一进度数值、实际权重交接和非法输入，投影/模型演示提供下次节奏选择。
 
+相机倍速与暂停共用 camera-runtime.ts 的 createCameraClockController；camera-pause 单测覆盖四种运动的速度、延迟交接和终点丢弃。投影演示以最新过渡为滑块目标，camera-pause 浏览器回归同时证明零速度冻结和宿主继续绘制。
+
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。

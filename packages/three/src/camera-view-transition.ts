@@ -14,11 +14,11 @@ import {
   mixCameraNumber,
   mixCameraVector,
   nearCameraVector,
-  createCameraPauseController,
+  createCameraClockController,
 } from "./camera-runtime.ts";
 
 export interface CameraViewTransitionOptions extends CameraViewOptions {
-  /** Positive finite host seconds. Default 0.8. */
+  /** Positive finite base host seconds at playbackRate=1. Default 0.8. */
   duration?: number;
   /** Interpolation preset. Default smoothstep. */
   easing?: TransitionEasing;
@@ -32,6 +32,9 @@ export interface CameraViewTransitionHandle {
   readonly state: CameraTransitionState;
   /** Uneased host progress [0,1]. */
   readonly progress: number;
+  readonly playbackRate: number;
+  /** Nonnegative finite speed for future elapsed time. Live handles only. */
+  setPlaybackRate(this: void, rate: number): void;
   readonly finished: Promise<CameraViewTransitionResult>;
   cancel(this: void): void;
   dispose(this: void): void;
@@ -69,6 +72,10 @@ export function transitionToCameraView(
   const cancelled = (): CameraViewTransitionHandle => ({
     state: "cancelled",
     progress: 0,
+    playbackRate: 1,
+    setPlaybackRate(): never {
+      throw new Error("Camera transition has ended");
+    },
     finished: Promise.resolve({ status: "cancelled" }),
     cancel(): void {},
     dispose(): void {},
@@ -77,8 +84,8 @@ export function transitionToCameraView(
   });
   if (signal?.aborted) return cancelled();
   const endPreparation = beginCameraWrite(app.camera);
-  const pauseController = createCameraPauseController();
-  const releasePreparationPause = pauseController.hold();
+  const clock = createCameraClockController();
+  const releasePreparationPause = clock.hold();
   let fail: ((result: CameraViewTransitionResult) => CameraViewTransitionResult) | undefined;
   try {
     const sampleProgress = resolveTransitionEasing(options.easing, "smoothstep");
@@ -103,6 +110,7 @@ export function transitionToCameraView(
       if (outcome) return outcome;
       outcome = result;
       state = result.status;
+      clock.end();
       removeCameraMotion(camera, handle);
       const errors: unknown[] = [];
       for (const release of [() => app.resources.untrack(handle), ...cleanup.splice(0).reverse()]) {
@@ -125,11 +133,15 @@ export function transitionToCameraView(
     };
     const handle: CameraViewTransitionHandle = {
       get state() {
-        return state === "running" && pauseController.paused ? "paused" : state;
+        return state === "running" && clock.paused ? "paused" : state;
       },
       get progress() {
         return progress;
       },
+      get playbackRate() {
+        return clock.playbackRate;
+      },
+      setPlaybackRate: clock.setPlaybackRate,
       finished,
       cancel(): void {
         finish({ status: "cancelled" });
@@ -138,10 +150,10 @@ export function transitionToCameraView(
         finish({ status: "cancelled" });
       },
       pause(): void {
-        if (state === "running") pauseController.setPaused(true);
+        if (state === "running") clock.setPaused(true);
       },
       resume(): void {
-        if (state === "running") pauseController.setPaused(false);
+        if (state === "running") clock.setPaused(false);
       },
     };
     fail = finish;
@@ -285,12 +297,14 @@ export function transitionToCameraView(
         handle.cancel();
         return;
       }
-      if (pauseController.paused) return;
+      if (clock.paused || clock.playbackRate === 0) return;
       const endWrite = beginCameraWrite(camera);
-      const releasePause = pauseController.hold();
+      const releasePause = clock.hold();
       try {
-        if (!Number.isFinite(delta) || delta < 0) throw new RangeError("Invalid transition delta");
-        elapsed = Math.min(duration, elapsed + delta);
+        const step = delta * clock.playbackRate;
+        if (!Number.isFinite(delta) || delta < 0 || !Number.isFinite(step))
+          throw new RangeError("Invalid transition delta");
+        elapsed = Math.min(duration, elapsed + step);
         progress = elapsed / duration;
         const t = sampleProgress(progress);
         if (controls) {

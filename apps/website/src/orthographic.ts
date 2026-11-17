@@ -40,7 +40,7 @@ for (const orthographic of [true, false]) {
     <div class="stage"><div class="viewport" aria-label="${orthographic ? "正交" : "透视"}画布"><div class="label-overlay"></div></div></div>
     <div class="metrics"><div><span>ZOOM</span><strong data-testid="projection-zoom">1.000</strong></div><div><span>BLUE Z</span><strong data-testid="projection-depth">-5</strong></div><div><span>WIDTH</span><strong data-testid="projection-width">0</strong></div><div><span>HEIGHT</span><strong data-testid="projection-height">0</strong></div></div>
     <div class="actions projection-actions"><button data-action="save-view">保存视角</button><button data-action="restore-view">恢复视角</button><button data-action="smooth-view">平滑恢复视角</button><button data-action="cancel-view">取消视角恢复</button><button data-action="effects">组合效果</button><button data-action="bloom">泛光开关</button><button data-action="outline">描边开关</button><button data-action="fit">适配视角</button><button data-action="smooth">平滑取景</button><button data-action="easing" aria-pressed="false">下次匀速过渡</button><button data-action="cancel">取消过渡</button><button data-action="pause-camera">暂停相机</button><button data-action="resume-camera">继续相机</button><button data-action="pause-host">暂停场景</button><button data-action="start-host">运行场景</button><button data-action="large">放大模型</button><button data-action="depth">改变蓝色深度</button><button data-action="zoom">放大视图</button><button data-action="width">收窄容器</button><button data-action="zero">零高度</button><button data-action="render">绘制一帧</button><button data-action="dispose">销毁</button><button data-action="rebuild">重建</button></div>
-    <p class="model-feedback">视图：<span data-testid="projection-view">未保存</span></p><p class="model-feedback">视角恢复：<span data-testid="projection-view-motion">idle</span> · <span data-testid="projection-view-progress">0.000</span></p><p class="model-feedback">效果：<span data-testid="projection-effects">idle</span> · 泛光 <span data-testid="projection-bloom">off</span> · 描边 <span data-testid="projection-outline">off</span></p><p class="model-feedback">过渡：<span data-testid="projection-motion">idle</span> · <span data-testid="projection-progress">0.000</span></p><p class="model-feedback">选中：<span data-testid="projection-picked">—</span> · <span data-testid="projection-error" role="alert"></span></p>`;
+    <label class="animation-timeline">相机倍速<input type="range" min="0" max="2" step="0.25" value="1" data-action="camera-rate" aria-label="相机倍速"><span data-testid="projection-rate">1.00</span>×</label><p class="model-feedback">视图：<span data-testid="projection-view">未保存</span></p><p class="model-feedback">视角恢复：<span data-testid="projection-view-motion">idle</span> · <span data-testid="projection-view-progress">0.000</span></p><p class="model-feedback">效果：<span data-testid="projection-effects">idle</span> · 泛光 <span data-testid="projection-bloom">off</span> · 描边 <span data-testid="projection-outline">off</span></p><p class="model-feedback">过渡：<span data-testid="projection-motion">idle</span> · <span data-testid="projection-progress">0.000</span></p><p class="model-feedback">选中：<span data-testid="projection-picked">—</span> · <span data-testid="projection-error" role="alert"></span></p>`;
   root.querySelector(".workspace")!.appendChild(card);
   const viewport = card.querySelector<HTMLDivElement>(".viewport")!;
   const overlay = viewport.querySelector<HTMLDivElement>(".label-overlay")!;
@@ -49,6 +49,7 @@ for (const orthographic of [true, false]) {
   let content: Group | undefined, fit: (() => void) | undefined;
   let transition: (() => void) | undefined, motion: CameraTransitionHandle | undefined;
   let viewMotion: CameraViewTransitionHandle | undefined, smoothView: (() => void) | undefined;
+  let clockMotion: CameraTransitionHandle | CameraViewTransitionHandle | undefined;
   let effects: PostprocessingHandle | undefined, selected: Object3D | undefined;
   let savedView: string | undefined,
     saveView: (() => void) | undefined,
@@ -71,6 +72,14 @@ for (const orthographic of [true, false]) {
     show("progress", (motion?.progress ?? 0).toFixed(3));
     show("view-motion", viewMotion?.state ?? "idle");
     show("view-progress", (viewMotion?.progress ?? 0).toFixed(3));
+    show("rate", (clockMotion?.playbackRate ?? 1).toFixed(2));
+    const rate = card.querySelector<HTMLInputElement>('[data-action="camera-rate"]')!;
+    rate.value = String(clockMotion?.playbackRate ?? 1);
+    rate.disabled =
+      !app ||
+      app.state === "disposed" ||
+      !clockMotion ||
+      !["running", "paused"].includes(clockMotion.state);
     show("effects", effects && !effects.disposed ? "active" : "idle");
     show("bloom", effects && !effects.disposed && effects.bloom?.enabled ? "on" : "off");
     show("outline", effects && !effects.disposed && effects.outline?.enabled ? "on" : "off");
@@ -90,6 +99,7 @@ for (const orthographic of [true, false]) {
     app?.dispose();
     motion = undefined;
     viewMotion = undefined;
+    clockMotion = undefined;
     effects = undefined;
     selected = undefined;
     app = orthographic
@@ -154,6 +164,7 @@ for (const orthographic of [true, false]) {
           easing,
         });
         viewMotion = current;
+        clockMotion = current;
         void current.finished.then((result) => {
           if (viewMotion !== current) return;
           if (result.status === "failed") show("error", String(result.error));
@@ -185,6 +196,7 @@ for (const orthographic of [true, false]) {
             ? transitionOrthographicToObject(host, content!, { controls, duration: 1.2, easing })
             : transitionToObject(host, content!, { controls, duration: 1.2, easing });
         motion = current;
+        clockMotion = current;
         void current.finished.then((result) => {
           if (motion !== current) return;
           if (result.status === "failed") show("error", String(result.error));
@@ -302,6 +314,23 @@ for (const orthographic of [true, false]) {
     }
   });
   rebuild();
+  const changeRate = (event: Event): void => {
+    const input = event.target;
+    if (
+      !(input instanceof HTMLInputElement) ||
+      input.dataset.action !== "camera-rate" ||
+      !clockMotion
+    )
+      return;
+    try {
+      clockMotion.setPlaybackRate(input.valueAsNumber);
+      refresh();
+    } catch (error) {
+      show("error", String(error));
+    }
+  };
+  card.addEventListener("input", changeRate);
+  teardown.push(() => card.removeEventListener("input", changeRate));
   teardown.push(() => app?.dispose());
 }
 window.addEventListener(

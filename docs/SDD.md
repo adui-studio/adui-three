@@ -51,6 +51,8 @@ transitionOrthographicToObject(OrthographicThreeApp,Object3D,CameraTransitionOpt
 
 ## 相机视图契约
 
+两种相机过渡句柄 playbackRate 初始 1，setPlaybackRate(rate:number):void 接受非负有限数，仅缩放后续 delta；0 保持 running 并冻结时间，pause/resume 不改速度，duration 为速度 1 时基准秒数。初始化/写入回调中设置延后到当前提交后生效，终点/失败先关闭时钟并丢弃请求；结束不能再设置。外部配置与所有者检查继续执行，步长溢出在姿态写入前 failed，见 [ADR-0040](adr/0040-camera-playback-rate.md)。
+
 camera 和 animation 共同导出 TransitionEasing="linear"|"smoothstep"。取景/书签过渡及 CrossFadeOptions.easing 在准备时捕获预设，分别默认 smoothstep/linear；progress/blendProgress 仍是原始时间比例。相机因子用于姿态/镜头，渐变因子仅用于当前有效权重交接；无逐帧用户回调，不保证世界/屏幕匀速。非法值在替换前拒绝，书签准备后重查取消，见 [ADR-0039](adr/0039-transition-easing.md)。
 
 CameraTransitionState 新增 paused，两种过渡句柄 pause()/resume() 只冻结自身进度，不影响宿主或其他目标。暂停保留输入/资源/相机租约，下一宿主更新仍检查外部修改；取消、signal、scope、替换照常结算。继续仅消费后续 delta。初始化/原生写入回调中的控制请求延后到本次提交结束，终点/异常优先；终态调用无操作，见 [ADR-0037](adr/0037-camera-pause.md)。
@@ -357,6 +359,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-043  | 画布截图契约                      | capture.ts、区域类型及演示选择                   | 坐标/边界/尺寸/取消单测、PNG 区域像素、包消费              |
 | FR-044  | 对象世界边界契约                  | object-bounds.ts、geometry 导出及测量演示        | CPU 姿态/缓存/重入单测、无绘制测量回归、无 DOM 包消费      |
 | FR-045  | 对象路径运动契约                  | path-animation.ts、独立时间轴演示                | 弧长/端点/命令竞争单测、像素/拾取/重建回归、包消费         |
+| FR-052  | 相机视图契约                      | camera-runtime.ts、两种过渡、相机倍速滑块        | 速度/暂停/回调/终点单测、GPU 独立冻结、严格包消费          |
 | FR-051  | 相机视图、模型动画契约            | easing.ts、相机过渡/动画渐变、演示预设           | 位置/镜头/权重/异常单测、原生浏览器、严格共享包消费        |
 | FR-050  | 对象路径运动契约                  | path-animation.ts、路径倍速滑块                  | 速度/预算/重入单测、GPU 冻结/终点/拾取、严格包消费         |
 | FR-049  | 相机视图契约                      | camera-runtime.ts、两种过渡、投影演示            | 暂停/租约/回调单测、原生 GPU 绘制与像素、严格包消费        |
