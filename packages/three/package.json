@@ -72,6 +72,16 @@
       "types": "./dist/geometry.d.mts",
       "development": "./src/geometry.ts",
       "import": "./dist/geometry.mjs"
+    },
+    "./collision": {
+      "types": "./dist/collision.d.mts",
+      "development": "./src/collision.ts",
+      "import": "./dist/collision.mjs"
+    },
+    "./navigation": {
+      "types": "./dist/navigation.d.mts",
+      "development": "./src/navigation.ts",
+      "import": "./dist/navigation.mjs"
     }
   },
   "scripts": {
@@ -80,7 +90,8 @@
     "dev": "vp pack --watch"
   },
   "dependencies": {
-    "@types/three": "0.187.0"
+    "@types/three": "0.187.0",
+    "three-mesh-bvh": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

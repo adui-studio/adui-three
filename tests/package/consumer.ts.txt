@@ -181,3 +181,21 @@ export function invalidInputChecks(app: ThreeApp, object: Mesh) {
   // @ts-expect-error picking requires a dynamic objects getter
   attachPicking(app, {});
 }
+
+import { createCollisionWorld } from "@adui/three/collision";
+import type { CollisionWorld, CapsuleCollision } from "@adui/three/collision";
+import { attachFirstPersonControls, attachThirdPersonControls } from "@adui/three/navigation";
+import type { CharacterInput, FirstPersonControlsHandle, ThirdPersonControlsHandle } from "@adui/three/navigation";
+import { Group, Line3, Ray } from "three";
+export function consumeNavigation(app: ThreeApp, obstacles: Mesh[]) {
+ const world: CollisionWorld = createCollisionWorld(obstacles);
+ const result: CapsuleCollision = world.resolveCapsule(new Line3(new Vector3(0,1,0),new Vector3(0,2,0)),.3);
+ const hit = world.raycast(new Ray(new Vector3(0,3,0), new Vector3(0,-1,0)));
+ const input: CharacterInput = {forward:1,right:0,sprint:false};
+ const first: FirstPersonControlsHandle = attachFirstPersonControls(app,{world,keyboard:false});
+ first.setInput(input);first.teleport(new Vector3(0,0,4));first.jump();first.setEnabled(false);first.clearInput();first.unlock();first.dispose();
+ const actor=new Group();app.scene.add(actor);
+ const third: ThirdPersonControlsHandle = attachThirdPersonControls(app,actor,{world,distance:4,cameraPadding:.2});
+ third.controls.enableDamping=true;third.dispose();world.dispose();
+ return [result.converged,hit?.distance,first.grounded,first.locked,third.position];
+}

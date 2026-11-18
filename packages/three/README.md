@@ -826,3 +826,40 @@ loadEXR 与 loadHDR 共用 LoadHDROptions/HDREnvironment（HDR 表示高动态�
 ## 开发与验证
 
 根目录运行 `pnpm run dev` 打开双实例演示，`pnpm run ready` 执行静态检查、文档和单元测试及构建，`pnpm run test:browser` 验证构建后演示的实际 WebGL 行为。首次浏览器测试前运行 `pnpm exec playwright install chromium`。完整契约和验证范围见仓库 docs/SDD.md 与 docs/HARNESS.md；npm 安装包不包含仓库工程文档。
+
+## 第一与第三人称
+
+按需导入 navigation；核心不会加载碰撞库。第一人称使用原生 PointerLockControls，第三人称使用原生 OrbitControls，二者共享宿主更新和角色运动逻辑。先 dispose 旧 attachOrbitControls / 导航句柄，再切换控制器。演示：开发服务的 `/?demo=navigation`，两个场景独立运行。
+
+```ts
+import { attachFirstPersonControls } from "@adui/three/navigation";
+import { createCollisionWorld } from "@adui/three/collision";
+import { Vector3 } from "three";
+
+// app 是已创建的 ThreeApp，obstacles 是显式的静态普通 Mesh 根对象列表。
+const world = app.resources.track(createCollisionWorld(obstacles));
+const player = attachFirstPersonControls(app, {
+  world,
+  position: new Vector3(0, 0.02, 4), // 世界足点；原生场景和相机采用 Y-up
+});
+app.start();
+// 在用户点击按钮时 await player.lock()；Escape 或 player.unlock() 释放鼠标。
+// 程序/手柄输入：player.setInput({ forward: 1, right: 0, sprint: false });
+// player.clearInput(); player.jump(); player.teleport(new Vector3(0, 0.02, 4));
+```
+
+第三人称调用 `attachThirdPersonControls(app, actor, options)`；actor 为场景的直接子节点，推荐使用 Group 包裹动画模型。控制器独占 actor.position，模型子节点可独立播放动画；用 teleport 代替直接移动 actor。借用 actor/world，不负责释放模型。第三人称另可传 distance（默认4）和 cameraPadding（默认.15），相机射线遇障碍向 target 收回；只保护相机中心，不能代替球体或视锥碰撞。
+
+句柄暴露 controls、disposed、enabled、grounded 和独立 position/velocity 快照；setEnabled、setInput、clearInput、jump、teleport、dispose。第一人称另有 locked、lock():Promise<void>、unlock()。启用不启动/绘制场景；原生 controls.enabled 还取决于宿主运行、可见和非零尺寸。lock 要求用户手势，拒绝重复在途申请，结束后迟到授权释放；未授权失败由调用者处理。
+
+默认 speed=4、sprintMultiplier=2、radius=.3、height=1.8、eyeHeight=1.6、jumpSpeed=6、terminalSpeed=20、maxSubsteps=32、maxSlopeAngle=PI/4；有 world 时 gravity=20，否则0。维度/速度正有限，重力/跳跃可0；身高至少2radius，视点不超过身高。keyboard 默认 true：第一人称须拥有指针锁，第三人称须画布聚焦且无其他锁；WASD/方向键、Shift、空格。setInput 复制[-1,1]轴，斜向归一，不要求焦点；失焦/隐藏/禁用/销毁清空输入。宿主暂停不推进，重启清键盘输入，显式程序输入可保留。
+
+场景无变换，相机无父级、Y-up、单位缩放、自动矩阵。不要改原生 controls.object 或绕过运动器直接移动相机/actor；新取景/相机过渡会释放导航租约。控制器可另登记 scope；结束解除监听、宿主更新、原生控件和输入，只释放自身资源。子步超预算、世界失效或碰撞不收敛会抛错、结束控制器，并触发宿主更新异常策略。
+
+## 静态碰撞世界
+
+`createCollisionWorld(roots, { iterations?: number, skin?: number })` 使用 three-mesh-bvh 0.9.18，无全局原型修改。iterations 默认8、范围1..32整数；skin 默认1e-5、正有限。world 暴露 disposed、triangleCount、bounds 快照，resolveCapsule(Line3,radius)、raycast(Ray,maxDistance=Infinity)、dispose。胶囊返回独立 segment、correction、contacts（normal/point/depth）及 converged；射线返回独立 distance/point/normal 或 null。输入不修改，normal 朝向来向，胶囊半径正有限、射线距离非负。
+
+构建烘焙普通 Mesh 的世界三角形位置，源几何体/材质借用，快照不随源变换变化。包括隐藏对象，忽略材质、groups/drawRange；不接受蒙皮、形变、实例、批次和退化变换。动态模型请在应用端用成熟工具先烘焙再重建世界。bounds 包含 BVH 数值 padding。dispose 释放自有快照与索引，后续查询拒绝；控制器不会自动销毁借用世界。
+
+角色求解为有限子步的静态运动学表面控制，不是刚体引擎、完整连续碰撞、台阶攀爬或导航网格寻路；复杂深穿透可能不收敛。依据资产单位调整胶囊、skin、迭代和子步预算，不保证极端速度、任意网格角落或动态障碍。只有显式导入 collision 才加载实际 BVH 运行时代码。

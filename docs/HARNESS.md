@@ -18,10 +18,10 @@ pnpm install --frozen-lockfile
 | `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
 | `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
 | `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包的 475 项单元测试                                              |
+| `pnpm exec vp run -r test`      | 主包单元测试（最新数量见验证记录）                                 |
 | `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
 | `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行 99 项真实 Chromium 多步骤回归                       |
+| `pnpm run test:browser`         | 构建演示并执行真实 Chromium 多步骤回归                             |
 | `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
 | `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
 | `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR / 未压缩 EXR 环境                      |
@@ -29,7 +29,7 @@ pnpm install --frozen-lockfile
 
 首次浏览器回归需执行 `pnpm exec playwright install chromium`。测试使用 Playwright 1.64.1 / Chromium / SwiftShader，DPR=3 验证宿主上限 2；preview 使用 127.0.0.1:4173，端口需空闲，测试结束自动收尾。截图和失败 trace 位于忽略提交的 test-results。
 
-test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装真实 tarball、固定开发基准 three 和当前锁定的 TypeScript；不修改工作区依赖或锁文件。先以库声明消费方式编译，再为直接 import three 的应用添加匹配 @types/three，执行 NodeNext、Bundler、Bundler+development 三种类型解析，均使用 strict 与 skipLibCheck=false。两个 .ts.txt 仅是输入样例，复制到临时项目后才编译；Node 检查另覆盖十二个默认入口、禁止 fetch、数学/资源操作、私有路径拒绝和 development 源码文件存在性。development 仅检查解析，不尝试在 Node 执行 node_modules 内的 TS。
+test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装真实 tarball、固定开发基准 three 和当前锁定的 TypeScript；不修改工作区依赖或锁文件。先以库声明消费方式编译，再为直接 import three 的应用添加匹配 @types/three，执行 NodeNext、Bundler、Bundler+development 三种类型解析，均使用 strict 与 skipLibCheck=false。两个 .ts.txt 仅是输入样例，复制到临时项目后才编译；Node 检查另覆盖十四个运行时入口、禁止 fetch、数学/资源操作、私有路径拒绝和 development 源码文件存在性。development 仅检查解析，不尝试在 Node 执行 node_modules 内的 TS。
 
 该命令独立于 ready，安装可能访问 registry、复用本地 store；不表示离线可用、发布权限已确认或包已发布。成功时核验临时绝对路径后仅删除本次项目；失败打印并保留诊断目录。依据见 [pnpm pack](https://pnpm.io/cli/pack)、[pnpm install](https://pnpm.io/cli/install)、[Node 条件导出](https://nodejs.org/api/packages.html#conditional-exports) 与 [skipLibCheck](https://www.typescriptlang.org/tsconfig/skipLibCheck.html)。
 
@@ -62,6 +62,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-18 静态 BVH 与第一/第三人称：安装精确 three-mesh-bvh 0.9.18，未迁入第三方控件/碰撞示例源码。真实 BVH 数学 10 项、运动器 5 项、原生控件 10 项通过；首次运动器测试等待落地不足一帧及沿墙精确距离假设不成立，改用先落地和实际有界滑动断言。首次导航浏览器 1/3：测试将视线推到垂直极点，使水平分量为零；自动化 Escape 未解除原生锁。改为同高度水平鼠标输入，并在控制器显式处理 Escape 释放本画布锁，未增加超时/重试；专项 3/3（约27.9秒）通过。ready 先通过650单测、16文档测试、197文件格式、122源文件静态检查及全部构建；补充3项租约/借用/取景接管回归后导航10/10。提交前主包653/653通过（排除下一阶段尚未导出的路径几何测试）；最初根目录补跑命令误收集 Playwright/Node 测试，改为显式 packages/three/tests 范围后通过。十四入口真实 tarball、无 DOM BVH 构建、四次严格类型消费通过。完整浏览器122/122（497390.84毫秒，约8.3分钟）通过，零重试、零跳过；环境为 Chromium/SwiftShader。
 
 2026-11-13 相机过渡运行倍速：二十四项先行失败涵盖缺失接口及扩展的终点断言，实现后相机定向 139/139，暂停/倍速文件 60 项由 ready 通过。ready 通过 628 单测、16 文档测试、188 文件格式、114 源文件静态检查及全部构建。原生相机专项 4/4（约 17.2 秒）通过，同一画布在零倍速时仍有 drawElements、像素和进度保持，2 倍速完成正确终点，结束滑块禁用且输入取消有效；十二入口 tarball 和四次严格消费通过。完整浏览器 119/119（约 5.4 分钟）通过，零重试、零跳过。
 

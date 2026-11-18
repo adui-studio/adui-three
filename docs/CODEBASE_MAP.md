@@ -144,3 +144,10 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 相机倍速与暂停共用 camera-runtime.ts 的 createCameraClockController；camera-pause 单测覆盖四种运动的速度、延迟交接和终点丢弃。投影演示以最新过渡为滑块目标，camera-pause 浏览器回归同时证明零速度冻结和宿主继续绘制。
 
 重要模块、入口或职责变化时更新；已存在路径用相对链接，规划保持文字标注。
+
+## 角色控制与碰撞
+
+- [collision.ts](../packages/three/src/collision.ts)：普通 Mesh 世界快照、真实 BVH 胶囊/射线查询；[测试](../packages/three/tests/collision.test.ts)。
+- [character-body.ts](../packages/three/src/character-body.ts)：私有有限子步运动器；[真实表面测试](../packages/three/tests/character-body.test.ts)。
+- [navigation.ts](../packages/three/src/navigation.ts)：第一/第三人称原生控件、相机租约和输入；[单测](../packages/three/tests/navigation.test.ts)。
+- [双实例演示](../apps/website/src/navigation.ts) / [浏览器回归](../tests/browser/navigation.spec.ts)：`/?demo=navigation`，原生指针锁、墙体、遮挡与反复清理。

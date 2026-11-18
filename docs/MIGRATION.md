@@ -40,7 +40,7 @@ pnpm add ./vendor/adui-three-0.0.0.tgz
 | CustomLight.js                      | 原生 Three.js 灯光                                     | 当前没有独立灯光封装；应用管理灯光策略及自有阴影资源                        |
 | 原对象尺寸计算                      | `@adui/three/geometry` 的 computeObjectBounds          | 独立世界 Box3，当前 CPU 姿态；实例/批次保留原生保守边界                     |
 
-OBJ/FBX、CSS3D、RGB 偏移、雷达、寻路、碰撞、漫游和框架适配没有在本轮实现。业务解密、鉴权、CORS 与私有路径留在应用及资产服务，不迁入通用主包。完整公开用法见 [包 README](../packages/three/README.md)。
+OBJ/FBX、CSS3D、RGB 偏移、雷达、寻路和框架适配没有在本轮实现。静态 BVH 碰撞与第一/第三人称已通过 collision/navigation 入口提供，使用显式障碍快照与角色 Group；先释放旧控制器，保留原宿主循环，不迁入旧运动/碰撞源码。业务解密、鉴权、CORS 与私有路径留在应用及资产服务，不迁入通用主包。完整公开用法见 [包 README](../packages/three/README.md)。
 
 ## 先迁移生命周期
 

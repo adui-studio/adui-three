@@ -12,6 +12,8 @@ globalThis.fetch = () => {
 const expected = {
   "@adui/three": ["ResourceScope", "ThreeApp", "OrthographicThreeApp"],
   "@adui/three/controls": ["attachOrbitControls", "attachTransformControls"],
+  "@adui/three/collision": ["createCollisionWorld"],
+  "@adui/three/navigation": ["attachFirstPersonControls", "attachThirdPersonControls"],
   "@adui/three/loaders": ["loadGLTF", "cloneGLTF"],
   "@adui/three/interaction": ["attachPicking"],
   "@adui/three/labels": ["attachDOMLabels"],
@@ -64,6 +66,10 @@ if (!development) {
   const { computeObjectFrame } = await import("@adui/three/camera");
   const mesh = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
   const { computeObjectBounds } = await import("@adui/three/geometry");
+  const { createCollisionWorld } = await import("@adui/three/collision");
+  const world = createCollisionWorld([mesh]);
+  assert.equal(world.triangleCount, 12);
+  world.dispose();
   const bounds = computeObjectBounds(mesh);
   assert.deepEqual(bounds.min.toArray(), [-0.5, -0.5, -0.5]);
   assert.deepEqual(bounds.max.toArray(), [0.5, 0.5, 0.5]);
@@ -110,7 +116,7 @@ if (!development) {
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");
   assert.ok(
-    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|transitionToCameraView|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath/.test(
+    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|transitionToCameraView|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath|MeshBVH|createCollisionWorld|attachFirstPersonControls|attachThirdPersonControls/.test(
       core,
     ),
   );

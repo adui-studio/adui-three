@@ -11,3 +11,6 @@ export * from "@adui/three/environment";
 export * from "@adui/three/textures";
 export * from "@adui/three/capture";
 export * from "@adui/three/geometry";
+
+export * from "@adui/three/collision";
+export * from "@adui/three/navigation";

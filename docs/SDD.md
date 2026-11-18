@@ -366,6 +366,9 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-048  | 模型动画契约                      | animation.ts、模型倍速滑块                       | 速度/渐变/通知排队单测、GPU 冻结与完成、严格包消费         |
 | FR-047  | 相机视图平滑恢复契约              | camera-view-transition.ts、投影演示              | 插值/取消/租约/重入单测、GPU 书签恢复、严格包消费          |
 | FR-046  | 对象路径运动契约                  | path-animation.ts、有限循环演示                  | 计数/端点/精度/竞争单测、完成像素/拾取回归、包消费         |
+| FR-053  | 静态碰撞世界契约                  | collision.ts / BVH                               | 真实几何单测、无 DOM 包查询                                |
+| FR-054  | 角色导航契约                      | navigation.ts / character-body.ts、双实例演示    | 控件/运动单测、原生指针锁/像素、严格包消费                 |
+| FR-055  | 路径几何规划                      | 待实现                                           | 待实现，不表示现有 followPath 支持几何生成                 |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
@@ -410,3 +413,17 @@ animation 入口导出 followPath(app,object,FollowPathOptions):PathMotionHandle
 ## 维护
 
 接口、数据结构、核心算法、生命周期和错误契约变化时同步类型、包 README、需求及测试。新增正式需求加入追踪；未来模块另标规划，不提前伪装为当前实现。
+
+## 静态碰撞世界契约
+
+collision 导出 createCollisionWorld(objects:readonly Object3D[],options?:CollisionWorldOptions):CollisionWorld。iterations 为 1..32 整数默认 8，skin 为正有限默认 1e-5。world 暴露 disposed、triangleCount、bounds:Box3 快照，resolveCapsule(segment:Line3,radius:number):CapsuleCollision、raycast(ray:Ray,maxDistance?:number):CollisionRayHit|null、dispose。胶囊结果含独立 segment/correction/contacts、converged；接触含 normal/point/depth。射线结果含 distance/point/normal，normal 朝向射线来向；maxDistance 默认 Infinity，允许非负数。
+
+构建接受普通非形变三角形 Mesh，世界矩阵非退化；快照不跟随源变换。拒绝空根、无网格、非法几何体、蒙皮/实例/批次等。构建/查询同步重入拒绝，输入和源资产不变，自有树/几何体销毁后不允许查询。bounds 含原生 padding，详见 [ADR-0041](adr/0041-character-navigation.md)。
+
+## 角色导航契约
+
+navigation 导出 attachFirstPersonControls(app:ThreeApp,options?):FirstPersonControlsHandle、attachThirdPersonControls(app:ThreeApp,actor:Object3D,options?):ThirdPersonControlsHandle。选项含借用 world/scope、position 足点快照、keyboard=true；speed=4、sprintMultiplier=2、radius=.3、height=1.8、eyeHeight=1.6、jumpSpeed=6、terminalSpeed=20、maxSubsteps=32（1..128）、maxSlopeAngle=PI/4（0..小于PI/2），gravity 有 world 默认20否则0。第三人称另 distance=4、cameraPadding=.15。长度/速度为正有限，gravity/jumpSpeed/padding 可0，height>=2radius、eyeHeight<=height。
+
+句柄暴露原生 controls、disposed、请求 enabled、position/velocity 独立 Vector3、grounded；setEnabled、setInput({forward?,right?,sprint?})、clearInput、jump、teleport、dispose。轴默认0且范围[-1,1]，斜向归一；第一人称另 locked、lock():Promise<void>、unlock()。不启动或绘制宿主。scope/宿主释放控制器，actor/world 借用。启用状态还受宿主运行/可见/尺寸控制，键盘需要焦点/锁，程序输入显式保留；Escape、失焦和结束只释放本画布锁。已结束除清输入/解锁/销毁外的控制方法拒绝。
+
+position 由运动器独占，外部写 actor.position 失败并清理；相机/场景/actor 结构约束和输入租约见 ADR-0041。胶囊子步过预算或碰撞未收敛抛错，候选位置/速度不提交，宿主按更新异常策略停止。第三人称射线遮挡只保护相机中心，不替代完整物理。先释放原 OrbitControls 再附加角色控制；新相机取景/过渡释放该导航租约。
