@@ -2,17 +2,20 @@ import {
   AdditiveBlending,
   BufferGeometry,
   CircleGeometry,
+  CylinderGeometry,
+  SphereGeometry,
   Color,
   DoubleSide,
   Float32BufferAttribute,
   Mesh,
+  Points,
   ShaderMaterial,
   Vector3,
 } from "three";
 import type { Curve } from "three";
 import type { AnyThreeApp } from "./three-app.ts";
 import { ResourceScope } from "./resources.ts";
-import { createPathCurve, createPathTube } from "./path-geometry.ts";
+import { createPathCurve, createPathTube, createPathRibbon } from "./path-geometry.ts";
 import { retireAfterRender } from "./render-retirement.ts";
 export interface EffectOptions {
   color?: number;
@@ -42,8 +45,28 @@ export interface RadarOptions extends EffectOptions {
   tail?: number;
   rings?: number;
 }
-export interface EffectHandle {
-  readonly mesh: Mesh<BufferGeometry, ShaderMaterial>;
+export interface RippleOptions extends EffectOptions {
+  radius?: number;
+  segments?: number;
+  rings?: number;
+  /** Fractional width of each repeating radial wave. Default .15. */
+  width?: number;
+}
+export interface LightPillarOptions extends EffectOptions {
+  radius?: number;
+  height?: number;
+  segments?: number;
+}
+export interface ShieldOptions extends EffectOptions {
+  radius?: number;
+  /** Native sphere width segments; height segments are half (rounded up). Default 48. */
+  segments?: number;
+  /** View-angle rim exponent, .1..16. Default 2. */
+  fresnelPower?: number;
+  /** Longitude cells, 4..64. Default 12. Latitude cells use half this count. */
+  gridSegments?: number;
+}
+export interface EffectPlayback {
   readonly disposed: boolean;
   readonly state: "running" | "paused" | "disposed";
   readonly phase: number;
@@ -54,14 +77,36 @@ export interface EffectHandle {
   setSpeed(this: void, speed: number): void;
   dispose(this: void): void;
 }
+export interface EffectHandle extends EffectPlayback {
+  readonly mesh: Mesh<BufferGeometry, ShaderMaterial>;
+}
+export interface FlyPointsHandle extends EffectPlayback {
+  readonly points: Points<BufferGeometry, ShaderMaterial>;
+}
+export interface FlyPointsOptions extends EffectOptions {
+  curve: Curve<Vector3>;
+  /** Total stationary path samples, 2..65536. Default 256. */
+  count?: number;
+  /** Physical drawing-buffer pixels, 1..64; native hardware may clamp further. Default 6. */
+  size?: number;
+  tail?: number;
+}
+export interface FlowLineOptions extends EffectOptions {
+  curve: Curve<Vector3>;
+  width?: number;
+  segments?: number;
+  /** Simultaneous repeating pulses, 1..32. Default 3. */
+  pulses?: number;
+  tail?: number;
+}
 function positive(value: number, name: string, zero = false): number {
   if (!Number.isFinite(value) || (zero ? value < 0 : value <= 0))
     throw new RangeError(name + " must be finite and " + (zero ? "nonnegative" : "positive"));
   return value;
 }
-function tail(value: number): number {
+function tail(value: number, name = "tail"): number {
   if (!Number.isFinite(value) || Math.fround(value) <= 0 || value > 1)
-    throw new RangeError("tail must be in (0,1]");
+    throw new RangeError(name + " must be in (0,1]");
   return value;
 }
 function settings(app: AnyThreeApp, options: EffectOptions) {
@@ -112,16 +157,36 @@ const radarFragment =
   `uniform float uTail;uniform float uRings;
 void main(){vec2 p=(vUv-0.5)*2.0;float radius=length(p);float angle=radius<0.00001?0.0:atan(p.y,p.x)/6.28318530718+0.5;float sweep=1.0-smoothstep(0.0,uTail,fract(uPhase-angle+1.0));float grid=1.0-smoothstep(0.015,0.035,abs(fract(radius*uRings)-0.5));float rim=1.0-smoothstep(0.015,0.035,abs(radius-0.96));float alpha=(0.08*grid+0.2*rim+0.8*sweep)*(1.0-smoothstep(0.98,1.0,radius));` +
   output;
-function mount(
+const rippleFragment =
+  declarations +
+  `uniform float uRings;uniform float uWidth;
+void main(){float radius=length((vUv-.5)*2.0);float distanceToWave=abs(fract(radius*uRings-uPhase)-.5);float wave=1.0-smoothstep(uWidth*.25,uWidth*.5,distanceToWave);float alpha=wave*max(1.0-radius,0.0)*(1.0-smoothstep(.98,1.0,radius));` +
+  output;
+const pillarFragment =
+  declarations +
+  `void main(){float streak=.35+.65*pow(.5+.5*cos(vUv.x*50.2654824574),6.0);float pulse=.35+.65*pow(.5+.5*cos((vUv.y-uPhase)*12.5663706144),4.0);float alpha=streak*pulse*pow(1.0-vUv.y,1.5);` +
+  output;
+const shieldVertex = `varying vec2 vUv;varying vec3 vNormal;varying vec3 vViewPosition;
+void main(){vUv=uv;vec4 viewPosition=modelViewMatrix*vec4(position,1.0);vNormal=normalMatrix*normal;vViewPosition=-viewPosition.xyz;gl_Position=projectionMatrix*viewPosition;}`;
+const shieldFragment =
+  declarations +
+  `uniform float uFresnel;uniform float uGrid;varying vec3 vNormal;varying vec3 vViewPosition;
+void main(){vec3 viewDirection=isOrthographic?vec3(0.0,0.0,1.0):normalize(vViewPosition);float rim=pow(1.0-clamp(abs(dot(normalize(vNormal),viewDirection)),0.0,1.0),uFresnel);vec2 cell=abs(fract(vUv*vec2(uGrid,uGrid*.5))-.5);float grid=1.0-smoothstep(.015,.045,min(cell.x,cell.y));float pulse=.65+.35*(.5+.5*cos((vUv.y-uPhase)*6.28318530718));float alpha=(.04+.8*rim+.12*grid)*pulse;` +
+  output;
+type EffectNode = Mesh<BufferGeometry, ShaderMaterial> | Points<BufferGeometry, ShaderMaterial>;
+function mountDrawable<T extends EffectNode, K extends "mesh" | "points">(
   app: AnyThreeApp,
   geometry: BufferGeometry,
   config: ReturnType<typeof settings>,
   fragmentShader: string,
   extra: Record<string, { value: number }>,
-): EffectHandle {
+  key: K,
+  createNode: (geometry: BufferGeometry, material: ShaderMaterial) => T,
+  vertex = vertexShader,
+): EffectPlayback & Readonly<Record<K, T>> {
   const owned = new ResourceScope();
   owned.track(geometry);
-  let handle!: EffectHandle,
+  let handle!: EffectPlayback & Readonly<Record<K, T>>,
     disposed = false,
     paused = false,
     phase = 0,
@@ -142,7 +207,7 @@ function mount(
           uPhase: phaseUniform,
           ...extra,
         },
-        vertexShader,
+        vertexShader: vertex,
         fragmentShader,
         transparent: true,
         depthWrite: false,
@@ -150,74 +215,77 @@ function mount(
         blending: AdditiveBlending,
       }),
     );
-    const mesh = owned.track(new Mesh(geometry, material));
-    handle = {
-      mesh,
-      get disposed() {
-        return disposed;
-      },
-      get state() {
-        return disposed ? "disposed" : paused ? "paused" : "running";
-      },
-      get phase() {
-        return phase;
-      },
-      get speed() {
-        return speed;
-      },
-      pause() {
-        active();
-        paused = true;
-      },
-      resume() {
-        active();
-        paused = false;
-      },
-      seek(value) {
-        active();
-        if (!Number.isFinite(value) || value < 0 || value > 1)
-          throw new RangeError("phase must be in [0,1]");
-        phaseUniform.value = value === 1 ? 0 : value;
-        if (alive()) phase = phaseUniform.value;
-      },
-      setSpeed(value) {
-        active();
-        speed = positive(value, "speed", true);
-      },
-      dispose() {
-        if (disposed) return;
-        disposed = true;
-        const errors: unknown[] = [];
-        for (const cleanup of [
-          unsubscribe,
-          () => app.resources.untrack(handle),
-          () => config.scope?.untrack(handle),
+    const mesh = owned.track(createNode(geometry, material));
+    handle = Object.assign(
+      {
+        get disposed() {
+          return disposed;
+        },
+        get state() {
+          return disposed ? "disposed" : paused ? "paused" : "running";
+        },
+        get phase() {
+          return phase;
+        },
+        get speed() {
+          return speed;
+        },
+        pause() {
+          active();
+          paused = true;
+        },
+        resume() {
+          active();
+          paused = false;
+        },
+        seek(value: number) {
+          active();
+          if (!Number.isFinite(value) || value < 0 || value > 1)
+            throw new RangeError("phase must be in [0,1]");
+          phaseUniform.value = value === 1 ? 0 : value;
+          if (alive()) phase = phaseUniform.value;
+        },
+        setSpeed(value: number) {
+          active();
+          speed = positive(value, "speed", true);
+        },
+        dispose() {
+          if (disposed) return;
+          disposed = true;
+          const errors: unknown[] = [];
+          for (const cleanup of [
+            unsubscribe,
+            () => app.resources.untrack(handle),
+            () => config.scope?.untrack(handle),
 
-          () =>
-            retireAfterRender(app.renderer, () => {
-              const errors: unknown[] = [];
-              try {
-                mesh.removeFromParent();
-              } catch (error) {
-                errors.push(error);
-              }
-              try {
-                owned.dispose();
-              } catch (error) {
-                errors.push(error);
-              }
-              if (errors.length) throw new AggregateError(errors, "Effect resource cleanup failed");
-            }),
-        ]) {
-          try {
-            cleanup();
-          } catch (error) {
-            errors.push(error);
+            () =>
+              retireAfterRender(app.renderer, () => {
+                const errors: unknown[] = [];
+                try {
+                  mesh.removeFromParent();
+                } catch (error) {
+                  errors.push(error);
+                }
+                try {
+                  owned.dispose();
+                } catch (error) {
+                  errors.push(error);
+                }
+                if (errors.length)
+                  throw new AggregateError(errors, "Effect resource cleanup failed");
+              }),
+          ]) {
+            try {
+              cleanup();
+            } catch (error) {
+              errors.push(error);
+            }
           }
-        }
-        if (errors.length) throw new AggregateError(errors, "Effect cleanup failed");
+          if (errors.length) throw new AggregateError(errors, "Effect cleanup failed");
+        },
       },
-    };
+      { [key]: mesh },
+    ) as EffectPlayback & Readonly<Record<K, T>>;
     app.resources.track(handle);
     if (config.scope && config.scope !== app.resources) config.scope.track(handle);
     if (config.addToScene) app.scene.add(mesh);
@@ -253,6 +321,36 @@ function mount(
     throw error;
   }
 }
+function mount(
+  app: AnyThreeApp,
+  geometry: BufferGeometry,
+  config: ReturnType<typeof settings>,
+  fragment: string,
+  extra: Record<string, { value: number }>,
+  vertex = vertexShader,
+): EffectHandle {
+  return mountDrawable(
+    app,
+    geometry,
+    config,
+    fragment,
+    extra,
+    "mesh",
+    (g, m) => new Mesh(g, m),
+    vertex,
+  );
+}
+const pointsVertex = `attribute float aProgress;uniform float uPhase;uniform float uTail;uniform float uSize;varying float vTrail;
+void main(){float behind=fract(uPhase-aProgress+1.0);vTrail=pow(1.0-smoothstep(0.0,uTail,behind),2.0);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);gl_PointSize=uSize;}`;
+const pointsFragment =
+  `uniform vec3 uColor;uniform float uOpacity;varying float vTrail;
+void main(){float disc=1.0-smoothstep(.18,.5,length(gl_PointCoord-.5));float alpha=disc*vTrail;` +
+  output;
+const flowFragment =
+  declarations +
+  `uniform float uSpan;uniform float uPulses;uniform float uTail;
+void main(){float behind=fract(uPhase-vUv.x/uSpan*uPulses+1.0);float trail=pow(1.0-smoothstep(0.0,uTail,behind),2.0);float edge=1.0-smoothstep(.3,.5,abs(vUv.y-.5));float alpha=(.04+.96*trail)*edge;` +
+  output;
 export function attachFlyLine(app: AnyThreeApp, options: FlyLineOptions): EffectHandle {
   const config = settings(app, options),
     length = positive(options.curve.getLength(), "curve length"),
@@ -330,5 +428,147 @@ export function attachRadar(app: AnyThreeApp, options: RadarOptions = {}): Effec
   return mount(app, geometry, config, radarFragment, {
     uTail: { value: trail },
     uRings: { value: rings },
+  });
+}
+
+function dimension(value: number, name: string): number {
+  positive(value, name);
+  if (Math.fround(value) <= 0 || !Number.isFinite(Math.fround(value)))
+    throw new RangeError(name + " exceeds the positive Float32 range");
+  return value;
+}
+function subdivisions(value: number): number {
+  if (!Number.isInteger(value) || value < 16 || value > 256)
+    throw new RangeError("segments must be an integer in 16..256");
+  return value;
+}
+/** Repeating expanding rings on the local XZ plane; move slightly above a receiving surface. */
+export function attachRipple(app: AnyThreeApp, options: RippleOptions = {}): EffectHandle {
+  const config = settings(app, options),
+    radius = dimension(options.radius ?? 2, "radius"),
+    segments = subdivisions(options.segments ?? 64),
+    rings = options.rings ?? 3,
+    width = tail(options.width ?? 0.15, "width");
+  if (!Number.isInteger(rings) || rings < 1 || rings > 16)
+    throw new RangeError("rings must be an integer in 1..16");
+  const geometry = new CircleGeometry(radius, segments);
+  geometry.rotateX(-Math.PI / 2);
+  return mount(app, geometry, config, rippleFragment, {
+    uRings: { value: rings },
+    uWidth: { value: width },
+  });
+}
+/** Open cylinder rising along local Y, with its base at y=0. */
+export function attachLightPillar(
+  app: AnyThreeApp,
+  options: LightPillarOptions = {},
+): EffectHandle {
+  const config = settings(app, options),
+    radius = dimension(options.radius ?? 0.45, "radius"),
+    height = dimension(options.height ?? 4, "height"),
+    segments = subdivisions(options.segments ?? 64);
+  const geometry = new CylinderGeometry(radius, radius, height, segments, 1, true);
+  geometry.translate(0, height / 2, 0);
+  return mount(app, geometry, config, pillarFragment, {});
+}
+/** Local sphere with a view-angle rim, latitude/longitude grid and traveling pulse. */
+export function attachShield(app: AnyThreeApp, options: ShieldOptions = {}): EffectHandle {
+  const config = settings(app, options),
+    radius = dimension(options.radius ?? 2, "radius"),
+    segments = subdivisions(options.segments ?? 48),
+    fresnel = options.fresnelPower ?? 2,
+    grid = options.gridSegments ?? 12;
+  if (
+    !Number.isFinite(fresnel) ||
+    fresnel < 0.1 ||
+    fresnel > 16 ||
+    !Number.isInteger(grid) ||
+    grid < 4 ||
+    grid > 64
+  )
+    throw new RangeError("Invalid shield Fresnel power (.1..16) or grid segments (4..64)");
+  const geometry = new SphereGeometry(radius, segments, Math.ceil(segments / 2));
+  return mount(
+    app,
+    geometry,
+    config,
+    shieldFragment,
+    {
+      uFresnel: { value: fresnel },
+      uGrid: { value: grid },
+    },
+    shieldVertex,
+  );
+}
+
+/** GPU particle tail along a sampled native curve; positions stay fixed after construction. */
+export function attachFlyPoints(app: AnyThreeApp, options: FlyPointsOptions): FlyPointsHandle {
+  const config = settings(app, options),
+    curve = options.curve,
+    count = options.count ?? 256,
+    size = options.size ?? 6,
+    trail = tail(options.tail ?? 0.25);
+  if (
+    !Number.isInteger(count) ||
+    count < 2 ||
+    count > 65536 ||
+    !Number.isFinite(size) ||
+    size < 1 ||
+    size > 64
+  )
+    throw new RangeError("Invalid fly point count (2..65536) or pixel size (1..64)");
+  dimension(curve.getLength(), "curve length");
+  const positions = new Float32Array(count * 3),
+    progress = new Float32Array(count),
+    point = new Vector3();
+  for (let i = 0; i < count; i++) {
+    const ratio = i / (count - 1),
+      sampled = curve.getPointAt(ratio, point);
+    if (!sampled?.isVector3 || !sampled.toArray().every(Number.isFinite))
+      throw new RangeError("Fly point samples must be finite Vector3 values");
+    sampled.toArray(positions, i * 3);
+    progress[i] = ratio;
+  }
+  if (!positions.every(Number.isFinite))
+    throw new RangeError("Fly points exceed the Float32 range");
+  const geometry = new BufferGeometry();
+  try {
+    geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+    geometry.setAttribute("aProgress", new Float32BufferAttribute(progress, 1));
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
+  } catch (error) {
+    geometry.dispose();
+    throw error;
+  }
+  return mountDrawable(
+    app,
+    geometry,
+    config,
+    pointsFragment,
+    {
+      uTail: { value: trail },
+      uSize: { value: size },
+    },
+    "points",
+    (g, m) => new Points(g, m),
+    pointsVertex,
+  );
+}
+/** Repeating traveling light pulses on a continuous path ribbon. */
+export function attachFlowLine(app: AnyThreeApp, options: FlowLineOptions): EffectHandle {
+  const config = settings(app, options),
+    curve = options.curve,
+    length = dimension(curve.getLength(), "curve length"),
+    width = dimension(options.width ?? 0.12, "width"),
+    pulses = options.pulses ?? 3,
+    trail = tail(options.tail ?? 0.3);
+  if (!Number.isInteger(pulses) || pulses < 1 || pulses > 32)
+    throw new RangeError("pulses must be an integer in 1..32");
+  const geometry = createPathRibbon(curve, { width, segments: options.segments ?? 128 });
+  return mount(app, geometry, config, flowFragment, {
+    uSpan: { value: length },
+    uPulses: { value: pulses },
+    uTail: { value: trail },
   });
 }

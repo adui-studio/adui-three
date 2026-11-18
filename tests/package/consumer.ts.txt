@@ -247,3 +247,24 @@ export function consumeEditor(app: ThreeApp) {
   binding.dispose(); room.dispose(); settings.dispose();
   return [preset.renderer, settings.settings];
 }
+import { attachRipple, attachLightPillar, attachShield } from "@adui/three/effects";
+import type { RippleOptions, LightPillarOptions, ShieldOptions } from "@adui/three/effects";
+export function consumeCommonEffects(app: ThreeApp) {
+  const rippleOptions: RippleOptions = { radius: 2, rings: 3, width: .2 };
+  const pillarOptions: LightPillarOptions = { radius: .4, height: 4 };
+  const shieldOptions: ShieldOptions = { radius: 2, fresnelPower: 3, gridSegments: 16 };
+  const handles: EffectHandle[] = [attachRipple(app, rippleOptions), attachLightPillar(app, pillarOptions), attachShield(app, shieldOptions)];
+  for (const handle of handles) { handle.pause(); handle.seek(.5); handle.setSpeed(.4); handle.resume(); handle.dispose(); }
+}
+import { attachFlyPoints, attachFlowLine } from "@adui/three/effects";
+import type { FlyPointsHandle, FlyPointsOptions, FlowLineOptions, EffectPlayback } from "@adui/three/effects";
+export function consumePointFlight(app: ThreeApp) {
+ const curve = new LineCurve3(new Vector3(), new Vector3(5,1,0));
+ const options: FlyPointsOptions = { curve, count: 512, size: 8, tail: .3 };
+ const points: FlyPointsHandle = attachFlyPoints(app, options);
+ const flowOptions: FlowLineOptions = { curve, width: .2, pulses: 4 };
+ const flow: EffectHandle = attachFlowLine(app, flowOptions);
+ const playbacks: EffectPlayback[] = [points, flow];
+ points.points.position.y = 1;
+ for(const handle of playbacks) { handle.pause(); handle.seek(.5); handle.resume(); handle.dispose(); }
+}

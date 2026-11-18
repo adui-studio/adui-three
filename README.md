@@ -211,3 +211,7 @@ docs/                需求、设计、决策与验证记录
 ## Editor 配置对照
 
 开发服务打开 `/?demo=editor`，比较七种原生色调、曝光、Basic/PCF/VSM 阴影及可选 Room 环境。基准采用 Editor 的 Neutral / 曝光1 / PCF；左侧使用封装，右侧直接设置原生色调与生成 PMREM。API 与生命周期见[包使用说明](packages/three/README.md#editor-效果配置基准)，设计与已知边界见 [ADR-0045](docs/adr/0045-editor-rendering.md)。
+
+## 常用特效合集
+
+开发服务打开 `/?demo=effects-collection`，体验点云飞线、路径流光、扩散波纹、光柱与能量护罩；透视/正交实例可独立显隐、暂停、定位和开启泛光。API与参数见[包使用说明](packages/three/README.md#点云飞线与常用特效)，原有管道飞线仍保留。

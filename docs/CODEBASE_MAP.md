@@ -168,3 +168,7 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 - [rendering.ts](../packages/three/src/rendering.ts) / [单测](../packages/three/tests/rendering.test.ts)：Editor 独立预设、原生色调/曝光租约和绘制结束应用。
 - [environment.ts](../packages/three/src/environment.ts) / [Room 单测](../packages/three/tests/environment-room.test.ts)：共用环境资产、临时原生 Room/PMREM 和返回 cube target 所有权。
 - [Editor 对照演示](../apps/website/src/editor.ts) / [浏览器像素对照](../tests/browser/editor.spec.ts)：/?demo=editor，七种色调、曝光、Basic/PCF/VSM、Room 与绘制中更新。
+
+## 常用效果合集
+
+[effects.ts](../packages/three/src/effects.ts) 现含八种效果，共用EffectPlayback与Mesh/Points挂载；[单测](../packages/three/tests/effects.test.ts)覆盖原生采样/几何及共用清理。[合集演示](../apps/website/src/effects-collection.ts)与[浏览器验证](../tests/browser/effects-collection.spec.ts)位于/?demo=effects-collection，提供点云飞线、路径流光、波纹、光柱、护罩，两类相机和可选泛光。

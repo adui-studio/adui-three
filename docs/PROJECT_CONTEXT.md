@@ -2,7 +2,7 @@
 
 ## 目标与当前阶段
 
-更新日期：2026-11-18。主 npm 包 @adui/three，版本0.0.0，尚未发布。最近已交付第一/第三人称与 BVH、独立路径几何、飞线/光墙/雷达、实时阴影和颜色滤镜；当前按用户指定的 Three.js Editor 干净配置补充 Neutral/1 预设、七种色调与曝光、Basic 阴影和原生 Room PMREM。普通宿主默认保持兼容。/?demo=editor 提供 SDK 与直接原生颜色/环境对照；代码和 [SDD](SDD.md) 描述实现，[需求](REQUIREMENTS.md) 描述目标。本地归档见 [迁移指南](MIGRATION.md)，旧业务兼容仍待实测。
+更新日期：2026-11-18。主 npm 包 @adui/three，版本0.0.0，尚未发布。最近已交付第一/第三人称与 BVH、独立路径几何、飞线/光墙/雷达、实时阴影和颜色滤镜；已按用户指定的 Three.js Editor 干净配置实现 Neutral/1 预设、七种色调与曝光、Basic 阴影和原生 Room PMREM；当前新增点云飞线、路径流光、扩散波纹、光柱和能量护罩。普通宿主默认保持兼容。/?demo=editor 提供 SDK 与直接原生颜色/环境对照；代码和 [SDD](SDD.md) 描述实现，[需求](REQUIREMENTS.md) 描述目标。本地归档见 [迁移指南](MIGRATION.md)，旧业务兼容仍待实测。
 
 用户授权持续封装、分步提交推送；提交描述和正文使用中文，格式 type(scope): emoji 中文描述。不得改写已有提交或擅自发布 npm。用户明确“不做任何 CI”：不新增/启用工作流，不调整组织或仓库 Actions 设置。历史工作流已由 e6ea2c2 移除，保留当时的本地输入回归修复。
 
@@ -78,3 +78,7 @@ WebGL 上下文丢失会将 contextLost 设 true 并完整结束该宿主，业�
 ## Editor 基准接手点
 
 FR-059/060 与 ADR-0045 定义显式 Editor 预设、可恢复色调句柄和 Room 环境。rendering 不影响普通宿主默认；Room 同步执行 PMREM GPU 工作，生成与绑定分离，禁止宿主绘制期创建，资产拥有返回 cube target。原生异常前未返回的局部输出资源仍无法保证全回收。对照页两侧共用阴影封装，独立原生对照只覆盖色调/曝光与 Room，不把结果扩展为整个 Editor 的等价实现。真实验证证据统一写入 Harness。
+
+## 常用特效接手点
+
+FR-061/062与ADR-0046扩展effects至八种形态；Points和Mesh分别暴露points/mesh，控制接口共用EffectPlayback。Points是固定曲线采样+GPU尾迹，流光是重复路径带脉冲，保留原管道飞线。/?demo=effects-collection含透视/正交、显隐/时间/泛光和原生绘制中回收；原生全屏三角形计入后处理自身的几何基线。最新命令与验证范围见Harness。

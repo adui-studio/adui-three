@@ -374,6 +374,8 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-058  | 后处理颜色契约                    | postprocessing.ts 原生滤镜组合                   | pass/参数单测、灰度/色调像素、严格包声明                   |
 | FR-059  | Editor 配置契约                   | rendering.ts、Editor 对照演示                    | 原生映射/生命周期、实际像素和输出管线变更                  |
 | FR-060  | Room 环境契约                     | environment.ts、原生 Room/PMREM                  | 临时资源/状态回滚、反射像素和 GPU 资源基线                 |
+| FR-061  | 常用特效契约                      | effects.ts、特效合集演示                         | 原生形状/参数单测、双相机像素/泛光/资源基线                |
+| FR-062  | 点云飞线与流光契约                | Points/路径带和共用EffectPlayback                | 采样快照/数量边界、真实点绘制、循环清理和包声明            |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
@@ -468,3 +470,15 @@ rendering 导出 createEditorRenderPreset():EditorRenderPreset 和 attachRendere
 EnvironmentAsset<T extends Texture=Texture> 统一 texture/resources/disposed/dispose；HDREnvironment=EnvironmentAsset<DataTexture> 保留 HDR/EXR 类型，RoomEnvironmentAsset=EnvironmentAsset<Texture>。attachEnvironment 接受共同资产，只允许同一宿主的活跃资源，background 可选使用其纹理；绑定按值恢复。createRoomEnvironment(app,{sigma?,size?}={}):RoomEnvironmentAsset 默认 sigma=.04/size=256，sigma在[0,1]，size仅256/512/1024；同步 GPU 生成、不绑定、不启动，禁止宿主绘制内调用。
 
 原生 RoomEnvironment/PMREMGenerator 为临时拥有；r187 WebGLCubeRenderTarget 为资产拥有，资源 hooks/绑定先清，再按宿主绘制结束边界 dispose target。生成前后保存/恢复 render target/face/mip、autoClear 全部开关、XR、tone/exposure、clear color/alpha；已结束所有者不交付，所有清理尝试后聚合异常。原生生成异常前未返回的输出分配无法通过公开接口取得，仍有残留边界。具体决策、Editor 来源和原生对照范围见 ADR-0045。
+
+## 常用特效契约
+
+effects新增attachRipple(app,options?)/attachLightPillar(app,options?)/attachShield(app,options?)，均返回既有EffectHandle。共用EffectOptions颜色/强度/透明度/速度/挂载/scope，动态mesh及既有控制方法不变。RippleOptions含radius=2、segments=64、rings=3、width=.15；局部XZ圆形波纹。LightPillarOptions含radius=.45、height=4、segments=64；开放圆柱沿局部Y，从y=0起。ShieldOptions含radius=2、segments=48、fresnelPower=2、gridSegments=12；球体高度细分ceil(segments/2)，双面视角边缘项、网格及周期脉冲，正交使用固定视线。
+
+新空间尺寸为有限且非零有限Float32，shape segments为16..256整数、rings为1..16、width为(0,1]且Float32非零；fresnelPower在[.1,16]，gridSegments为4..64整数。GPU材质、资源和时钟约束沿用ADR-0043，具体形态和验证见 [ADR-0046](adr/0046-common-effects.md)。
+
+## 点云飞线与流光契约
+
+EffectPlayback提取既有disposed/state/phase/speed及pause/resume/seek/setSpeed/dispose；EffectHandle继续扩展它并暴露原生mesh。attachFlyPoints(app,FlyPointsOptions):FlyPointsHandle扩展EffectPlayback且暴露points:Points<BufferGeometry,ShaderMaterial>，不改变旧mesh类型。FlyPointsOptions含curve、count=256（2..65536整数）、size=6（1..64有限物理像素）、tail=.25（原tail约束）；近似弧长采样复制为position/aProgress，Float32范围检查，曲线构建后不持有。原生点大小受硬件限制，DPR不自动缩放。
+
+attachFlowLine(app,FlowLineOptions):EffectHandle含curve、width=.12、segments=128（原路径细分1..4096）、pulses=3（1..32整数）、tail=.3。复用独立路径带，纵向UV按全路径长度归一、多段脉冲与横向柔化；速度是重复图案周期，不是单个光头全程次数。所有形态不自动start/render；直接/后处理绘制中结束均先失效、后移除节点与清GPU，宿主/scope清理共用，见ADR-0046。

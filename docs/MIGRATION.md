@@ -39,6 +39,8 @@ pnpm add ./vendor/adui-three-0.0.0.tgz
 | 原路径曲线运动                      | followPath                                               | 局部曲线采样、运行倍速、独立暂停/定位与可选切线朝向；没有导航网格或碰撞求解 |
 | CustomLight.js                      | 原生灯光 + lighting 的 attachShadowLight                 | 方向光阴影拥有灯光/目标并规划视锥；其他灯光仍由应用配置，旧配置需逐项映射   |
 | 原飞线、光墙、雷达                  | effects 的 attachFlyLine / attachLightWall / attachRadar | 自有节点和材质，借用路径输入，复用宿主时钟；不复制旧 shader 或业务状态      |
+| 点云尾迹与路径流光                  | effects 的 attachFlyPoints / attachFlowLine              | Points用points，其余用mesh；固定采样、共用时钟和scope，不迁入旧粒子循环     |
+| 波纹、光柱与护罩                    | attachRipple / attachLightPillar / attachShield          | 自有原生形状和shader，可显式组合泛光，接口与旧业务不保证兼容                |
 | 原 renderer 色调与环境设置          | rendering 的 Editor 预设 + environment 资产/绑定         | 显式选择色调/曝光和 Room，创建参数交给宿主，生成与绑定分离                  |
 | 原对象尺寸计算                      | `@adui/three/geometry` 的 computeObjectBounds            | 独立世界 Box3，当前 CPU 姿态；实例/批次保留原生保守边界                     |
 

@@ -10,7 +10,16 @@ globalThis.fetch = () => {
 };
 
 const expected = {
-  "@adui/three/effects": ["attachFlyLine", "attachLightWall", "attachRadar"],
+  "@adui/three/effects": [
+    "attachFlyLine",
+    "attachLightWall",
+    "attachRadar",
+    "attachRipple",
+    "attachLightPillar",
+    "attachShield",
+    "attachFlyPoints",
+    "attachFlowLine",
+  ],
   "@adui/three/lighting": ["attachShadowLight"],
   "@adui/three/rendering": ["attachRendererSettings", "createEditorRenderPreset"],
   "@adui/three": ["ResourceScope", "ThreeApp", "OrthographicThreeApp"],
@@ -154,7 +163,7 @@ if (!development) {
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");
   assert.ok(
-    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|transitionToCameraView|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath|MeshBVH|createCollisionWorld|attachFirstPersonControls|attachThirdPersonControls|createPathCurve|createPathRibbon|createPathTube|attachFlyLine|attachLightWall|attachRadar|attachShadowLight|ShaderPass|attachRendererSettings|createRoomEnvironment|RoomEnvironment/.test(
+    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|transitionToCameraView|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath|MeshBVH|createCollisionWorld|attachFirstPersonControls|attachThirdPersonControls|createPathCurve|createPathRibbon|createPathTube|attachFlyLine|attachLightWall|attachRadar|attachRipple|attachLightPillar|attachShield|attachFlyPoints|attachFlowLine|attachShadowLight|ShaderPass|attachRendererSettings|createRoomEnvironment|RoomEnvironment/.test(
       core,
     ),
   );

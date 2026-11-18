@@ -997,3 +997,51 @@ toneMapping 支持 none、linear、reinhard、cineon、aces-filmic、agx、neutr
 Room 复用 Three.js 原生 RoomEnvironment/PMREMGenerator，返回 EnvironmentAsset<Texture>，保留 HDR/EXR 的 EnvironmentAsset<DataTexture> 类型。sigma 允许0..1，size仅256/512/1024。生成不绑定、不启动宿主，禁止宿主绘制内调用；同一资产只能绑定到所属宿主。资产拥有返回的 WebGLCubeRenderTarget，纹理不可单独释放；临时 Room 与生成器在准备结束释放。状态恢复和已返回资源会清理；原生生成异常前未返回的部分分配不可由公开接口取得，不能承诺完全无残留。
 
 lighting 现支持 basic/pcf/vsm 三种原生阴影；柔和边缘和接触效果还取决于场景尺度、灯光/材质与偏移。抗锯齿是 renderer 创建配置，不自动为离屏后处理添加 MSAA。本地 /?demo=editor 对照真实原生颜色和 Room，阴影场景共用同一 helper；没有实现 Editor 的全部功能、路径追踪或 WebGPU。
+
+## 点云飞线与常用特效
+
+飞线可以按视觉需要选择：`attachFlyLine` 使用管道，`attachFlyPoints` 使用原生Points粒子尾迹，`attachFlowLine` 使用连续路径带和多段流光。它们都只使用宿主时钟，没有额外RAF。
+
+```ts
+import {
+  attachFlyPoints,
+  attachFlowLine,
+  attachRipple,
+  attachLightPillar,
+  attachShield,
+} from "@adui/three/effects";
+import { QuadraticBezierCurve3, Vector3 } from "three";
+
+const curve = new QuadraticBezierCurve3(
+  new Vector3(-4, 0, 0),
+  new Vector3(0, 4, 0),
+  new Vector3(4, 0, 0),
+);
+const particles = attachFlyPoints(app, { curve, count: 256, size: 6, tail: 0.3 });
+const stream = attachFlowLine(app, { curve, width: 0.15, pulses: 3, tail: 0.35 });
+const ripple = attachRipple(app, { radius: 2, rings: 3, width: 0.15 });
+ripple.mesh.position.y = 0.03; // 贴地时避开深度重合
+const pillar = attachLightPillar(app, { radius: 0.45, height: 4 });
+const shield = attachShield(app, { radius: 2, fresnelPower: 2, gridSegments: 12 });
+
+particles.points.position.set(0, 1, 0); // 原生 Points；其他形态仍用 handle.mesh
+particles.pause();
+particles.seek(0.5);
+particles.setSpeed(0.4);
+particles.resume();
+// particles.dispose() 或 app.dispose()：结束订阅并释放自有节点/geometry/material。
+```
+
+五种新效果共用EffectOptions：color/intensity/opacity/speed/addToScene/scope，默认仍为55ddff/2/1/.25/true。EffectPlayback统一pause/resume/seek/setSpeed/dispose与disposed/state/phase/speed；seek不自动暂停或绘制，seek(1)等价0，速度0保持running。FlyPointsHandle暴露points，其他返回EffectHandle并保留mesh。自有节点/几何/材质随宿主或scope结束，绘制中释放等整条管线返回，不拥有外加子节点的资源。
+
+| API               | 默认形态参数                                           | 局部空间与边界                                                                                 |
+| ----------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| attachFlyPoints   | count=256、size=6、tail=.25                            | curve近似弧长固定采样；count为2..65536整数，size为1..64物理像素且受硬件上限限制，DPR不自动放大 |
+| attachFlowLine    | width=.12、segments=128、pulses=3、tail=.3             | 连续路径带；pulses为1..32整数，speed为重复图案周期/秒                                          |
+| attachRipple      | radius=2、segments=64、rings=3、width=.15              | XZ平面；rings为1..16整数，width为单圈周期比例                                                  |
+| attachLightPillar | radius=.45、height=4、segments=64                      | 沿Y的开放圆柱，底部y=0                                                                         |
+| attachShield      | radius=2、segments=48、fresnelPower=2、gridSegments=12 | 球形网格/脉冲和视角边缘高光，支持透视与正交                                                    |
+
+新shape细分为16..256整数，shield纬向细分为ceil(segments/2)；指数在.1..16，网格4..64整数。新空间尺寸/路径长度/宽度需为正且可表示为非零有限Float32；tail/波纹width在(0,1]且Float32非零。路径带segments沿用1..4096预算。曲线构建后不再采样，修改曲线需重建效果并自行更新原生弧长缓存；没有每帧位置buffer上传。加法透明、深度测试与硬件点大小遵循原生规则。
+
+开发服务打开 `/?demo=effects-collection`：透视/正交双实例、五种形态独立显隐、定位/倍速、可选泛光和绘制中回收；普通飞线/光墙/雷达仍在 `/?demo=effects`。泛光显式组合既有postprocessing入口，新材质不会自动创建灯光或发光照。

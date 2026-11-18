@@ -149,3 +149,7 @@ effects可选入口复用路径几何/原生Circle并拥有ShaderMaterial/Mesh�
 ## Editor 渲染基准
 
 rendering 是独立可选入口，只依赖原生色调常量、宿主类型和共享 render-retirement，不引入 composer 或 Room。预设分开表达 renderer 创建参数、颜色和阴影，应用显式组合各模块，核心默认不变。environment 在既有 HDR/EXR 资产接口上增加原生 Room/PMREM，自有返回 cube target，生成不绑定；按同一绘制结束边界释放。完整决策及原生失败未返回资源限制见 [ADR-0045](adr/0045-editor-rendering.md)，当前共有十七个运行时入口。
+
+## 常用效果与节点边界
+
+effects保持同一可选入口，新增圆形波纹、开放圆柱光柱、Fresnel球形护罩、原生Points飞线和路径带流光。EffectPlayback统一控制与资源管理，EffectHandle保留mesh、FlyPointsHandle暴露points，各自原生类型不混用；共同使用私有泛型挂载器和原绘制结束边界。无新调度/依赖，路径带复用geometry内部实现；双相机消费者见 [ADR-0046](adr/0046-common-effects.md)。
