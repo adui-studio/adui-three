@@ -25,7 +25,7 @@
 - capture：复用单次绘制并同步复制 canvas，独立编码完整画布或整数像素区域的 PNG/JPEG/WebP Blob，取消和所有者结束清临时画布，消费者拥有 URL/下载。
 - geometry：computeObjectBounds 提供独立世界 Box3，包含当前 CPU 蒙皮/形变，刷新实例/批次聚合边界，无宿主或绘制，原生矩阵/缓存更新；固定容量实例网格，矩阵/颜色复制并标记上传，count/矩阵变化清包围体，拥有专属实例 buffer，借用几何体/材质；独立演示按需绘制；首次上传后合并局部属性范围，外部版本/回调变动保守回退完整上传。
 
-十四个运行时入口含默认核心与十三个可选子入口。模型、HDR/EXR、PNG 测试资产均原创可重建；Basis 开发编码工具固定官方提交和 SHA256，缓存不进入分发。旧版仅做过只读审查，见 [LEGACY_REVIEW](LEGACY_REVIEW.md)。
+十六个运行时入口含默认核心与十五个可选子入口。模型、HDR/EXR、PNG 测试资产均原创可重建；Basis 开发编码工具固定官方提交和 SHA256，缓存不进入分发。旧版仅做过只读审查，见 [LEGACY_REVIEW](LEGACY_REVIEW.md)。
 
 ## 静态碰撞与角色导航
 
@@ -33,9 +33,15 @@ collision 使用外部精确依赖 three-mesh-bvh 0.9.18，为普通 Mesh 的世
 
 FR-055 已实现独立 createPathCurve/createPathRibbon/createPathTube：圆角修剪、左右路径带/箭头、原生管道、近似弧长进度与UV。源点复制、返回几何独占，无宿主/调度/源曲线引用；不兼容 three.path API，不与 followPath 或导航网格混淆，见 ADR-0042 和 /?demo=path-geometry。路径29项与运动器9项单测、8项浏览器联测及严格包消费通过。
 
+## 新增光影阶段
+
+effects入口提供飞线/光墙/雷达，复用宿主delta和原生路径/圆形几何，独立phase/暂停/定位/速度与scope；lighting入口提供自有方向光/target、bounds阴影视锥、PCF/VSM与参数/标记租约。colorAdjustment使用两官方ShaderPass接既有链，只有一次OutputPass。私有render-retirement保证节点与GPU在整次原生绘制结束后清理，不破坏阴影live children遍历。见ADR-0043/0044与 /?demo=effects，不包含Editor Realistic路径追踪。
+
+ready通过710单测与16文档测试、全部静态检查/构建；十六入口tarball与四种严格类型消费通过。完整浏览器127/127（约9.5分钟）通过，零重试、零跳过；新演示布局/光源方向调整后的专项3/3（约43.7秒）通过，含阴影平均亮度与滤镜精确恢复。共享绘制结束清理基础26b3e9b已推送，光影模块本地验收完成，提交与推送结果以Git为准。
+
 ## 验证状态
 
-当前 ready 通过686单测、16文档测试、格式/Lint/类型及全部构建；十四入口 tarball 和四次严格消费通过，含路径几何。路径/实例网格/导航受影响浏览器联测8/8（约46.2秒）通过，零重试、零跳过。导航阶段曾完整122/122（约8.3分钟）通过，新增路径和支撑修复后未重跑当前全部124项，证据见 [Harness](HARNESS.md)。浏览器与数值测试不代表全部格式、硬件或长期性能已验证。
+当前 ready 通过710单测、16文档测试、格式/Lint/类型及全部构建；十六入口 tarball 和四次严格消费通过。完整浏览器127/127（约9.5分钟）通过，零重试、零跳过；新演示布局调整后专项3/3通过。证据见 [Harness](HARNESS.md)。浏览器与数值测试不代表全部格式、硬件或长期性能已验证。
 
 浏览器环境是 Chromium/SwiftShader，单 worker、零自动重试；完整设备/格式/浏览器矩阵、长期 GPU 泄漏和性能基准尚未完成。保留 TypeScript 7 API 实验性和演示大 chunk 构建提示，不将本地通过称为远端 CI 通过。失败诊断、历史统计和阶段未提交记录统一保留在 Harness，不在接手入口复制过期状态。
 

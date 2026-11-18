@@ -155,3 +155,10 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 ## 路径几何
 
 [path-geometry.ts](../packages/three/src/path-geometry.ts) 经 geometry 导出圆角曲线、路径带/箭头和原生管道；[单测](../packages/three/tests/path-geometry.test.ts) 比较真实曲线/法线/UV和原生管道，验证闭合/边界/重入。[演示](../apps/website/src/path-geometry.ts) 位于 `/?demo=path-geometry`；[浏览器回归](../tests/browser/path-geometry.spec.ts) 读取实际像素和 WebGL buffer 存量。与 path-animation.ts 的运动逻辑独立。
+
+## 光影与滤镜
+
+- [effects.ts](../packages/three/src/effects.ts) / [测试](../packages/three/tests/effects.test.ts)：飞线/光墙/雷达shader和宿主时钟。
+- [lighting.ts](../packages/three/src/lighting.ts) / [测试](../packages/three/tests/lighting.test.ts)：方向光阴影视锥、PCF/VSM和资源租约。
+- [render-retirement.ts](../packages/three/src/render-retirement.ts) / [测试](../packages/three/tests/render-retirement.test.ts)：私有同步绘制结束清理，由两类宿主共用的基类调用。
+- [光影演示](../apps/website/src/effects.ts) / [GPU回归](../tests/browser/effects.spec.ts)：`/?demo=effects` 双实例、阴影/滤镜对比、原生回调销毁和贴图回收。postprocessing.ts现含两个官方颜色ShaderPass。

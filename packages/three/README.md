@@ -888,3 +888,84 @@ const tube = createPathTube(curve, { radius: 0.1, radialSegments: 12 });
 路径带 width=1，side 为 both/left/right，up 默认 Y-up，arrow=false，arrowLength/arrowWidth 默认2*width。width 在 both 时两边各一半，单侧时全宽；up 决定初始表面朝向，沿曲线使用原生平行移动帧，垂直初始方向有确定回退。箭头占最后一段可见长度，超过可见长度时只有箭头；完整闭合不允许箭头。管道 radius=.1、radialSegments=8（整数3..128），复用原生 TubeGeometry，不加端盖。
 
 返回几何体和 buffer 由调用方拥有，无宿主、材质、Mesh 或调度器，也不保留源曲线引用。参数变化时先构造成功，再替换 Mesh.geometry、untrack 并 dispose 旧几何；否则旧几何可继续使用。采样/原生帧可能更新曲线弧长缓存，构建期间不要修改借用曲线。同步重入、非法切线、非有限/Float32 溢出拒绝并清理；采样精度、自交和尖锐拐角受数值与细分限制，不提供道路布尔运算或精确斜接修复。
+
+## 飞线、光墙和雷达
+
+可选 effects 入口提供 attachFlyLine、attachLightWall、attachRadar；演示 `/?demo=effects` 可逐项开关、暂停、定位并对比阴影/滤镜。
+
+```ts
+import { attachFlyLine, attachLightWall, attachRadar } from "@adui/three/effects";
+import { QuadraticBezierCurve3, Vector3 } from "three";
+
+const fly = attachFlyLine(app, {
+  curve: new QuadraticBezierCurve3(
+    new Vector3(-4, 0, 0),
+    new Vector3(0, 5, 0),
+    new Vector3(4, 0, 0),
+  ),
+  color: 0x55ddff,
+  radius: 0.05,
+  tail: 0.25,
+  speed: 0.25,
+});
+const wall = attachLightWall(app, {
+  points: [new Vector3(-2, 0, 0), new Vector3(2, 0, 0)],
+  height: 2,
+});
+const radar = attachRadar(app, { radius: 2, rings: 4, color: 0x60f3ab });
+radar.mesh.position.set(0, 0.02, 0); // 雷达默认位于局部 XZ 平面，朝向+Y
+fly.pause();
+fly.seek(0.4);
+fly.setSpeed(0.5);
+fly.resume();
+// app.start()/app.render() 仍由应用决定；随宿主/scope结束，也可显式 dispose。
+```
+
+共用选项 color 为RGB整数（默认0x55ddff），intensity=2、opacity=1、speed=.25周期/秒、addToScene=true和可选scope。intensity非负且可表示为Float32，opacity在[0,1]，speed非负有限。飞线radius=.035、segments=128、tail=.25（(0,1]且Float32非零）；光墙height=2、segments=128、cornerTrim=0、closed=false，基线必须有水平延伸；雷达radius=2、segments=64（16..256）、tail=.25、rings=4（1..16整数）。路径采样segments为1..4096，几何坐标是Mesh局部空间，位置/旋转由应用控制。
+
+句柄暴露自有mesh、disposed、state、phase、speed和pause/resume/seek/setSpeed/dispose。只复用宿主更新，无独立RAF；0倍速仍running，seek在[0,1]循环比例定位且1归0，不自动暂停/绘制。源曲线/点只在构建时采样，之后修改不会重建几何。几何体、材质、节点由句柄拥有，借用源数据和宿主；绘制期间释放会等原生pass返回后移除节点/GPU资源，重复dispose安全，结束后控制命令拒绝。
+
+材质是带深度测试的双面透明加法shader，depthWrite=false，配合既有bloom可形成光晕，不产生实际光照。默认不投射阴影；不要把透明shader特效作为不透明实体caster使用。公开mesh/material保留原生配置能力，不要转移或替换句柄拥有的geometry/material。
+
+## 方向光实时阴影
+
+lighting 入口的 attachShadowLight 参考 Editor 的实时渲染路线，复用原生 PCF / VSM、DirectionalLight 与正交阴影相机。效果取决于实体与接收面、场景单位、灯光方向、PBR材质和环境填充；当前不包含 Editor Realistic 路径追踪。
+
+```ts
+import { attachShadowLight } from "@adui/three/lighting";
+import { computeObjectBounds } from "@adui/three/geometry";
+
+const sun = attachShadowLight(app, {
+  bounds: computeObjectBounds(shadowArea), // 包括需要覆盖的实体和接收区域
+  casters: [model],
+  receivers: [floor, model],
+  type: "pcf",
+  mapSize: 2048,
+  normalBias: 0.02,
+  bias: -0.0001,
+});
+// sun.setEnabled(false) 保留照明和贴图；sun.dispose() 移除整盏自有灯光。
+// 物体移动后 sun.fit(newBounds)；静态 autoUpdate:false 时用 sun.requestUpdate() 再 render。
+```
+
+bounds复制为世界Box3，以八角光空间边界加5%padding收紧视锥，不每帧自动扩大。默认direction=(5,10,5)、type=pcf、mapSize=2048、bias=-.0001、normalBias=.02、radius=2、blurSamples=8、shadowIntensity=1、color=0xffffff、intensity=3、autoUpdate=true，可选scope。mapSize为128..4096二次幂且不超过设备maxTextureSize，blurSamples为1..32整数；shadowIntensity在[0,1]，法线偏移/半径/光强非负有限。r187已移除PCFSoftShadowMap，不将它当作另一种软阴影算法。
+
+句柄light/disposed/enabled、fit(bounds)、setEnabled、requestUpdate、dispose；不会启动/绘制宿主。使用无变换/自动矩阵的场景，bounds非空且具有正尺寸，direction非零有限；不要把分辨率增加当作扩大覆盖范围的替代。PCF适合原生深度比较，VSM提供模糊分布阴影，但可能有光漏，需要调整场景、偏移和半径。
+
+每宿主renderer只允许一个受管理阴影，Mesh标记也不允许被其他受管理阴影占用。借用caster/receiver对象及资产，只设置现有Mesh的原生标记，结束按值恢复；自有灯光、target、map/mapPass随宿主或scope清理。全局shadowMap配置会影响其他原生灯光，应用需统一类型策略；后续原生写入的同值意图无法区分。绘制中结束延后移除节点/还原标记/释放GPU与租约；在绘制返回后再重建。类型/分辨率变化推荐销毁后重建，偏移/半径/强度可通过自有light原生属性调整后requestUpdate，不替换或转移shadow/map。
+
+## 颜色滤镜
+
+既有 postprocessing 入口增加 colorAdjustment，可单独使用或与泛光/描边组合：
+
+```ts
+import { attachPostprocessing } from "@adui/three/postprocessing";
+
+const effects = attachPostprocessing(app, {
+  bloom: { strength: 0.6, threshold: 1 },
+  colorAdjustment: { brightness: 0, contrast: 0.15, hue: 0, saturation: -1 },
+});
+// 灰度恢复：effects.colorAdjustment!.hueSaturation.uniforms.saturation!.value = 0;
+```
+
+复用官方 BrightnessContrastShader / HueSaturationShader，两个ShaderPass放在描边/泛光之后、唯一OutputPass之前，在线性空间调整。brightness/hue默认0，范围[-1,1]；contrast/saturation默认0，范围[-1,1)，Float32量化后也必须小于1，避免原生shader除零；enabled默认true。句柄colorAdjustment暴露brightnessContrast/hueSaturation原生pass，动态uniforms需保持合法范围；可切换pass.enabled旁路，释放仍由整个后处理句柄负责。每条链独立uniforms，无第二composer或循环。

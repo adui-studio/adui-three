@@ -29,7 +29,7 @@ pnpm install --frozen-lockfile
 
 首次浏览器回归需执行 `pnpm exec playwright install chromium`。测试使用 Playwright 1.64.1 / Chromium / SwiftShader，DPR=3 验证宿主上限 2；preview 使用 127.0.0.1:4173，端口需空闲，测试结束自动收尾。截图和失败 trace 位于忽略提交的 test-results。
 
-test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装真实 tarball、固定开发基准 three 和当前锁定的 TypeScript；不修改工作区依赖或锁文件。先以库声明消费方式编译，再为直接 import three 的应用添加匹配 @types/three，执行 NodeNext、Bundler、Bundler+development 三种类型解析，均使用 strict 与 skipLibCheck=false。两个 .ts.txt 仅是输入样例，复制到临时项目后才编译；Node 检查另覆盖十四个运行时入口、禁止 fetch、数学/资源操作、私有路径拒绝和 development 源码文件存在性。development 仅检查解析，不尝试在 Node 执行 node_modules 内的 TS。
+test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装真实 tarball、固定开发基准 three 和当前锁定的 TypeScript；不修改工作区依赖或锁文件。先以库声明消费方式编译，再为直接 import three 的应用添加匹配 @types/three，执行 NodeNext、Bundler、Bundler+development 三种类型解析，均使用 strict 与 skipLibCheck=false。两个 .ts.txt 仅是输入样例，复制到临时项目后才编译；Node 检查另覆盖十六个运行时入口、禁止 fetch、数学/资源操作、私有路径拒绝和 development 源码文件存在性。development 仅检查解析，不尝试在 Node 执行 node_modules 内的 TS。
 
 该命令独立于 ready，安装可能访问 registry、复用本地 store；不表示离线可用、发布权限已确认或包已发布。成功时核验临时绝对路径后仅删除本次项目；失败打印并保留诊断目录。依据见 [pnpm pack](https://pnpm.io/cli/pack)、[pnpm install](https://pnpm.io/cli/install)、[Node 条件导出](https://nodejs.org/api/packages.html#conditional-exports) 与 [skipLibCheck](https://www.typescriptlang.org/tsconfig/skipLibCheck.html)。
 
@@ -62,6 +62,8 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-18 动态特效、颜色滤镜与实时阴影：新增飞线/光墙/雷达，复用原生曲线/TubeGeometry/CircleGeometry；滤镜直接使用官方BrightnessContrast/HueSaturation两ShaderPass。新增方向光按bounds八角规划视锥，选择r187的PCF/VSM（PCFSoft已移除），不宣称Editor Realistic路径追踪。首轮浏览器8/9通过，绘制中提前移除阴影节点影响原生live children遍历；改为通过每renderer绘制结束边界延后节点、标记、贴图清理。修复后专项9/9（约1.7分钟）通过，零重试/跳过，包含实际shader编译/像素、灰度/色调、PCF/VSM边缘、PCF两纹理/VSM三纹理及多轮释放回同一基线。后补Float32奇异参数、尾长下溢/强度溢出与宿主直接渲染finally顺序单测；ready通过710单测、16文档测试、212文件格式、134源文件静态检查与全部构建；十六入口tarball与四次严格类型消费通过。完整浏览器127/127（572019.688毫秒，约9.5分钟）通过，零重试/跳过；全量报告保留于忽略目录playwright-report/full-effects-20261118.json。截图检查后仅调整新演示按钮换行与光源方向，并增加阴影平均亮度/滤镜完全恢复断言，布局调整后专项首轮2/3：阴影/滤镜测试总预算超时，报告显示多次readback约3.4..7.6秒；暂停该测试无关的另一2048px阴影/泛光场景后，不改60秒预算/断言/零重试，专项3/3（约43.7秒）通过。新增断言确认关闭阴影平均RGB亮度提高、滤镜归零恢复完全相同像素；已复查最终截图的控件换行与地面投影。
 
 2026-11-18 路径几何与支撑稳定性：独立实现 createPathCurve/createPathRibbon/createPathTube，原生 CurvePath/贝塞尔/帧和 TubeGeometry 复用。路径29/29通过，先行回归复现闭合带接缝不一致后修复；另覆盖有界数组快照、细分getter单读、微尺度闭合、Float32/UV溢出及零切线。首轮浏览器6/8：演示闭合路线有180度折返，库正确拒绝；修正闭合点后路径像素/旧buffer释放2/2通过，但联测7/8出现跳跃丢失。真实BVH微步长先行失败确认skin间隙导致着地不稳定，增加radius*0.02有界向下支撑探测；新增4项后运动器9/9通过，涵盖贴墙混合步长、上升/无地面不吸附和探测中销毁。修复后8/8浏览器联测（约46.2秒）通过，零重试、零跳过；实际像素、原生buffer存量、双实例和重建通过，并检查演示截图。ready通过686单测、16文档测试、202文件格式、126源文件静态检查及全部构建。十四入口tarball/无DOM路径数值与四次严格类型消费通过。此前导航完整122/122通过；新增路径与支撑修复后执行8项受影响联测，未把旧完整计数写成当前全量124项验收。
 

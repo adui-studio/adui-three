@@ -82,6 +82,16 @@
       "types": "./dist/navigation.d.mts",
       "development": "./src/navigation.ts",
       "import": "./dist/navigation.mjs"
+    },
+    "./effects": {
+      "types": "./dist/effects.d.mts",
+      "development": "./src/effects.ts",
+      "import": "./dist/effects.mjs"
+    },
+    "./lighting": {
+      "types": "./dist/lighting.d.mts",
+      "development": "./src/lighting.ts",
+      "import": "./dist/lighting.mjs"
     }
   },
   "scripts": {

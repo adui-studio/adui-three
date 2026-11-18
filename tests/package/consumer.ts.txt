@@ -213,3 +213,21 @@ export function consumePaths(app: ThreeApp) {
  ribbon.dispose();tube.dispose();marker.removeFromParent();
  return curve;
 }
+import { attachFlyLine, attachLightWall, attachRadar } from "@adui/three/effects";
+import type { EffectHandle, FlyLineOptions, LightWallOptions, RadarOptions } from "@adui/three/effects";
+import { attachShadowLight } from "@adui/three/lighting";
+import type { ShadowLightHandle, ShadowLightOptions } from "@adui/three/lighting";
+import type { ColorAdjustmentOptions, ColorAdjustmentPasses } from "@adui/three/postprocessing";
+export function consumeVisuals(app: ThreeApp, objects: Mesh[]) {
+ const scope=new ResourceScope();
+ const options:FlyLineOptions={curve:new LineCurve3(new Vector3(),new Vector3(4,1,0)),scope,tail:.3};
+ const fly:EffectHandle=attachFlyLine(app,options);
+ const wallOptions:LightWallOptions={points:[new Vector3(),new Vector3(1,0,0)],height:2};
+ const wall=attachLightWall(app,wallOptions);const radarOptions:RadarOptions={radius:2,rings:4};const radar=attachRadar(app,radarOptions);
+ fly.pause();fly.seek(.5);fly.setSpeed(.3);fly.resume();void [fly.mesh.material,fly.phase,fly.state,fly.speed];scope.dispose();wall.dispose();radar.dispose();
+ const shadowOptions:ShadowLightOptions={bounds:new Box3(new Vector3(-3,-1,-3),new Vector3(3,4,3)),casters:objects,receivers:objects,type:"vsm",mapSize:1024};
+ const sun:ShadowLightHandle=attachShadowLight(app,shadowOptions);sun.fit(shadowOptions.bounds);sun.requestUpdate();sun.setEnabled(false);sun.dispose();
+ const colorAdjustment:ColorAdjustmentOptions={saturation:-1,contrast:.2};
+ const pipeline=attachPostprocessing(app,{colorAdjustment});const passes:ColorAdjustmentPasses|undefined=pipeline.colorAdjustment;
+ if(passes)passes.hueSaturation.enabled=false;pipeline.dispose();
+}

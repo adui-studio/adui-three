@@ -536,3 +536,45 @@ test("initialization and rollback failures are both retained in the reported agg
   expect(env.pipeline).toBeNull();
   expect(vi.spyOn(composer(), "dispose")).toHaveBeenCalledOnce();
 });
+
+test("native color adjustment passes are ordered before the single output and clone shader uniforms", () => {
+  const e = fixture(),
+    h = attachPostprocessing(e.app, {
+      colorAdjustment: { brightness: 0.1, contrast: 0.2, hue: 0.3, saturation: -1 },
+    });
+  expect(composer().passes.map((pass) => pass.constructor.name)).toEqual([
+    "RenderPass",
+    "ShaderPass",
+    "ShaderPass",
+    "OutputPass",
+  ]);
+  expect(h.colorAdjustment!.brightnessContrast.uniforms.brightness!.value).toBe(0.1);
+  expect(h.colorAdjustment!.hueSaturation.uniforms.saturation!.value).toBe(-1);
+  const a = vi.spyOn(h.colorAdjustment!.brightnessContrast, "dispose"),
+    b = vi.spyOn(h.colorAdjustment!.hueSaturation, "dispose");
+  h.dispose();
+  expect(a).toHaveBeenCalledOnce();
+  expect(b).toHaveBeenCalledOnce();
+  const next = attachPostprocessing(e.app, { colorAdjustment: { enabled: false } });
+  expect(next.colorAdjustment!.hueSaturation.uniforms.saturation!.value).toBe(0);
+  expect(next.colorAdjustment!.hueSaturation.enabled).toBe(false);
+});
+test.each([{ contrast: 1 }, { saturation: 1 }, { brightness: 2 }, { hue: NaN }])(
+  "singular or invalid native color grading rejects before GPU targets: %j",
+  (colorAdjustment) => {
+    const e = fixture();
+    expect(() => attachPostprocessing(e.app, { colorAdjustment })).toThrow();
+    expect(state.instances).toHaveLength(0);
+  },
+);
+
+test.each(["contrast", "saturation"] as const)(
+  "%s rejects values that round to the native shader singularity",
+  (name) => {
+    const e = fixture();
+    expect(() =>
+      attachPostprocessing(e.app, { colorAdjustment: { [name]: 1 - Number.EPSILON } }),
+    ).toThrow();
+    expect(state.instances).toHaveLength(0);
+  },
+);

@@ -17,6 +17,8 @@ export default defineConfig({
       geometry: "src/geometry.ts",
       collision: "src/collision.ts",
       navigation: "src/navigation.ts",
+      effects: "src/effects.ts",
+      lighting: "src/lighting.ts",
     },
     format: "esm",
     target: "es2022",

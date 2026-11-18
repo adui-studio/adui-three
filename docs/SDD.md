@@ -369,6 +369,9 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-053  | 静态碰撞世界契约                  | collision.ts / BVH                               | 真实几何单测、无 DOM 包查询                                |
 | FR-054  | 角色导航契约                      | navigation.ts / character-body.ts、双实例演示    | 控件/运动单测、原生指针锁/像素、严格包消费                 |
 | FR-055  | 路径几何契约                      | path-geometry.ts、geometry 导出及演示            | 圆角/帧/UV/接缝单测、原生像素/buffer、严格包消费           |
+| FR-056  | 动态特效契约                      | effects.ts、render-retirement.ts、光影演示       | 原生几何/时钟单测、GPU像素/回调释放、包消费                |
+| FR-057  | 方向光阴影契约                    | lighting.ts、光影演示                            | 八角视锥/租约单测、PCF/VSM像素/纹理清理                    |
+| FR-058  | 后处理颜色契约                    | postprocessing.ts 原生滤镜组合                   | pass/参数单测、灰度/色调像素、严格包声明                   |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
@@ -435,3 +438,19 @@ geometry 导出 createPathCurve(points:readonly Vector3[],options?:PathCurveOpti
 共享 PathGeometryOptions：segments=64（整数1..4096，闭合完整>=3）、progress=1（[0,1]）、closed=false、uvScale=1（正有限）。路径带 width=1、side=both（另left/right）、up=(0,1,0)、arrow=false、arrowLength/arrowWidth 默认2*width；管道 radius=.1、radialSegments=8（3..128整数）。宽/半径/箭头尺寸均正有限，up非零有限。曲线闭合需端点相对长度误差<=1e-8，完整闭合不允许箭头。
 
 近似弧长采样真实前缀，progress0返回空 geometry；UV.x=距离/uvScale、UV.y=横截面比例。箭头尺寸超可见长度只留头部三角形；单侧沿侧带中心。原生帧、贝塞尔、管道数学复用，返回普通 BufferGeometry 独占 buffers，不保留源曲线引用；调用方管理材质、节点和 geometry.dispose/scope，不自动调度/绘制/更新。构建同步重入、非有限数据/Float32溢出或零切线拒绝，异常解锁并清理自有几何。限制与验证见 [ADR-0042](adr/0042-path-geometry.md)。
+
+## 动态特效契约
+
+effects导出attachFlyLine(app,FlyLineOptions)、attachLightWall(app,LightWallOptions)、attachRadar(app,RadarOptions?):EffectHandle。共用EffectOptions：color为RGB整数默认0x55ddff、intensity=2非负且Float32可表示、opacity=1在[0,1]、speed=.25非负有限、addToScene=true和可选scope。FlyLineOptions必填curve，radius=.035、segments=128、tail=.25（(0,1]且Float32非零）；LightWallOptions必填points，height=2正有限、segments=128（1..4096）、cornerTrim=0、closed=false，拒绝采样后的竖直/坍缩边；RadarOptions半径2、segments=64（16..256）、tail=.25、rings=4（1..16整数）。
+
+EffectHandle暴露自有mesh、disposed、state（running/paused/disposed）、phase/speed，pause/resume/seek/setSpeed/dispose。phase按周期模1，seek接受[0,1]且1归0，不自动暂停/绘制；结束后控制命令拒绝，dispose幂等。0速度仍running，宿主停止不推进；溢出结束并传播。句柄拥有节点/几何体/ShaderMaterial，借用构建期曲线/点与宿主；scope/宿主清理，绘制中节点/资源延后原生pass完成，见 [ADR-0043](adr/0043-visual-effects.md)。
+
+## 方向光阴影契约
+
+lighting导出attachShadowLight(app,ShadowLightOptions):ShadowLightHandle。bounds必填世界Box3，casters/receivers可选显式根数组，direction默认(5,10,5)；type=pcf或vsm，mapSize=2048（二次幂128..4096且不超设备上限）；bias=-.0001、normalBias=.02、radius=2、blurSamples=8（1..32）、shadowIntensity=1（[0,1]）、color=0xffffff、intensity=3、autoUpdate=true及可选scope。偏移/参数有限，法线偏移/半径/光强非负；场景要求无变换/自动矩阵。
+
+句柄light/disposed/enabled、fit(bounds)、setEnabled(bool)、requestUpdate、dispose。fit快照bounds，以八角光相机边界和5%padding规划视锥；只改自有灯光/相机和下一帧刷新标记，不绘制。setEnabled保留照明与贴图，dispose移除自有灯光/target、还原按值未变的全局配置与借用Mesh标记并释放map/mapPass。每renderer和受管理Mesh独占，绘制内租约/节点/GPU清理延后到pass返回；原生灯光与类型全局影响由消费者统一，见 [ADR-0044](adr/0044-realtime-shadows.md)。
+
+## 后处理颜色契约
+
+PostprocessingOptions.colorAdjustment?:ColorAdjustmentOptions可独立触发链。brightness/hue默认0、范围[-1,1]，contrast/saturation默认0、范围[-1,1)，enabled默认true；非法/奇异值在分配前拒绝。PostprocessingHandle.colorAdjustment?:ColorAdjustmentPasses暴露brightnessContrast/hueSaturation两原生ShaderPass；动态uniforms由消费者保持合法，enabled可旁路但保留资源。两个pass位于outline/bloom之后、OutputPass之前，线性空间调整且唯一输出，沿用执行期清理与异常恢复，见ADR-0043。

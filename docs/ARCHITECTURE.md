@@ -139,3 +139,9 @@ geometry 是可选的原生实例化网格管理入口：依赖核心的宿主�
 新增独立 collision/navigation 入口。collision 外部依赖精确锁定 three-mesh-bvh，使用原生索引/距离/射线与 mergeGeometries；navigation 仅按类型借用 CollisionWorld，运行时复用原生 PointerLockControls / OrbitControls。核心、普通 controls 不反向导入 BVH。静态世界自有复制的几何体/树，控制器借用世界/actor，只拥有控件、监听和宿主订阅。
 
 内部 character-body 使用有限子步胶囊运动，宿主统一 delta；相机沿用 camera-runtime 的共享登记和写锁。显式切换模式，取景/过渡释放导航相机租约；无独立调度、应用依赖或模型数据。边界与重入/迟到指针锁见 [ADR-0041](adr/0041-character-navigation.md)。路径几何 FR-055 位于 geometry 的内部 path-geometry 模块，独立构建曲线/路径带，复用原生帧和 TubeGeometry；无宿主/调度与曲线引用保留，消费者拥有 buffer，见 [ADR-0042](adr/0042-path-geometry.md)。与运动/导航网格区分。
+
+## 动态特效、灯光与滤镜
+
+effects可选入口复用路径几何/原生Circle并拥有ShaderMaterial/Mesh，以宿主delta驱动有界phase；lighting可选入口拥有方向光/target/阴影目标，按世界bounds规划视锥，借用caster/receiver与renderer全局配置。默认核心不导入shader或灯光模块，只共享私有render-retirement的每renderer绘制结束清理队列；队列同步finally解除，不新建调度，兼容直接绘制和现有pipeline，见 [ADR-0043](adr/0043-visual-effects.md) / [ADR-0044](adr/0044-realtime-shadows.md)。
+
+颜色滤镜通过官方ShaderPass接入现有postprocessing链，保持单一composer/OutputPass。Editor只作为实时视觉参考，未加入Realistic路径追踪、全局照明或新渲染后端。

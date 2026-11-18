@@ -1,3 +1,6 @@
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+import { BrightnessContrastShader } from "three/addons/shaders/BrightnessContrastShader.js";
+import { HueSaturationShader } from "three/addons/shaders/HueSaturationShader.js";
 import { Color, HalfFloatType, Vector2, WebGLRenderTarget } from "three";
 import type { Object3D } from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
@@ -41,12 +44,27 @@ export interface OutlineOptions {
   enabled?: boolean;
 }
 
+export interface ColorAdjustmentOptions {
+  brightness?: number;
+  /** [-1,1). Native shader divides by 1-contrast at positive values. */
+  contrast?: number;
+  hue?: number;
+  /** [-1,1). Native shader divides by 1-saturation at positive values. */
+  saturation?: number;
+  enabled?: boolean;
+}
+export interface ColorAdjustmentPasses {
+  readonly brightnessContrast: ShaderPass;
+  readonly hueSaturation: ShaderPass;
+}
 export interface PostprocessingOptions {
+  colorAdjustment?: ColorAdjustmentOptions;
   bloom?: BloomOptions;
   outline?: OutlineOptions;
 }
 
 export interface PostprocessingHandle {
+  readonly colorAdjustment: ColorAdjustmentPasses | undefined;
   readonly bloom: UnrealBloomPass | undefined;
   readonly outline: OutlinePass | undefined;
   readonly disposed: boolean;
@@ -115,12 +133,19 @@ export function attachPostprocessing(
 ): PostprocessingHandle {
   if (app.state === "disposed" || app.resources.disposed)
     throw new Error("ThreeApp has been disposed");
-  if (!options || (!options.bloom && !options.outline))
+  if (!options || typeof options !== "object")
+    throw new TypeError("Postprocessing options are required");
+  const {
+    bloom: requestedBloom,
+    outline: requestedOutline,
+    colorAdjustment: requestedColor,
+  } = options;
+  if (!options || (!requestedBloom && !requestedOutline && !requestedColor))
     throw new RangeError("At least one effect is required");
-  for (const value of [options.bloom, options.outline])
+  for (const value of [requestedBloom, requestedOutline, requestedColor])
     if (value !== undefined && (typeof value !== "object" || value === null))
       throw new TypeError("Effect options must be objects");
-  const { strength = 1, radius = 0.4, threshold = 0.85, enabled = true } = options.bloom ?? {};
+  const { strength = 1, radius = 0.4, threshold = 0.85, enabled = true } = requestedBloom ?? {};
   if (
     !Number.isFinite(strength) ||
     strength < 0 ||
@@ -132,7 +157,31 @@ export function attachPostprocessing(
     typeof enabled !== "boolean"
   )
     throw new RangeError("Invalid bloom options");
-  const outlineConfig = options.outline ? outlineOptions(options.outline) : undefined;
+  const outlineConfig = requestedOutline ? outlineOptions(requestedOutline) : undefined;
+  let grade: Required<ColorAdjustmentOptions> | undefined;
+  if (requestedColor) {
+    const {
+      brightness = 0,
+      contrast = 0,
+      hue = 0,
+      saturation = 0,
+      enabled = true,
+    } = requestedColor;
+    if (
+      ![brightness, contrast, hue, saturation].every(Number.isFinite) ||
+      brightness < -1 ||
+      brightness > 1 ||
+      hue < -1 ||
+      hue > 1 ||
+      contrast < -1 ||
+      Math.fround(contrast) >= 1 ||
+      saturation < -1 ||
+      Math.fround(saturation) >= 1 ||
+      typeof enabled !== "boolean"
+    )
+      throw new RangeError("Invalid color adjustment options");
+    grade = { brightness, contrast, hue, saturation, enabled };
+  }
   const owned = new ResourceScope();
   let disposed = false;
   let executing = false;
@@ -142,6 +191,7 @@ export function attachPostprocessing(
   let bloom: UnrealBloomPass | undefined;
   let outline: OutlinePass | undefined;
   let output: OutputPass | undefined;
+  let colorAdjustment: ColorAdjustmentPasses | undefined;
   let handle: PostprocessingHandle | undefined;
   const passes: Pass[] = [];
   const release = (): void => {
@@ -181,15 +231,27 @@ export function attachPostprocessing(
         outline.hiddenEdgeColor.setHex(outlineConfig.hiddenEdgeColor);
       passes.push(outline);
     }
-    if (options.bloom) {
+    if (requestedBloom) {
       bloom = owned.track(new UnrealBloomPass(new Vector2(1, 1), strength, radius, threshold));
       bloom.enabled = enabled;
       passes.push(bloom);
+    }
+    if (grade) {
+      const brightnessContrast = owned.track(new ShaderPass(BrightnessContrastShader));
+      const hueSaturation = owned.track(new ShaderPass(HueSaturationShader));
+      brightnessContrast.uniforms.brightness!.value = grade.brightness;
+      brightnessContrast.uniforms.contrast!.value = grade.contrast;
+      hueSaturation.uniforms.hue!.value = grade.hue;
+      hueSaturation.uniforms.saturation!.value = grade.saturation;
+      brightnessContrast.enabled = hueSaturation.enabled = grade.enabled;
+      passes.push(brightnessContrast, hueSaturation);
+      colorAdjustment = { brightnessContrast, hueSaturation };
     }
     output = owned.track(new OutputPass());
     passes.push(output);
     for (const pass of passes) composer.addPass(pass);
     handle = {
+      colorAdjustment,
       bloom,
       outline,
       get disposed() {

@@ -10,6 +10,8 @@ globalThis.fetch = () => {
 };
 
 const expected = {
+  "@adui/three/effects": ["attachFlyLine", "attachLightWall", "attachRadar"],
+  "@adui/three/lighting": ["attachShadowLight"],
   "@adui/three": ["ResourceScope", "ThreeApp", "OrthographicThreeApp"],
   "@adui/three/controls": ["attachOrbitControls", "attachTransformControls"],
   "@adui/three/collision": ["createCollisionWorld"],
@@ -51,6 +53,24 @@ for (const [specifier, names] of Object.entries(expected)) {
 }
 if (!development) {
   const { ResourceScope } = await import("@adui/three");
+  const { Scene } = await import("three");
+  const { attachRadar } = await import("@adui/three/effects");
+  const effectResources = new ResourceScope(),
+    effectScene = new Scene();
+  const radar = attachRadar({
+    state: "ready",
+    resources: effectResources,
+    scene: effectScene,
+    renderer: {},
+    onUpdate() {
+      return () => {};
+    },
+  });
+  radar.seek(0.3);
+  assert.equal(radar.phase, 0.3);
+  assert.equal(effectScene.children.length, 1);
+  effectResources.dispose();
+  assert.equal(effectScene.children.length, 0);
   const scope = new ResourceScope();
   let disposed = 0;
   scope.track({
@@ -133,7 +153,7 @@ if (!development) {
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");
   assert.ok(
-    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|transitionToCameraView|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath|MeshBVH|createCollisionWorld|attachFirstPersonControls|attachThirdPersonControls|createPathCurve|createPathRibbon|createPathTube/.test(
+    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|transitionToCameraView|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath|MeshBVH|createCollisionWorld|attachFirstPersonControls|attachThirdPersonControls|createPathCurve|createPathRibbon|createPathTube|attachFlyLine|attachLightWall|attachRadar|attachShadowLight|ShaderPass/.test(
       core,
     ),
   );

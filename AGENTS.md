@@ -2,7 +2,7 @@
 
 ## 项目事实与导航
 
-目标：重新封装 Three.js，主 npm 包名为 `@adui/three`。主包核心 MVP、普通/Draco/Meshopt/KTX2 模型加载与动画、拾取、DOM 标签、相机取景、渲染管线、可选泛光、第一/第三人称导航、静态 BVH 与路径几何已实现，website 为双实例演示，尚未发布 npm。以代码说明实现，以需求说明目标，不把建议写成已完成。
+目标：重新封装 Three.js，主 npm 包名为 `@adui/three`。主包核心 MVP、普通/Draco/Meshopt/KTX2 模型加载与动画、拾取、DOM 标签、相机取景、渲染管线、可选泛光、第一/第三人称导航、静态 BVH、路径几何、动态特效、颜色滤镜与实时阴影已实现，website 为双实例演示，尚未发布 npm。以代码说明实现，以需求说明目标，不把建议写成已完成。
 
 - [需求与验收](docs/REQUIREMENTS.md)：已确认范围、建议 MVP、待决策事项。
 - [架构](docs/ARCHITECTURE.md) / [详细设计](docs/SDD.md)：当前结构与建议方案。
@@ -56,6 +56,9 @@
 - [角色导航决策](docs/adr/0041-character-navigation.md)：原生第一/第三人称、静态 BVH 快照与输入生命周期。
 
 - [路径几何决策](docs/adr/0042-path-geometry.md)：独立圆角路径带/箭头与原生管道复用、预算和 buffer 所有权。
+
+- [动态特效与滤镜](docs/adr/0043-visual-effects.md)：飞线/光墙/雷达、原生滤镜和绘制结束回收。
+- [实时阴影](docs/adr/0044-realtime-shadows.md)：方向光范围规划、PCF/VSM与显式资源租约。
 
 ## 工作流程与约束
 
