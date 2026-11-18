@@ -45,6 +45,33 @@ export function createCharacterBody(options: CharacterBodyOptions): CharacterBod
       const into = speed.dot(contact.normal);
       if (into < 0) speed.addScaledVector(contact.normal, -into);
     }
+    // The depenetration skin intentionally leaves a gap. Probe only downwards so
+    // tiny frame deltas retain support without climbing steps or snapping an ascent.
+    if (!supported && speed.y <= 0) {
+      const distance = radius * 0.02;
+      const tolerance = radius * 1e-6;
+      segment.start.copy(point).y += radius - distance;
+      segment.end.copy(point).y += height - radius - distance;
+      const ground = world.resolveCapsule(segment, radius);
+      if (!alive()) return null;
+      const foot = ground.segment.start.clone();
+      foot.y -= radius;
+      const drop = point.y - foot.y;
+      if (
+        ground.converged &&
+        drop >= -tolerance &&
+        drop <= distance + tolerance &&
+        Math.hypot(foot.x - point.x, foot.z - point.z) <= distance &&
+        ground.contacts.some((contact) => contact.normal.y >= groundCosine)
+      ) {
+        point.copy(foot);
+        for (const contact of ground.contacts) {
+          const into = speed.dot(contact.normal);
+          if (into < 0) speed.addScaledVector(contact.normal, -into);
+        }
+        supported = true;
+      }
+    }
     return supported;
   };
   return {

@@ -41,3 +41,9 @@ scope/宿主/显式 dispose 解除监听、更新、相机登记与输入，清�
 - [PointerLockControls 官方文档](https://threejs.org/docs/pages/PointerLockControls.html)
 - [OrbitControls 官方文档](https://threejs.org/docs/pages/OrbitControls.html)
 - 实际安装版本的 package.json、index.d.ts 和 Three.js 0.187.0 原生控件已核对；三方示例未整段迁入。
+
+## 支撑间隙补充
+
+原生推出的 skin 留出分离间隙，微小 delta 的重力位移可能不足以再次穿入，不能把“无穿入接触”直接当作离地。无支撑且非上升时，以 radius*0.02 的有界向下胶囊探测确认可站表面；只接受已收敛、垂直落差和侧向修正均在预算内的结果，不向上攀台阶，不在上升或无地面时吸附。探测中所有者结束仍丢弃完整候选；主世界/资源所有权和迭代预算不变。
+
+新增真实 BVH 微步长、贴墙混合步长、跳跃、离地与探测中销毁回归，避免偶发输入落在无支撑帧而被丢弃。该修复不扩大为动态刚体或完整台阶控制。

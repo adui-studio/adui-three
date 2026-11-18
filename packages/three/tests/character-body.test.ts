@@ -98,3 +98,61 @@ test("teleport copies its input, resolves overlap and resets velocity", () => {
   target.x = 99;
   expect(body.position.x).toBeLessThan(2);
 });
+
+test("tiny host steps retain ground support across the collision skin and do not drop jump commands", () => {
+  const { body } = fixture();
+  const idle = new Vector3();
+  for (let i = 0; i < 10; i++) body.step(1 / 60, idle, false, live);
+  const floor = body.position.y;
+  for (let i = 0; i < 30; i++) {
+    body.step(1e-6, idle, false, live);
+    expect(body.grounded).toBe(true);
+    expect(body.position.y).toBeCloseTo(floor, 6);
+  }
+  body.step(1 / 60, idle, true, live);
+  expect(body.position.y).toBeGreaterThan(0.05);
+  expect(body.velocity.y).toBeGreaterThan(0);
+});
+test("support probes do not ground an ascent or a capsule beyond the floor", () => {
+  const { body } = fixture();
+  const idle = new Vector3();
+  body.teleport(new Vector3(16, 0.01, 0), live);
+  body.step(1e-6, idle, false, live);
+  expect(body.grounded).toBe(false);
+  expect(body.position.x).toBe(16);
+  body.teleport(new Vector3(0, 0.01, 0), live);
+  for (let i = 0; i < 10; i++) body.step(1 / 60, idle, false, live);
+  body.step(1e-4, idle, true, live);
+  expect(body.grounded).toBe(false);
+  expect(body.velocity.y).toBeGreaterThan(0);
+});
+test("ending the owner during the extra support probe discards all candidate motion", () => {
+  const { body, world } = fixture();
+  const idle = new Vector3();
+  for (let i = 0; i < 10; i++) body.step(1 / 60, idle, false, live);
+  const old = body.position.clone(),
+    query = world.resolveCapsule;
+  let calls = 0,
+    alive = true;
+  world.resolveCapsule = (segment, radius) => {
+    const result = query(segment, radius);
+    if (++calls === 2) alive = false;
+    return result;
+  };
+  expect(body.step(1e-6, idle, false, () => alive)).toBe(false);
+  expect(calls).toBe(2);
+  expect(body.position.equals(old)).toBe(true);
+});
+test("mixed frame steps retain support while moving against a wall", () => {
+  const { body } = fixture();
+  const move = new Vector3(4, 0, 0),
+    idle = new Vector3();
+  for (let i = 0; i < 120; i++) body.step(1 / 60, move, false, live);
+  for (let i = 0; i < 30; i++)
+    for (const delta of [1e-6, 1 / 120, 1 / 60, 0.004, 1 / 30]) {
+      body.step(delta, move, false, live);
+      expect(body.grounded).toBe(true);
+    }
+  body.step(1 / 60, idle, true, live);
+  expect(body.position.y).toBeGreaterThan(0.05);
+});
