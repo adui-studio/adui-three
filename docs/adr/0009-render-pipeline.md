@@ -40,3 +40,9 @@ resize 和挂接时的首次尺寸通知设置操作保护：拒绝递归 resize
 - [r187 WebGLRenderer](https://github.com/mrdoob/three.js/blob/r187/src/renderers/WebGLRenderer.js)
 - [r187 WebGLOutput](https://github.com/mrdoob/three.js/blob/r187/src/renderers/webgl/WebGLOutput.js)
 - [EffectComposer](https://threejs.org/docs/pages/EffectComposer.html)
+
+## 绘制结束资源回收补充（2026-11-18）
+
+宿主实际调用原生renderer或借用pipeline时，经私有 [render-retirement.ts](../../packages/three/src/render-retirement.ts) 建立每renderer同步清理边界。模块可在原生回调中登记清理，等待整次绘制返回的finally再释放；正常帧外同步执行，完成通知在清理后派发，绘制和多个清理异常聚合。不同renderer互不等待，同renderer嵌套借用共享最外层边界，宿主帧重入仍拒绝。没有新RAF、异步错误通道或公共宿主方法。
+
+原生阴影遍历live children，因此模块若在onBeforeShadow结束，不应提前detach节点或恢复caster标记；节点/GPU清理可一起登记到边界。原生直接render和借用pipeline均由宿主同一入口覆盖，应用绕过宿主自己调用renderer.render不在此边界内。真实宿主单测验证先绘制、再清理、后完成，以及原生失败时finally仍清理；私有边界另覆盖嵌套、跨renderer与错误聚合。

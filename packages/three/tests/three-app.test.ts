@@ -1,3 +1,4 @@
+import { retireAfterRender } from "../src/render-retirement.ts";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { BoxGeometry, Mesh, MeshBasicMaterial } from "three";
 import type { WebGLRendererParameters } from "three";
@@ -1285,4 +1286,24 @@ test("optional controls are released automatically by app disposal", () => {
   const { controls } = attachOrbitControls(app);
   app.dispose();
   expect(vi.spyOn(controls, "dispose")).toHaveBeenCalledOnce();
+});
+
+test("native direct rendering retires resources after the draw and before completion notifications", () => {
+  const env = fixture(),
+    app = env.create(),
+    events: string[] = [];
+  vi.spyOn(app.renderer, "render").mockImplementation(() => {
+    retireAfterRender(app.renderer, () => events.push("retire"));
+    events.push("draw");
+  });
+  app.onAfterRender(() => events.push("complete"));
+  expect(app.render()).toBe(true);
+  expect(events).toEqual(["draw", "retire", "complete"]);
+  vi.spyOn(app.renderer, "render").mockImplementation(() => {
+    retireAfterRender(app.renderer, () => events.push("finally"));
+    throw new Error("native draw");
+  });
+  expect(() => app.render()).toThrow(/native draw/);
+  expect(events.at(-1)).toBe("finally");
+  expect(app.state).toBe("stopped");
 });

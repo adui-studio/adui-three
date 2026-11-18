@@ -1,3 +1,4 @@
+import { renderWithRetirement } from "./render-retirement.ts";
 import { OrthographicCamera, PerspectiveCamera, Scene, WebGLRenderer } from "three";
 import type { Camera, WebGLRendererParameters } from "three";
 import { FrameLoop } from "./frame-loop.ts";
@@ -371,13 +372,17 @@ abstract class SceneHost<C extends Camera> {
       this.resize();
       if (!valid()) return false;
     }
-    if (this.#pipeline) {
-      const lease = this.#pipeline;
-      // oxlint-disable-next-line typescript/unbound-method -- Preserve the receiver via call after lease checks.
-      const render = lease.value.render;
-      if (!valid() || this.#pipeline !== lease) return false;
-      render.call(lease.value, frame);
-    } else this.renderer.render(this.scene, this.camera);
+    const drawn = renderWithRetirement(this.renderer, () => {
+      if (this.#pipeline) {
+        const lease = this.#pipeline;
+        // oxlint-disable-next-line typescript/unbound-method -- Preserve receiver after lease checks.
+        const render = lease.value.render;
+        if (!valid() || this.#pipeline !== lease) return false;
+        render.call(lease.value, frame);
+      } else this.renderer.render(this.scene, this.camera);
+      return true;
+    });
+    if (!drawn) return false;
     if (!valid()) return true;
     const afterRender = Array.from(this.#afterRender);
     for (const callback of afterRender) {
