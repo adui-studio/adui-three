@@ -138,4 +138,4 @@ geometry 是可选的原生实例化网格管理入口：依赖核心的宿主�
 
 新增独立 collision/navigation 入口。collision 外部依赖精确锁定 three-mesh-bvh，使用原生索引/距离/射线与 mergeGeometries；navigation 仅按类型借用 CollisionWorld，运行时复用原生 PointerLockControls / OrbitControls。核心、普通 controls 不反向导入 BVH。静态世界自有复制的几何体/树，控制器借用世界/actor，只拥有控件、监听和宿主订阅。
 
-内部 character-body 使用有限子步胶囊运动，宿主统一 delta；相机沿用 camera-runtime 的共享登记和写锁。显式切换模式，取景/过渡释放导航相机租约；无独立调度、应用依赖或模型数据。边界与重入/迟到指针锁见 [ADR-0041](adr/0041-character-navigation.md)。路径几何 FR-055 另行实现，与运动/导航网格区分。
+内部 character-body 使用有限子步胶囊运动，宿主统一 delta；相机沿用 camera-runtime 的共享登记和写锁。显式切换模式，取景/过渡释放导航相机租约；无独立调度、应用依赖或模型数据。边界与重入/迟到指针锁见 [ADR-0041](adr/0041-character-navigation.md)。路径几何 FR-055 位于 geometry 的内部 path-geometry 模块，独立构建曲线/路径带，复用原生帧和 TubeGeometry；无宿主/调度与曲线引用保留，消费者拥有 buffer，见 [ADR-0042](adr/0042-path-geometry.md)。与运动/导航网格区分。

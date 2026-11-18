@@ -61,7 +61,7 @@
 - [environment.ts](../packages/three/src/environment.ts) / [单测](../packages/three/tests/environment.test.ts) / [浏览器回归](../tests/browser/environment.spec.ts)：HDR 加载、逻辑取消、独占场景绑定和预热 GPU 清理。
 - [HDR 生成器](../scripts/generate-environment-fixture.mjs) / [原创环境资产](../apps/website/public/environments/README.md)：无网络 RGBE 数学渐变，支持逐字节重建。
 
-页面 index.html → bootstrap.ts → main.ts / instances.ts → 主包及可选子入口 → 调度更新、Mixer、渲染与 DOM 投影，或异步模型/拾取事件及即时取景。应用依赖主库，库不反向引用应用。
+页面 index.html → bootstrap.ts → main.ts / instances.ts / orthographic.ts / path.ts / navigation.ts / path-geometry.ts → 主包及可选子入口 → 调度更新、Mixer、渲染与 DOM 投影，或异步模型/拾取事件及即时取景。应用依赖主库，库不反向引用应用。
 
 ready → 文档测试/校验 → vp check → 主包单测 → 主包和演示 build。test:browser → 生产 build → preview → Chromium。test-results 与 dist 为忽略提交的产物。
 
@@ -151,3 +151,7 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 - [character-body.ts](../packages/three/src/character-body.ts)：私有有限子步运动器；[真实表面测试](../packages/three/tests/character-body.test.ts)。
 - [navigation.ts](../packages/three/src/navigation.ts)：第一/第三人称原生控件、相机租约和输入；[单测](../packages/three/tests/navigation.test.ts)。
 - [双实例演示](../apps/website/src/navigation.ts) / [浏览器回归](../tests/browser/navigation.spec.ts)：`/?demo=navigation`，原生指针锁、墙体、遮挡与反复清理。
+
+## 路径几何
+
+[path-geometry.ts](../packages/three/src/path-geometry.ts) 经 geometry 导出圆角曲线、路径带/箭头和原生管道；[单测](../packages/three/tests/path-geometry.test.ts) 比较真实曲线/法线/UV和原生管道，验证闭合/边界/重入。[演示](../apps/website/src/path-geometry.ts) 位于 `/?demo=path-geometry`；[浏览器回归](../tests/browser/path-geometry.spec.ts) 读取实际像素和 WebGL buffer 存量。与 path-animation.ts 的运动逻辑独立。

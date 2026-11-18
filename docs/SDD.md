@@ -368,7 +368,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-046  | 对象路径运动契约                  | path-animation.ts、有限循环演示                  | 计数/端点/精度/竞争单测、完成像素/拾取回归、包消费         |
 | FR-053  | 静态碰撞世界契约                  | collision.ts / BVH                               | 真实几何单测、无 DOM 包查询                                |
 | FR-054  | 角色导航契约                      | navigation.ts / character-body.ts、双实例演示    | 控件/运动单测、原生指针锁/像素、严格包消费                 |
-| FR-055  | 路径几何规划                      | 待实现                                           | 待实现，不表示现有 followPath 支持几何生成                 |
+| FR-055  | 路径几何契约                      | path-geometry.ts、geometry 导出及演示            | 圆角/帧/UV/接缝单测、原生像素/buffer、严格包消费           |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
@@ -427,3 +427,11 @@ navigation 导出 attachFirstPersonControls(app:ThreeApp,options?):FirstPersonCo
 句柄暴露原生 controls、disposed、请求 enabled、position/velocity 独立 Vector3、grounded；setEnabled、setInput({forward?,right?,sprint?})、clearInput、jump、teleport、dispose。轴默认0且范围[-1,1]，斜向归一；第一人称另 locked、lock():Promise<void>、unlock()。不启动或绘制宿主。scope/宿主释放控制器，actor/world 借用。启用状态还受宿主运行/可见/尺寸控制，键盘需要焦点/锁，程序输入显式保留；Escape、失焦和结束只释放本画布锁。已结束除清输入/解锁/销毁外的控制方法拒绝。
 
 position 由运动器独占，外部写 actor.position 失败并清理；相机/场景/actor 结构约束和输入租约见 ADR-0041。胶囊子步过预算或碰撞未收敛抛错，候选位置/速度不提交，宿主按更新异常策略停止。第三人称射线遮挡只保护相机中心，不替代完整物理。先释放原 OrbitControls 再附加角色控制；新相机取景/过渡释放该导航租约。
+
+## 路径几何契约
+
+geometry 导出 createPathCurve(points:readonly Vector3[],options?:PathCurveOptions):CurvePath<Vector3>、createPathRibbon(curve:Curve<Vector3>,options?:PathRibbonOptions):BufferGeometry、createPathTube(curve,options?:PathTubeOptions):BufferGeometry。曲线选项 cornerTrim 默认0（非负有限，按邻边一半限幅）、closed=false；2..4096个有限点，闭合至少3，不接受相邻重复/反向折返。输入数组和向量独立复制。
+
+共享 PathGeometryOptions：segments=64（整数1..4096，闭合完整>=3）、progress=1（[0,1]）、closed=false、uvScale=1（正有限）。路径带 width=1、side=both（另left/right）、up=(0,1,0)、arrow=false、arrowLength/arrowWidth 默认2*width；管道 radius=.1、radialSegments=8（3..128整数）。宽/半径/箭头尺寸均正有限，up非零有限。曲线闭合需端点相对长度误差<=1e-8，完整闭合不允许箭头。
+
+近似弧长采样真实前缀，progress0返回空 geometry；UV.x=距离/uvScale、UV.y=横截面比例。箭头尺寸超可见长度只留头部三角形；单侧沿侧带中心。原生帧、贝塞尔、管道数学复用，返回普通 BufferGeometry 独占 buffers，不保留源曲线引用；调用方管理材质、节点和 geometry.dispose/scope，不自动调度/绘制/更新。构建同步重入、非有限数据/Float32溢出或零切线拒绝，异常解锁并清理自有几何。限制与验证见 [ADR-0042](adr/0042-path-geometry.md)。

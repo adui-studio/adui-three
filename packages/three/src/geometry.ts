@@ -224,3 +224,10 @@ export function createInstancedMesh(
     throw error;
   }
 }
+export { createPathCurve, createPathRibbon, createPathTube } from "./path-geometry.ts";
+export type {
+  PathCurveOptions,
+  PathGeometryOptions,
+  PathRibbonOptions,
+  PathTubeOptions,
+} from "./path-geometry.ts";

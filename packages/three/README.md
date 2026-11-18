@@ -6,8 +6,8 @@
 
 - 宿主：[生命周期 API](#api)、[正交相机](#正交相机)、[资源归属](#资源与边界)、[绘制管线](#绘制管线与单次绘制)。
 - 相机：[自动取景](#相机取景)、[平滑过渡](#相机平滑过渡)、[保存和恢复视角](#保存和恢复视角)。
-- 模型：[资产复用](#复用模型资产)、[压缩解码](#压缩模型)、[动画](#模型动画)、[路径运动](#对象路径运动)、[实例化网格](#实例化网格)、[世界边界](#对象世界边界)。
-- 交互：[拾取](#对象拾取)、[DOM 标签](#dom-标签)、[变换手柄](#对象变换手柄)、[截图](#截图)。
+- 模型：[资产复用](#复用模型资产)、[压缩解码](#压缩模型)、[动画](#模型动画)、[路径运动](#对象路径运动)、[实例化网格](#实例化网格)、[世界边界](#对象世界边界)、[路径几何](#三维路径几何)。
+- 交互：[第一与第三人称](#第一与第三人称)、[静态碰撞](#静态碰撞世界)、[拾取](#对象拾取)、[DOM 标签](#dom-标签)、[变换手柄](#对象变换手柄)、[截图](#截图)。
 - 外观：[图片纹理](#独立图片纹理)、[KTX2 纹理](#独立-ktx2-纹理)、[HDR 环境](#hdr-环境)、[EXR 环境](#exr-环境图)、[泛光和描边](#选择描边与组合效果)。
 
 ## 最小示例
@@ -863,3 +863,28 @@ app.start();
 构建烘焙普通 Mesh 的世界三角形位置，源几何体/材质借用，快照不随源变换变化。包括隐藏对象，忽略材质、groups/drawRange；不接受蒙皮、形变、实例、批次和退化变换。动态模型请在应用端用成熟工具先烘焙再重建世界。bounds 包含 BVH 数值 padding。dispose 释放自有快照与索引，后续查询拒绝；控制器不会自动销毁借用世界。
 
 角色求解为有限子步的静态运动学表面控制，不是刚体引擎、完整连续碰撞、台阶攀爬或导航网格寻路；复杂深穿透可能不收敛。依据资产单位调整胶囊、skin、迭代和子步预算，不保证极端速度、任意网格角落或动态障碍。只有显式导入 collision 才加载实际 BVH 运行时代码。
+
+## 三维路径几何
+
+geometry 提供同步的 createPathCurve、createPathRibbon、createPathTube。参考 three.path 的用途独立实现，复用 Three.js 原生曲线/平行移动帧/TubeGeometry，不依赖或兼容 three.path。开发演示 `/?demo=path-geometry` 支持双实例、进度、拐角、宽度/半径与闭合。
+
+```ts
+import { createPathCurve, createPathRibbon, createPathTube } from "@adui/three/geometry";
+import { Vector3 } from "three";
+
+const curve = createPathCurve([new Vector3(-3, 0, 0), new Vector3(0, 0, 0), new Vector3(0, 1, 3)], {
+  cornerTrim: 0.5,
+});
+const ribbon = createPathRibbon(curve, { width: 0.4, arrow: true, progress: 0.75 });
+const tube = createPathTube(curve, { radius: 0.1, radialSegments: 12 });
+// 把返回的普通 BufferGeometry 交给 Mesh，并登记自己的 scope；替换/卸载时 dispose。
+// 同一 curve 也可借给 followPath，目标和路径网格采用相同局部坐标空间。
+```
+
+曲线复制2..4096个 Vector3 控制点，cornerTrim 默认0，表示沿两侧边修剪距离并以二次贝塞尔圆滑连接，最多各邻边一半，不是圆弧半径。closed 默认 false，闭合至少3点，可重复尾点；相邻重复、180°折返、零长/非有限拒绝。返回新的 CurvePath，源点改变不会影响它。
+
+共享选项 segments=64（整数1..4096，完整闭合至少3）、progress=1（[0,1]）、closed=false、uvScale=1（单位长度/纹理重复）。实际构造近似弧长前缀，progress=0 是带空顶点/索引和空边界的几何体，不只修改 drawRange。UV.x=距离/uvScale，UV.y=截面比例，纹理可用 RepeatWrapping。完整闭合要求曲线首尾匹配；裁切闭合曲线时仍是开放前缀。
+
+路径带 width=1，side 为 both/left/right，up 默认 Y-up，arrow=false，arrowLength/arrowWidth 默认2*width。width 在 both 时两边各一半，单侧时全宽；up 决定初始表面朝向，沿曲线使用原生平行移动帧，垂直初始方向有确定回退。箭头占最后一段可见长度，超过可见长度时只有箭头；完整闭合不允许箭头。管道 radius=.1、radialSegments=8（整数3..128），复用原生 TubeGeometry，不加端盖。
+
+返回几何体和 buffer 由调用方拥有，无宿主、材质、Mesh 或调度器，也不保留源曲线引用。参数变化时先构造成功，再替换 Mesh.geometry、untrack 并 dispose 旧几何；否则旧几何可继续使用。采样/原生帧可能更新曲线弧长缓存，构建期间不要修改借用曲线。同步重入、非法切线、非有限/Float32 溢出拒绝并清理；采样精度、自交和尖锐拐角受数值与细分限制，不提供道路布尔运算或精确斜接修复。

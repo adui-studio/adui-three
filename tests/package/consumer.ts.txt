@@ -199,3 +199,17 @@ export function consumeNavigation(app: ThreeApp, obstacles: Mesh[]) {
  third.controls.enableDamping=true;third.dispose();world.dispose();
  return [result.converged,hit?.distance,first.grounded,first.locked,third.position];
 }
+import { createPathCurve, createPathRibbon, createPathTube } from "@adui/three/geometry";
+import type { PathCurveOptions, PathGeometryOptions, PathRibbonOptions, PathTubeOptions } from "@adui/three/geometry";
+import type { BufferGeometry, CurvePath } from "three";
+export function consumePaths(app: ThreeApp) {
+ const options: PathCurveOptions={cornerTrim:.4,closed:false};
+ const curve: CurvePath<Vector3> = createPathCurve([new Vector3(),new Vector3(4,0,0)],options);
+ const common: PathGeometryOptions={segments:64,progress:.75,uvScale:1};
+ const ribbonOptions: PathRibbonOptions={...common,width:.4,arrow:true,side:"left"};
+ const tubeOptions: PathTubeOptions={...common,radius:.1,radialSegments:12};
+ const ribbon: BufferGeometry=createPathRibbon(curve,ribbonOptions),tube: BufferGeometry=createPathTube(curve,tubeOptions);
+ const marker=new Group();app.scene.add(marker);const motion=followPath(app,marker,{curve,duration:2});motion.cancel();
+ ribbon.dispose();tube.dispose();marker.removeFromParent();
+ return curve;
+}

@@ -33,7 +33,13 @@ const expected = {
   "@adui/three/environment": ["loadHDR", "loadEXR", "attachEnvironment"],
   "@adui/three/textures": ["loadTexture", "loadKTX2"],
   "@adui/three/capture": ["captureFrame"],
-  "@adui/three/geometry": ["createInstancedMesh", "computeObjectBounds"],
+  "@adui/three/geometry": [
+    "createInstancedMesh",
+    "computeObjectBounds",
+    "createPathCurve",
+    "createPathRibbon",
+    "createPathTube",
+  ],
 };
 const development = process.argv.includes("--resolve-only");
 for (const [specifier, names] of Object.entries(expected)) {
@@ -66,6 +72,17 @@ if (!development) {
   const { computeObjectFrame } = await import("@adui/three/camera");
   const mesh = new Mesh(new BoxGeometry(), new MeshBasicMaterial());
   const { computeObjectBounds } = await import("@adui/three/geometry");
+  const { createPathCurve, createPathRibbon, createPathTube } =
+    await import("@adui/three/geometry");
+  const { Vector3 } = await import("three");
+  const path = createPathCurve([new Vector3(), new Vector3(4, 0, 0)]);
+  const ribbon = createPathRibbon(path, { width: 2, progress: 0.5 });
+  const tube = createPathTube(path, { radius: 0.1, progress: 0.25 });
+  assert.equal(ribbon.boundingBox.max.x, 2);
+  assert.equal(tube.boundingBox.max.x, 1);
+  assert.equal(ribbon.type, "BufferGeometry");
+  ribbon.dispose();
+  tube.dispose();
   const { createCollisionWorld } = await import("@adui/three/collision");
   const world = createCollisionWorld([mesh]);
   assert.equal(world.triangleCount, 12);
@@ -116,7 +133,7 @@ if (!development) {
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");
   assert.ok(
-    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|transitionToCameraView|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath|MeshBVH|createCollisionWorld|attachFirstPersonControls|attachThirdPersonControls/.test(
+    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|transitionToCameraView|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath|MeshBVH|createCollisionWorld|attachFirstPersonControls|attachThirdPersonControls|createPathCurve|createPathRibbon|createPathTube/.test(
       core,
     ),
   );
