@@ -19,6 +19,7 @@ export default defineConfig({
       navigation: "src/navigation.ts",
       effects: "src/effects.ts",
       lighting: "src/lighting.ts",
+      rendering: "src/rendering.ts",
     },
     format: "esm",
     target: "es2022",

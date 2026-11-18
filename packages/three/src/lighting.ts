@@ -1,4 +1,5 @@
 import {
+  BasicShadowMap,
   Box3,
   DirectionalLight,
   Matrix4,
@@ -19,7 +20,7 @@ export interface ShadowLightOptions {
   receivers?: readonly Object3D[];
   /** Direction from target toward the light. Default (5,10,5). */
   direction?: Vector3;
-  type?: "pcf" | "vsm";
+  type?: "basic" | "pcf" | "vsm";
   mapSize?: number;
   bias?: number;
   normalBias?: number;
@@ -95,7 +96,7 @@ export function attachShadowLight(
     scope,
   } = options;
   if (
-    !["pcf", "vsm"].includes(type) ||
+    !["basic", "pcf", "vsm"].includes(type) ||
     !Number.isInteger(mapSize) ||
     mapSize < 128 ||
     mapSize > 4096 ||
@@ -136,7 +137,8 @@ export function attachShadowLight(
     type: renderer.shadowMap.type,
     autoUpdate: renderer.shadowMap.autoUpdate,
   };
-  const nativeType = type === "pcf" ? PCFShadowMap : VSMShadowMap;
+  const nativeType =
+    type === "basic" ? BasicShadowMap : type === "pcf" ? PCFShadowMap : VSMShadowMap;
   const light = new DirectionalLight(color, intensity);
   light.castShadow = true;
   light.shadow.mapSize.set(mapSize, mapSize);

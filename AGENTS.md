@@ -60,6 +60,8 @@
 - [动态特效与滤镜](docs/adr/0043-visual-effects.md)：飞线/光墙/雷达、原生滤镜和绘制结束回收。
 - [实时阴影](docs/adr/0044-realtime-shadows.md)：方向光范围规划、PCF/VSM与显式资源租约。
 
+- [Editor 配置决策](docs/adr/0045-editor-rendering.md)：干净预设、绘制结束色调交接与原生 Room/PMREM 资产。
+
 ## 工作流程与约束
 
 1. 读取相关文档与代码，定位需求编号，明确本次实现和验证范围。

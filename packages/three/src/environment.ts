@@ -1,3 +1,7 @@
+import { Color, PMREMGenerator } from "three";
+import type { Texture, WebGLCubeRenderTarget } from "three";
+import { RoomEnvironment as NativeRoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { isRendererDrawing, renderWithRetirement, retireAfterRender } from "./render-retirement.ts";
 import {
   EquirectangularReflectionMapping,
   FileLoader,
@@ -24,17 +28,23 @@ export interface LoadHDROptions {
   onCleanupError?: (error: unknown) => void;
 }
 
-export interface HDREnvironment {
+export interface EnvironmentAsset<T extends Texture = Texture> {
   /** Owned native texture. Do not call texture.dispose() separately. */
-  readonly texture: DataTexture;
+  readonly texture: T;
   /** Bindings and consumer hooks are released before the texture. */
   readonly resources: ResourceScope;
   readonly disposed: boolean;
   dispose(this: void): void;
 }
 
+export type HDREnvironment = EnvironmentAsset<DataTexture>;
+export type RoomEnvironmentAsset = EnvironmentAsset<Texture>;
+export interface RoomEnvironmentOptions {
+  sigma?: number;
+  size?: number;
+}
 export interface EnvironmentOptions {
-  /** Also use the equirectangular texture as the scene background. Default false. */
+  /** Also use the owned texture as the scene background. Default false. */
   background?: boolean;
   /** Finite nonnegative lighting intensity. Default 1. */
   intensity?: number;
@@ -45,17 +55,21 @@ export interface EnvironmentBinding {
   dispose(this: void): void;
 }
 
-const owners = new WeakMap<HDREnvironment, AnyThreeApp>();
+const owners = new WeakMap<EnvironmentAsset, AnyThreeApp>();
 const bindings = new WeakMap<AnyThreeApp, EnvironmentBinding>();
 
 function aborted(): DOMException {
   return new DOMException("HDR loading was cancelled", "AbortError");
 }
 
-function asset(app: AnyThreeApp, texture: DataTexture): HDREnvironment {
+function asset<T extends Texture>(
+  app: AnyThreeApp,
+  texture: T,
+  release: () => void = () => texture.dispose(),
+): EnvironmentAsset<T> {
   const resources = new ResourceScope();
   let disposed = false;
-  const environment: HDREnvironment = {
+  const environment: EnvironmentAsset<T> = {
     texture,
     resources,
     get disposed() {
@@ -72,7 +86,7 @@ function asset(app: AnyThreeApp, texture: DataTexture): HDREnvironment {
         errors.push(error);
       }
       try {
-        texture.dispose();
+        release();
       } catch (error) {
         errors.push(error);
       }
@@ -202,16 +216,16 @@ function loadEnvironment(
   });
 }
 
-/** Borrow an owned HDR asset for this app. One explicit binding at a time; no draw or scheduler. */
+/** Borrow an owned environment asset for this app. One explicit binding at a time; no draw or scheduler. */
 export function attachEnvironment(
   app: AnyThreeApp,
-  environment: HDREnvironment,
+  environment: EnvironmentAsset,
   options: EnvironmentOptions = {},
 ): EnvironmentBinding {
   const assertAvailable = (): void => {
     if (app.signal.aborted || app.resources.disposed) throw new Error("ThreeApp has been disposed");
     if (owners.get(environment) !== app || environment.disposed || environment.resources.disposed)
-      throw new Error("An active HDR environment owned by this app is required");
+      throw new Error("An active environment owned by this app is required");
     if (bindings.has(app)) throw new Error("An environment binding is already attached");
   };
   assertAvailable();
@@ -253,4 +267,121 @@ export function attachEnvironment(
   app.resources.track(binding);
   environment.resources.track(binding);
   return binding;
+}
+
+/** Generate Editor's Room IBL using native PMREM. Explicit GPU work; never binds or starts the host. */
+export function createRoomEnvironment(
+  app: AnyThreeApp,
+  options: RoomEnvironmentOptions = {},
+): RoomEnvironmentAsset {
+  const renderer = app.renderer;
+  const active = (): void => {
+    if (app.state === "disposed" || app.resources.disposed || app.signal.aborted)
+      throw new Error("Room environment owner has been disposed");
+  };
+  active();
+  if (isRendererDrawing(renderer)) throw new Error("Create Room environment outside a draw");
+  const { sigma = 0.04, size = 256 } = options;
+  if (!Number.isFinite(sigma) || sigma < 0 || sigma > 1 || ![256, 512, 1024].includes(size))
+    throw new RangeError("Invalid Room blur or cube size");
+  active();
+  const state = {
+    target: renderer.getRenderTarget(),
+    face: renderer.getActiveCubeFace(),
+    mip: renderer.getActiveMipmapLevel(),
+    autoClear: renderer.autoClear,
+    color: renderer.autoClearColor,
+    depth: renderer.autoClearDepth,
+    stencil: renderer.autoClearStencil,
+    xr: renderer.xr.enabled,
+    tone: renderer.toneMapping,
+    exposure: renderer.toneMappingExposure,
+    clear: renderer.getClearColor(new Color()),
+    alpha: renderer.getClearAlpha(),
+  };
+  const temporary = new ResourceScope();
+  let output: WebGLCubeRenderTarget | undefined;
+  const errors: unknown[] = [];
+  try {
+    const room = temporary.track(new NativeRoomEnvironment()),
+      generator = temporary.track(new PMREMGenerator(renderer));
+    renderWithRetirement(renderer, () => {
+      let value: WebGLCubeRenderTarget | undefined;
+      const failures: unknown[] = [];
+      try {
+        value = generator.fromScene(room, sigma, 0.1, 100, { size });
+      } catch (error) {
+        failures.push(error);
+      } finally {
+        if (app.state !== "disposed") {
+          for (const restore of [
+            () => {
+              renderer.autoClear = state.autoClear;
+              renderer.autoClearColor = state.color;
+              renderer.autoClearDepth = state.depth;
+              renderer.autoClearStencil = state.stencil;
+              renderer.xr.enabled = state.xr;
+              renderer.toneMapping = state.tone;
+              renderer.toneMappingExposure = state.exposure;
+            },
+            () => renderer.setClearColor(state.clear, state.alpha),
+            () => renderer.setRenderTarget(state.target, state.face, state.mip),
+          ]) {
+            try {
+              restore();
+            } catch (error) {
+              failures.push(error);
+            }
+          }
+        }
+      }
+      if (failures.length) {
+        if (value) {
+          try {
+            value.dispose();
+          } catch (error) {
+            failures.push(error);
+          }
+        }
+        throw new AggregateError(failures, "Room generation or renderer restoration failed");
+      }
+      output = value!;
+    });
+  } catch (error) {
+    errors.push(error);
+  } finally {
+    try {
+      temporary.dispose();
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  try {
+    active();
+  } catch (error) {
+    errors.push(error);
+  }
+  if (errors.length) {
+    try {
+      output?.dispose();
+    } catch (error) {
+      errors.push(error);
+    }
+    throw new AggregateError(errors, "Room environment preparation failed");
+  }
+  const target = output!;
+  const environment = asset(app, target.texture, () =>
+    retireAfterRender(renderer, () => target.dispose()),
+  );
+  try {
+    app.resources.track(environment);
+    return environment;
+  } catch (error) {
+    try {
+      environment.dispose();
+    } catch (cleanup) {
+      throw new AggregateError([error, cleanup], "Room environment ownership failed");
+    }
+    throw error;
+  }
 }

@@ -162,3 +162,9 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 - [lighting.ts](../packages/three/src/lighting.ts) / [测试](../packages/three/tests/lighting.test.ts)：方向光阴影视锥、PCF/VSM和资源租约。
 - [render-retirement.ts](../packages/three/src/render-retirement.ts) / [测试](../packages/three/tests/render-retirement.test.ts)：私有同步绘制结束清理，由两类宿主共用的基类调用。
 - [光影演示](../apps/website/src/effects.ts) / [GPU回归](../tests/browser/effects.spec.ts)：`/?demo=effects` 双实例、阴影/滤镜对比、原生回调销毁和贴图回收。postprocessing.ts现含两个官方颜色ShaderPass。
+
+## Editor 基准
+
+- [rendering.ts](../packages/three/src/rendering.ts) / [单测](../packages/three/tests/rendering.test.ts)：Editor 独立预设、原生色调/曝光租约和绘制结束应用。
+- [environment.ts](../packages/three/src/environment.ts) / [Room 单测](../packages/three/tests/environment-room.test.ts)：共用环境资产、临时原生 Room/PMREM 和返回 cube target 所有权。
+- [Editor 对照演示](../apps/website/src/editor.ts) / [浏览器像素对照](../tests/browser/editor.spec.ts)：/?demo=editor，七种色调、曝光、Basic/PCF/VSM、Room 与绘制中更新。

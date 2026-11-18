@@ -30,3 +30,6 @@ export function renderWithRetirement<T>(renderer: object, draw: () => T): T {
     throw new AggregateError(errors, "Rendering and retired resource cleanup failed");
   return value;
 }
+export function isRendererDrawing(renderer: object): boolean {
+  return frames.has(renderer);
+}

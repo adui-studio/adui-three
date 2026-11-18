@@ -92,6 +92,11 @@
       "types": "./dist/lighting.d.mts",
       "development": "./src/lighting.ts",
       "import": "./dist/lighting.mjs"
+    },
+    "./rendering": {
+      "types": "./dist/rendering.d.mts",
+      "development": "./src/rendering.ts",
+      "import": "./dist/rendering.mjs"
     }
   },
   "scripts": {

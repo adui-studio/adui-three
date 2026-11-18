@@ -17,3 +17,5 @@ export * from "@adui/three/navigation";
 
 export * from "@adui/three/effects";
 export * from "@adui/three/lighting";
+
+export * from "@adui/three/rendering";

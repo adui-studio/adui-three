@@ -135,3 +135,11 @@ test("invalid bounds, map sizes, directions and transformed scenes reject before
   expect(e.renderer.shadowMap.enabled).toBe(false);
   expect(e.scene.children).toHaveLength(1);
 });
+
+test("Basic is the native unfiltered Editor shadow choice", () => {
+  const e = fixture();
+  const handle = attachShadowLight(e.app, { bounds: e.bounds, type: "basic" });
+  expect(e.renderer.shadowMap.type).toBe(0);
+  handle.dispose();
+  expect(e.renderer.shadowMap.type).toBe(PCFShadowMap);
+});

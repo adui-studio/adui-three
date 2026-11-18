@@ -372,6 +372,8 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-056  | 动态特效契约                      | effects.ts、render-retirement.ts、光影演示       | 原生几何/时钟单测、GPU像素/回调释放、包消费                |
 | FR-057  | 方向光阴影契约                    | lighting.ts、光影演示                            | 八角视锥/租约单测、PCF/VSM像素/纹理清理                    |
 | FR-058  | 后处理颜色契约                    | postprocessing.ts 原生滤镜组合                   | pass/参数单测、灰度/色调像素、严格包声明                   |
+| FR-059  | Editor 配置契约                   | rendering.ts、Editor 对照演示                    | 原生映射/生命周期、实际像素和输出管线变更                  |
+| FR-060  | Room 环境契约                     | environment.ts、原生 Room/PMREM                  | 临时资源/状态回滚、反射像素和 GPU 资源基线                 |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
@@ -454,3 +456,15 @@ lighting导出attachShadowLight(app,ShadowLightOptions):ShadowLightHandle。boun
 ## 后处理颜色契约
 
 PostprocessingOptions.colorAdjustment?:ColorAdjustmentOptions可独立触发链。brightness/hue默认0、范围[-1,1]，contrast/saturation默认0、范围[-1,1)，enabled默认true；非法/奇异值在分配前拒绝。PostprocessingHandle.colorAdjustment?:ColorAdjustmentPasses暴露brightnessContrast/hueSaturation两原生ShaderPass；动态uniforms由消费者保持合法，enabled可旁路但保留资源。两个pass位于outline/bloom之后、OutputPass之前，线性空间调整且唯一输出，沿用执行期清理与异常恢复，见ADR-0043。
+
+## Editor 配置契约
+
+rendering 导出 createEditorRenderPreset():EditorRenderPreset 和 attachRendererSettings(app,options?):RendererSettingsHandle。预设是独立配置：renderer={antialias:true,reversedDepthBuffer:true}、color={toneMapping:"neutral",exposure:1}、shadows={enabled:true,type:"pcf"}。不自动应用或改写普通 ThreeApp 默认。ToneMappingMode 为 none/linear/reinhard/cineon/aces-filmic/agx/neutral；RendererColorSettings 含 toneMapping/exposure。RendererSettingsOptions 为部分颜色字段及可选 scope，初值 Neutral/1，曝光有限且在[0,10]。配置不控制场景灯光/环境/材质。
+
+句柄 disposed/settings/configure(partial)/dispose；settings 每次给出最后已应用快照。宿主与 scope 共同清理，renderer 色彩独占，attach 拒绝宿主绘制期；configure 期间排队并合并期望值，原生 pipeline 恢复后写入。dispose 立即失效、跳过待应用配置，在绘制结束恢复仍匹配的原生值后释放租约。直接 native 绘制不提供此边界。lighting 的 type 扩展 basic，默认仍 pcf；原生影子资源规则不变，见 [ADR-0045](adr/0045-editor-rendering.md)。
+
+## Room 环境契约
+
+EnvironmentAsset<T extends Texture=Texture> 统一 texture/resources/disposed/dispose；HDREnvironment=EnvironmentAsset<DataTexture> 保留 HDR/EXR 类型，RoomEnvironmentAsset=EnvironmentAsset<Texture>。attachEnvironment 接受共同资产，只允许同一宿主的活跃资源，background 可选使用其纹理；绑定按值恢复。createRoomEnvironment(app,{sigma?,size?}={}):RoomEnvironmentAsset 默认 sigma=.04/size=256，sigma在[0,1]，size仅256/512/1024；同步 GPU 生成、不绑定、不启动，禁止宿主绘制内调用。
+
+原生 RoomEnvironment/PMREMGenerator 为临时拥有；r187 WebGLCubeRenderTarget 为资产拥有，资源 hooks/绑定先清，再按宿主绘制结束边界 dispose target。生成前后保存/恢复 render target/face/mip、autoClear 全部开关、XR、tone/exposure、clear color/alpha；已结束所有者不交付，所有清理尝试后聚合异常。原生生成异常前未返回的输出分配无法通过公开接口取得，仍有残留边界。具体决策、Editor 来源和原生对照范围见 ADR-0045。

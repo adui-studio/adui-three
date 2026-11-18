@@ -231,3 +231,19 @@ export function consumeVisuals(app: ThreeApp, objects: Mesh[]) {
  const pipeline=attachPostprocessing(app,{colorAdjustment});const passes:ColorAdjustmentPasses|undefined=pipeline.colorAdjustment;
  if(passes)passes.hueSaturation.enabled=false;pipeline.dispose();
 }
+import { attachRendererSettings, createEditorRenderPreset } from "@adui/three/rendering";
+import type { RendererSettingsHandle, RendererColorSettings, ToneMappingMode } from "@adui/three/rendering";
+import { createRoomEnvironment } from "@adui/three/environment";
+import type { EnvironmentAsset, RoomEnvironmentAsset } from "@adui/three/environment";
+export function consumeEditor(app: ThreeApp) {
+  const preset = createEditorRenderPreset();
+  const mode: ToneMappingMode = "neutral";
+  const color: RendererColorSettings = { toneMapping: mode, exposure: 1 };
+  const settings: RendererSettingsHandle = attachRendererSettings(app, color);
+  settings.configure({ exposure: 2 });
+  const room: RoomEnvironmentAsset = createRoomEnvironment(app, { sigma: .04, size: 256 });
+  const asset: EnvironmentAsset = room;
+  const binding = attachEnvironment(app, asset, { background: true });
+  binding.dispose(); room.dispose(); settings.dispose();
+  return [preset.renderer, settings.settings];
+}

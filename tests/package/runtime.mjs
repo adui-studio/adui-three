@@ -12,6 +12,7 @@ globalThis.fetch = () => {
 const expected = {
   "@adui/three/effects": ["attachFlyLine", "attachLightWall", "attachRadar"],
   "@adui/three/lighting": ["attachShadowLight"],
+  "@adui/three/rendering": ["attachRendererSettings", "createEditorRenderPreset"],
   "@adui/three": ["ResourceScope", "ThreeApp", "OrthographicThreeApp"],
   "@adui/three/controls": ["attachOrbitControls", "attachTransformControls"],
   "@adui/three/collision": ["createCollisionWorld"],
@@ -32,7 +33,7 @@ const expected = {
     "transitionToCameraView",
   ],
   "@adui/three/postprocessing": ["attachBloom", "attachPostprocessing"],
-  "@adui/three/environment": ["loadHDR", "loadEXR", "attachEnvironment"],
+  "@adui/three/environment": ["loadHDR", "loadEXR", "attachEnvironment", "createRoomEnvironment"],
   "@adui/three/textures": ["loadTexture", "loadKTX2"],
   "@adui/three/capture": ["captureFrame"],
   "@adui/three/geometry": [
@@ -153,7 +154,7 @@ if (!development) {
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");
   assert.ok(
-    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|transitionToCameraView|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath|MeshBVH|createCollisionWorld|attachFirstPersonControls|attachThirdPersonControls|createPathCurve|createPathRibbon|createPathTube|attachFlyLine|attachLightWall|attachRadar|attachShadowLight|ShaderPass/.test(
+    !/GLTFLoader|SkeletonUtils|cloneGLTF|OrbitControls|transitionToObject|transitionToCameraView|computeObjectFrame|computeObjectBounds|EffectComposer|attachBloom|OutlinePass|attachPostprocessing|HDRLoader|attachEnvironment|TransformControls|loadTexture|captureFrame|createInstancedMesh|followPath|MeshBVH|createCollisionWorld|attachFirstPersonControls|attachThirdPersonControls|createPathCurve|createPathRibbon|createPathTube|attachFlyLine|attachLightWall|attachRadar|attachShadowLight|ShaderPass|attachRendererSettings|createRoomEnvironment|RoomEnvironment/.test(
       core,
     ),
   );
