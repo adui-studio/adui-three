@@ -2,7 +2,7 @@
 
 ## 当前架构
 
-当前是 pnpm 工作区，根包 `adui-three` 为 private，只包含 `packages/three` 主库和 `apps/website` 原生 TS 双实例演示。未使用的 utils 模板包与 tools/* 占位声明已清理。主库基于 Three.js 0.187.0 / WebGL 2；没有框架适配、数据库、后端认证、自建共享资产缓存或后端服务。
+当前是pnpm工作区：packages/three为SDK，examples为正式示例，apps/docs为VitePress，apps/website为回归playground，fixtures共享原创资产。根包private；核心仍基于Three.js0.187.0/WebGL2，无框架适配、数据库或后端服务。
 
 已存在工具链：Vite+ 1.4.0，TypeScript 声明 ^7.0.2，Node 要求 >=22.18.0，包管理器声明 pnpm 12.16.1。版本事实来自配置与锁文件，不代表新库兼容范围。[代码地图](CODEBASE_MAP.md) 定位现有文件。
 
@@ -14,7 +14,7 @@
 
 路径定位继续位于 animation 内部 path-animation 模块，通过既有目标写锁和候选采样复用 followPath；只在控制命令时定位/暂停，不新增调度或对象所有权，见 [ADR-0033](adr/0033-path-seek.md)。
 
-geometry 的 computeObjectBounds 与 camera 的两类取景共用内部 [object-bounds.ts](../packages/three/src/object-bounds.ts)，只依赖原生 CPU 数学和对象，测量不借用宿主或 addon。原生矩阵/边界缓存会同步，返回独立世界 Box3，不接管对象资源，见 [ADR-0032](adr/0032-object-bounds.md)。
+geometry 的 computeObjectBounds 与 camera 的两类取景共用内部 [object-bounds.ts](../packages/three/src/geometry/object-bounds.ts)，只依赖原生 CPU 数学和对象，测量不借用宿主或 addon。原生矩阵/边界缓存会同步，返回独立世界 Box3，不接管对象资源，见 [ADR-0032](adr/0032-object-bounds.md)。
 
 主 npm 包名 `@adui/three` 已确认。原始边界提案保留在 [ADR-0001](adr/0001-package-boundaries.md)，已实施的版本、模块和生命周期决策见 [ADR-0002](adr/0002-core-mvp.md)。不创建空扩展包。
 
@@ -153,3 +153,7 @@ rendering 是独立可选入口，只依赖原生色调常量、宿主类型和�
 ## 常用效果与节点边界
 
 effects保持同一可选入口，新增圆形波纹、开放圆柱光柱、Fresnel球形护罩、原生Points飞线和路径带流光。EffectPlayback统一控制与资源管理，EffectHandle保留mesh、FlyPointsHandle暴露points，各自原生类型不混用；共同使用私有泛型挂载器和原绘制结束边界。无新调度/依赖，路径带复用geometry内部实现；双相机消费者见 [ADR-0046](adr/0046-common-effects.md)。
+
+## 正式文档与示例架构
+
+公开入口稳定，内部实现分组；正式示例与回归playground独立，资产共享。VitePress呈现指南、API、源码示例和开发记录，嵌入示例但SSR不执行SDK。文档依赖隔离，见[ADR-0047](adr/0047-package-docs-examples.md)。

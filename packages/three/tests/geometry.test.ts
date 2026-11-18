@@ -11,8 +11,8 @@ import {
   Vector3,
 } from "three";
 import type { Material } from "three";
-import type { ThreeApp } from "../src/three-app.ts";
-import { ResourceScope } from "../src/resources.ts";
+import type { ThreeApp } from "../src/core/three-app.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { createInstancedMesh } from "../src/geometry.ts";
 
 function fixture() {

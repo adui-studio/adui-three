@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vite-plus/test";
-import { FrameLoop } from "../src/frame-loop.ts";
-import type { FrameInfo } from "../src/frame-loop.ts";
+import { FrameLoop } from "../src/core/frame-loop.ts";
+import type { FrameInfo } from "../src/core/frame-loop.ts";
 
 function scheduler() {
   let id = 0;

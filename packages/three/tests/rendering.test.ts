@@ -1,9 +1,9 @@
 import { afterEach, expect, test } from "vite-plus/test";
 import { NeutralToneMapping, NoToneMapping, AgXToneMapping } from "three";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { attachRendererSettings, createEditorRenderPreset } from "../src/rendering.ts";
-import { renderWithRetirement } from "../src/render-retirement.ts";
-import type { AnyThreeApp } from "../src/three-app.ts";
+import { renderWithRetirement } from "../src/core/render-retirement.ts";
+import type { AnyThreeApp } from "../src/core/three-app.ts";
 const cleanup: Array<() => void> = [];
 afterEach(() => {
   for (const fn of cleanup.splice(0).reverse()) fn();

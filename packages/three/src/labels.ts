@@ -1,6 +1,6 @@
 import { Vector3 } from "three";
 import type { Object3D } from "three";
-import type { AnyThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
 
 export interface DOMLabelOptions {
   /** Borrowed object in app.scene; a detached or hidden ancestor hides the label. */

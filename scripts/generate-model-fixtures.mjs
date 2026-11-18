@@ -7,7 +7,7 @@ import { MeshoptEncoder } from "meshoptimizer";
 import { encodeKTX2 } from "./basis-encoder.mjs";
 
 // Original tiny, textured tetrahedron. No third-party model or image input.
-const output = resolve(dirname(fileURLToPath(import.meta.url)), "../apps/website/public/models");
+const output = resolve(dirname(fileURLToPath(import.meta.url)), "../fixtures/models");
 mkdirSync(output, { recursive: true });
 function crc32(bytes) {
   let value = 0xffffffff;

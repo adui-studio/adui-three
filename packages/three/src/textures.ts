@@ -6,11 +6,11 @@ import {
   SRGBColorSpace,
   Texture,
 } from "three";
-import type { AnyThreeApp } from "./three-app.ts";
-import { ResourceScope } from "./resources.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
+import { ResourceScope } from "./core/resources.ts";
 
-export { loadKTX2 } from "./ktx2-texture.ts";
-export type { KTX2TextureAsset, LoadKTX2Options } from "./ktx2-texture.ts";
+export { loadKTX2 } from "./textures/ktx2-texture.ts";
+export type { KTX2TextureAsset, LoadKTX2Options } from "./textures/ktx2-texture.ts";
 
 export interface TextureProgress {
   readonly loaded: number;

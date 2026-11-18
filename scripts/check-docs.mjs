@@ -6,6 +6,8 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const coreSections = {
   "AGENTS.md": ["项目事实与导航", "工作流程与约束"],
   "README.md": [],
+  "examples/README.md": ["运行", "新增示例"],
+  "apps/docs/README.md": ["运行", "内容来源"],
   "CONTRIBUTING.md": ["开发与验证", "Issue 与 PR", "提交规范"],
   ".github/pull_request_template.md": ["变更与原因", "关联与兼容性", "验证", "检查"],
   "docs/REQUIREMENTS.md": ["正式需求", "待决策", "变更记录与维护"],
@@ -23,7 +25,7 @@ function markdownFiles(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
     if (entry.isDirectory())
-      return ["node_modules", "dist"].includes(entry.name) ? [] : markdownFiles(path);
+      return ["node_modules", "dist", "public"].includes(entry.name) ? [] : markdownFiles(path);
     return entry.isFile() && entry.name.endsWith(".md") ? [path] : [];
   });
 }
@@ -70,7 +72,10 @@ export function validateDocs(root = repositoryRoot) {
     ...markdownFiles(join(root, ".github")),
     ...markdownFiles(join(root, "docs")),
     ...markdownFiles(join(root, "packages")),
-    ...markdownFiles(join(root, "apps", "website", "public")),
+    ...markdownFiles(join(root, "fixtures")),
+    ...markdownFiles(join(root, "examples")),
+    join(root, "apps/docs/README.md"),
+    join(root, "apps/website/README.md"),
     ...markdownFiles(join(root, ".agents", "skills")),
   ];
   const packageFile = join(root, "package.json");
@@ -103,6 +108,11 @@ export function validateDocs(root = repositoryRoot) {
       ) {
         report(file, `broken anchor: ${target}`);
       }
+    }
+    for (const match of content.matchAll(/^<<<\s+([^\s]+)\s*$/gm)) {
+      const target = resolve(dirname(file), match[1]);
+      if (!existsSync(target) || !statSync(target).isFile())
+        report(file, "broken source include: " + match[1]);
     }
     for (const match of content.matchAll(/\bpnpm run ([\w:-]+)/g)) {
       if (!(match[1] in scripts)) report(file, `unknown root script: ${match[1]}`);

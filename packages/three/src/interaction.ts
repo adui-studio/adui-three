@@ -1,6 +1,6 @@
 import { Raycaster, Vector2 } from "three";
 import type { Intersection, Object3D, SkinnedMesh } from "three";
-import type { AnyThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
 
 export interface PickingOptions {
   /** Explicit borrowed targets, read again for each pick (e.g. after replacing a model). */

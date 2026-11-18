@@ -67,7 +67,7 @@ test("real EXR half-float lighting and background render while paused and remain
 test("equal-URL EXR requests share transport while cancellation, invalid data, retry and disposal remain task-local", async ({
   page,
 }) => {
-  const body = await readFile("apps/website/public/environments/studio.exr"),
+  const body = await readFile("fixtures/environments/studio.exr"),
     held: Route[] = [];
   let blocked = true,
     requests = 0;

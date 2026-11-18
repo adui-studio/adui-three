@@ -1,35 +1,35 @@
 import type { Object3D } from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { ThreeApp } from "./three-app.ts";
-import { prepareObjectFrame } from "./camera-frame.ts";
-import type { FitObjectOptions, ObjectFrame } from "./camera-frame.ts";
-import { beginCameraWrite, cancelCameraMotion } from "./camera-runtime.ts";
-export type { TransitionEasing } from "./easing.ts";
+import type { ThreeApp } from "./core/three-app.ts";
+import { prepareObjectFrame } from "./camera/camera-frame.ts";
+import type { FitObjectOptions, ObjectFrame } from "./camera/camera-frame.ts";
+import { beginCameraWrite, cancelCameraMotion } from "./camera/camera-runtime.ts";
+export type { TransitionEasing } from "./shared/easing.ts";
 
-export { computeObjectFrame } from "./camera-frame.ts";
-export { captureCameraView, restoreCameraView } from "./camera-view.ts";
-export { transitionToCameraView } from "./camera-view-transition.ts";
+export { computeObjectFrame } from "./camera/camera-frame.ts";
+export { captureCameraView, restoreCameraView } from "./camera/camera-view.ts";
+export { transitionToCameraView } from "./camera/camera-view-transition.ts";
 export type {
   CameraViewTransitionOptions,
   CameraViewTransitionHandle,
   CameraViewTransitionResult,
-} from "./camera-view-transition.ts";
+} from "./camera/camera-view-transition.ts";
 export type {
   CameraView,
   PerspectiveCameraView,
   OrthographicCameraView,
   CameraViewOptions,
-} from "./camera-view.ts";
-export { computeOrthographicFrame, fitOrthographicObject } from "./camera-orthographic.ts";
-export type { OrthographicObjectFrame } from "./camera-orthographic.ts";
-export type { ObjectFrameOptions, FitObjectOptions, ObjectFrame } from "./camera-frame.ts";
-export { transitionToObject, transitionOrthographicToObject } from "./camera-transition.ts";
+} from "./camera/camera-view.ts";
+export { computeOrthographicFrame, fitOrthographicObject } from "./camera/camera-orthographic.ts";
+export type { OrthographicObjectFrame } from "./camera/camera-orthographic.ts";
+export type { ObjectFrameOptions, FitObjectOptions, ObjectFrame } from "./camera/camera-frame.ts";
+export { transitionToObject, transitionOrthographicToObject } from "./camera/camera-transition.ts";
 export type {
   CameraTransitionOptions,
   CameraTransitionHandle,
   CameraTransitionResult,
   CameraTransitionState,
-} from "./camera-transition.ts";
+} from "./camera/camera-transition.ts";
 
 /** Instantaneous fit; no RAF, render, auto-start or resource ownership. */
 export function fitObject(

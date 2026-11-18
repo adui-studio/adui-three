@@ -19,7 +19,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { computeObjectFrame, fitObject } from "../src/camera.ts";
 import type { FitObjectOptions } from "../src/camera.ts";
 import type { ThreeApp, ThreeAppState } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 
 function fixture() {
   const camera = new PerspectiveCamera(50, 16 / 9, 0.1, 1000);

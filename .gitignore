@@ -36,3 +36,7 @@ dist-ssr
 
 # Pinned development-only model fixture encoders
 .cache/model-fixtures/
+
+# Generated documentation assets
+docs/public/play
+apps/docs/.vitepress/cache

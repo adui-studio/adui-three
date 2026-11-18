@@ -1,7 +1,7 @@
 import { expect, test, vi } from "vite-plus/test";
 import { Group, Object3D, OrthographicCamera, PerspectiveCamera, Scene, Vector3 } from "three";
 import type { ThreeApp, ThreeAppState } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { attachDOMLabels } from "../src/labels.ts";
 
 // A small DOM adapter; actual layout, hit testing and ResizeObserver run in browser tests.

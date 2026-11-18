@@ -1,4 +1,4 @@
-import { retireAfterRender } from "../src/render-retirement.ts";
+import { retireAfterRender } from "../src/core/render-retirement.ts";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { BoxGeometry, Mesh, MeshBasicMaterial } from "three";
 import type { WebGLRendererParameters } from "three";

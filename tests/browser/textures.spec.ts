@@ -165,7 +165,7 @@ test("same URL downloads once but decodes separate bitmaps, and cancellation/dis
   page,
 }) => {
   await probe(page);
-  const body = await readFile("apps/website/public/textures/quadrants.png");
+  const body = await readFile("fixtures/textures/quadrants.png");
   let requests = 0;
   let release: () => void = () => {};
   const gate = new Promise<void>((resolve) => {

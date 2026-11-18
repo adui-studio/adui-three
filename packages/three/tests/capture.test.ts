@@ -1,8 +1,8 @@
 import { expect, test, vi } from "vite-plus/test";
 import { captureFrame } from "../src/capture.ts";
 import type { CaptureRegion } from "../src/capture.ts";
-import { ResourceScope } from "../src/resources.ts";
-import type { ThreeApp, ThreeAppState } from "../src/three-app.ts";
+import { ResourceScope } from "../src/core/resources.ts";
+import type { ThreeApp, ThreeAppState } from "../src/core/three-app.ts";
 
 function fixture() {
   const controller = new AbortController();

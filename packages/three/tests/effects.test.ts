@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { LineCurve3, Scene, Vector3 } from "three";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import {
   attachFlyLine,
   attachLightWall,
@@ -11,7 +11,7 @@ import {
   attachFlyPoints,
   attachFlowLine,
 } from "../src/effects.ts";
-import { renderWithRetirement } from "../src/render-retirement.ts";
+import { renderWithRetirement } from "../src/core/render-retirement.ts";
 import type { AnyThreeApp, FrameInfo } from "../src/index.ts";
 const cleanups: Array<() => void> = [];
 afterEach(() => {

@@ -12,9 +12,9 @@ import {
   Texture,
 } from "three";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { attachEnvironment, loadHDR } from "../src/environment.ts";
-import type { ThreeApp } from "../src/three-app.ts";
+import type { ThreeApp } from "../src/core/three-app.ts";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -57,9 +57,7 @@ function transport() {
 }
 
 function buffer(): ArrayBuffer {
-  const bytes = readFileSync(
-    new URL("../../../apps/website/public/environments/studio.hdr", import.meta.url),
-  );
+  const bytes = readFileSync(new URL("../../../fixtures/environments/studio.hdr", import.meta.url));
   return Uint8Array.from(bytes).buffer;
 }
 

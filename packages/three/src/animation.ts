@@ -7,18 +7,18 @@ import {
 } from "three";
 import type { AnimationAction, AnimationClip, Object3D } from "three";
 import type { GLTFInstance, GLTFModel } from "./loaders.ts";
-import type { AnyThreeApp } from "./three-app.ts";
-import { resolveTransitionEasing } from "./easing.ts";
-import type { TransitionEasing } from "./easing.ts";
-export type { TransitionEasing } from "./easing.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
+import { resolveTransitionEasing } from "./shared/easing.ts";
+import type { TransitionEasing } from "./shared/easing.ts";
+export type { TransitionEasing } from "./shared/easing.ts";
 
-export { followPath } from "./path-animation.ts";
+export { followPath } from "./animation/path-animation.ts";
 export type {
   FollowPathOptions,
   PathMotionHandle,
   PathMotionState,
   PathMotionResult,
-} from "./path-animation.ts";
+} from "./animation/path-animation.ts";
 
 export type AnimationState = "idle" | "playing" | "paused" | "finished" | "disposed";
 

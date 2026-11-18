@@ -12,7 +12,7 @@ import type { WebGLRenderTarget } from "three";
 import type { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import type { Pass } from "three/addons/postprocessing/Pass.js";
 import type { RenderPipeline, ThreeApp, ThreeAppState } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { attachBloom, attachPostprocessing } from "../src/postprocessing.ts";
 
 const state = vi.hoisted(() => ({

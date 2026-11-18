@@ -1,7 +1,11 @@
 import { Color, PMREMGenerator } from "three";
 import type { Texture, WebGLCubeRenderTarget } from "three";
 import { RoomEnvironment as NativeRoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { isRendererDrawing, renderWithRetirement, retireAfterRender } from "./render-retirement.ts";
+import {
+  isRendererDrawing,
+  renderWithRetirement,
+  retireAfterRender,
+} from "./core/render-retirement.ts";
 import {
   EquirectangularReflectionMapping,
   FileLoader,
@@ -12,8 +16,8 @@ import {
 import type { DataTexture } from "three";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import { EXRLoader } from "three/addons/loaders/EXRLoader.js";
-import type { AnyThreeApp } from "./three-app.ts";
-import { ResourceScope } from "./resources.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
+import { ResourceScope } from "./core/resources.ts";
 
 export interface EnvironmentProgress {
   readonly loaded: number;

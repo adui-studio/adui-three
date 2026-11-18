@@ -1,4 +1,4 @@
-export { ThreeApp, OrthographicThreeApp } from "./three-app.ts";
+export { ThreeApp, OrthographicThreeApp } from "./core/three-app.ts";
 export type {
   AnyThreeApp,
   ThreeAppOptions,
@@ -6,7 +6,7 @@ export type {
   ThreeAppState,
   ViewportSize,
   RenderPipeline,
-} from "./three-app.ts";
-export { ResourceScope } from "./resources.ts";
-export type { Disposable } from "./resources.ts";
-export type { FrameInfo } from "./frame-loop.ts";
+} from "./core/three-app.ts";
+export { ResourceScope } from "./core/resources.ts";
+export type { Disposable } from "./core/resources.ts";
+export type { FrameInfo } from "./core/frame-loop.ts";

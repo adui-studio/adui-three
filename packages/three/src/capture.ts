@@ -1,4 +1,4 @@
-import type { AnyThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
 
 export interface CaptureRegion {
   /** Top-left origin in actual drawing-buffer pixels, independent of CSS size and DPR. */

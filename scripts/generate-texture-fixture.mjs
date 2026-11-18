@@ -42,7 +42,7 @@ const image = Buffer.concat([
   chunk("IDAT", deflateSync(data)),
   chunk("IEND", Buffer.alloc(0)),
 ]);
-const directory = new URL("../apps/website/public/textures/", import.meta.url);
+const directory = new URL("../fixtures/textures/", import.meta.url);
 await mkdir(directory, { recursive: true });
 await writeFile(new URL("quadrants.png", directory), image);
 await writeFile(new URL("invalid.png", directory), "Invalid image fixture.\n");

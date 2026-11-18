@@ -17,7 +17,7 @@ import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 import type { ThreeApp, ThreeAppState } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { loadGLTF } from "../src/loaders.ts";
 import type { LoadGLTFOptions } from "../src/loaders.ts";
 

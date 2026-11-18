@@ -37,4 +37,4 @@
 - [r187 KTX2Loader](https://github.com/mrdoob/three.js/blob/r187/examples/jsm/loaders/KTX2Loader.js) / [WorkerPool](https://github.com/mrdoob/three.js/blob/r187/examples/jsm/utils/WorkerPool.js)
 - [r187 GLTFLoader 纹理路径](https://github.com/mrdoob/three.js/blob/r187/examples/jsm/loaders/GLTFLoader.js)
 - [KHR_texture_basisu](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_texture_basisu)
-- [固定版本官方编码器](https://github.com/BinomialLLC/basis_universal/tree/c54f46f8aaa44eff1bc6e1d919e61e18b2b8f7d1/webgl/encoder) / [许可记录](../../apps/website/public/licenses/README.md)
+- [固定版本官方编码器](https://github.com/BinomialLLC/basis_universal/tree/c54f46f8aaa44eff1bc6e1d919e61e18b2b8f7d1/webgl/encoder) / [许可记录](../../fixtures/licenses/README.md)

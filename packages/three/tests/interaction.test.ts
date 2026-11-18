@@ -16,7 +16,7 @@ import {
 } from "three";
 import type { Intersection, Object3D } from "three";
 import type { ThreeApp, ThreeAppState } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { attachPicking } from "../src/interaction.ts";
 
 function fixture() {

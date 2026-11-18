@@ -7,9 +7,9 @@ import {
   SRGBColorSpace,
   Texture,
 } from "three";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { loadTexture } from "../src/textures.ts";
-import type { ThreeApp } from "../src/three-app.ts";
+import type { ThreeApp } from "../src/core/three-app.ts";
 import type { LoadTextureOptions } from "../src/textures.ts";
 
 afterEach(() => vi.restoreAllMocks());

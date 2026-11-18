@@ -71,7 +71,7 @@ test("real HDR lighting and background change paused pixels, detach restores the
 test("same-URL HDR transport is shared while cancellation, host teardown, malformed input and retries stay independent", async ({
   page,
 }) => {
-  const body = await readFile("apps/website/public/environments/studio.hdr");
+  const body = await readFile("fixtures/environments/studio.hdr");
   let release: () => void = () => {};
   let requests = 0;
   let gate = new Promise<void>((resolve) => {

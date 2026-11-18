@@ -1,10 +1,10 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { Color, PMREMGenerator, Scene, WebGLCubeRenderTarget, NoToneMapping } from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { attachEnvironment, createRoomEnvironment } from "../src/environment.ts";
-import { renderWithRetirement, retireAfterRender } from "../src/render-retirement.ts";
-import type { AnyThreeApp } from "../src/three-app.ts";
+import { renderWithRetirement, retireAfterRender } from "../src/core/render-retirement.ts";
+import type { AnyThreeApp } from "../src/core/three-app.ts";
 const cleanup: Array<() => void> = [];
 afterEach(() => {
   for (const fn of cleanup.splice(0).reverse()) fn();

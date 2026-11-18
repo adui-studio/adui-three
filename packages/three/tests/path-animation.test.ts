@@ -2,8 +2,8 @@ import { expect, test, vi } from "vite-plus/test";
 import { CatmullRomCurve3, Group, LineCurve3, Scene, Vector3 } from "three";
 import type { Curve } from "three";
 import type { ThreeApp, ThreeAppState, FrameInfo } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
-import { followPath } from "../src/path-animation.ts";
+import { ResourceScope } from "../src/core/resources.ts";
+import { followPath } from "../src/animation/path-animation.ts";
 
 function fixture() {
   const controller = new AbortController();

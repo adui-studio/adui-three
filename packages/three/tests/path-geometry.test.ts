@@ -1,6 +1,10 @@
 import { afterEach, expect, test } from "vite-plus/test";
 import { BufferGeometry, LineCurve3, QuadraticBezierCurve3, TubeGeometry, Vector3 } from "three";
-import { createPathCurve, createPathRibbon, createPathTube } from "../src/path-geometry.ts";
+import {
+  createPathCurve,
+  createPathRibbon,
+  createPathTube,
+} from "../src/geometry/path-geometry.ts";
 const geometries: BufferGeometry[] = [];
 afterEach(() => {
   for (const geometry of geometries.splice(0)) geometry.dispose();

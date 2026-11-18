@@ -3,9 +3,9 @@ import { BoxGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene } from "
 import type { BufferGeometry, Material, Object3D } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { attachTransformControls } from "../src/controls.ts";
-import type { ThreeApp } from "../src/three-app.ts";
+import type { ThreeApp } from "../src/core/three-app.ts";
 
 const cleanup: Array<() => void> = [];
 afterEach(() => {

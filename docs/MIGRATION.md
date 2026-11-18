@@ -44,7 +44,7 @@ pnpm add ./vendor/adui-three-0.0.0.tgz
 | 原 renderer 色调与环境设置          | rendering 的 Editor 预设 + environment 资产/绑定         | 显式选择色调/曝光和 Room，创建参数交给宿主，生成与绑定分离                  |
 | 原对象尺寸计算                      | `@adui/three/geometry` 的 computeObjectBounds            | 独立世界 Box3，当前 CPU 姿态；实例/批次保留原生保守边界                     |
 
-OBJ/FBX、CSS3D、RGB 偏移、导航网格寻路和框架适配尚未实现。独立路径几何已通过 geometry 的曲线/路径带/管道 API 提供；新增特效及实时阴影参见上表，不承诺与旧模块 API 兼容。静态 BVH 碰撞与第一/第三人称已通过 collision/navigation 入口提供，使用显式障碍快照与角色 Group；先释放旧控制器，保留原宿主循环，不迁入旧运动/碰撞源码。业务解密、鉴权、CORS 与私有路径留在应用及资产服务，不迁入通用主包。完整公开用法见 [包 README](../packages/three/README.md)。
+OBJ/FBX、CSS3D、RGB 偏移、导航网格寻路和框架适配尚未实现。独立路径几何已通过 geometry 的曲线/路径带/管道 API 提供；新增特效及实时阴影参见上表，不承诺与旧模块 API 兼容。静态 BVH 碰撞与第一/第三人称已通过 collision/navigation 入口提供，使用显式障碍快照与角色 Group；先释放旧控制器，保留原宿主循环，不迁入旧运动/碰撞源码。业务解密、鉴权、CORS 与私有路径留在应用及资产服务，不迁入通用主包。完整公开用法见 [API 参考](api/index.md)。
 
 ## 先迁移生命周期
 

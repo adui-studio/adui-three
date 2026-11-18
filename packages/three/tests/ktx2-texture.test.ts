@@ -8,9 +8,9 @@ import {
   RGBA_S3TC_DXT5_Format,
 } from "three";
 import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { loadKTX2 } from "../src/textures.ts";
-import type { ThreeApp } from "../src/three-app.ts";
+import type { ThreeApp } from "../src/core/three-app.ts";
 
 const cleanups: Array<() => void> = [];
 afterEach(() => {

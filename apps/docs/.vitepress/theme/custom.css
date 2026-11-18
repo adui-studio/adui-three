@@ -1,0 +1,26 @@
+:root {
+  --vp-c-brand-1: #2e8060;
+  --vp-c-brand-2: #3e9874;
+  --vp-c-brand-3: #24694f;
+  --vp-c-brand-soft: #77c99b20;
+  --vp-home-hero-name-color: #2e8060;
+}
+.dark {
+  --vp-c-brand-1: #98ddbb;
+  --vp-c-brand-2: #79c8a4;
+  --vp-c-brand-3: #5eaf8a;
+  --vp-c-bg: #10191b;
+  --vp-c-bg-alt: #142124;
+  --vp-c-bg-soft: #19292b;
+  --vp-c-bg-elv: #1b2d2e;
+  --vp-home-hero-name-color: #98ddbb;
+}
+.VPHero .name {
+  letter-spacing: -2px;
+}
+.vp-doc table {
+  font-size: 14px;
+}
+.VPHomeFeatures .title {
+  font-weight: 600;
+}

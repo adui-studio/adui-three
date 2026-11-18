@@ -2,9 +2,9 @@
 
 ## 当前实现
 
-核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`OrthographicThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing、environment、textures、capture、geometry 分别提供控制器/变换、模型加载、拾取、DOM 标签、动画/定位、取景、泛光/描边、HDR 环境、独立图片纹理、画布截图和实例化网格。website 使用工作区公开入口。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
+核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`OrthographicThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing、environment、textures、capture、geometry 分别提供控制器/变换、模型加载、拾取、DOM 标签、动画/定位、取景、泛光/描边、HDR 环境、独立图片纹理、画布截图和实例化网格。可选 collision、navigation、effects、lighting、rendering 覆盖静态 BVH、角色导航、动态特效、阴影与渲染配置，完整共 17 个公开入口。examples 与 website 使用工作区公开入口，apps/docs 呈现正式文档。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
 
-核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画扩展见 [ADR-0004](adr/0004-animation-lifecycle.md)。完整选项、默认值和示例以 [主包 README](../packages/three/README.md) 与导出类型为准；已通过可选泛光模块接入自有 composer；尚无寻路、框架适配或 WebGPU 实现。
+核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画扩展见 [ADR-0004](adr/0004-animation-lifecycle.md)。完整选项、默认值和示例以 [API 参考](api/index.md) 与导出类型为准；已通过可选泛光模块接入自有 composer；尚无寻路、框架适配或 WebGPU 实现。
 
 ## 核心 API
 
@@ -75,12 +75,12 @@ environment 新增 loadEXR(AnyThreeApp,url,LoadHDROptions?):Promise<HDREnvironme
 
 ## 模块与关键流程
 
-| 模块     | 实现                                                 | 关键边界                                           |
-| -------- | ---------------------------------------------------- | -------------------------------------------------- |
-| 宿主     | [three-app.ts](../packages/three/src/three-app.ts)   | 实例状态、平台监听、统一 render、构造失败回滚      |
-| 帧调度   | [frame-loop.ts](../packages/three/src/frame-loop.ts) | 单 RAF、epoch 失效、delta 计时与限幅、回调内重启   |
-| 资源归属 | [resources.ts](../packages/three/src/resources.ts)   | 显式登记、逆序去重、聚合异常、清理前先终止 scope   |
-| 控制器   | [controls.ts](../packages/three/src/controls.ts)     | 可选依赖，不创建额外循环，手动移除与宿主释放不重复 |
+| 模块     | 实现                                                      | 关键边界                                           |
+| -------- | --------------------------------------------------------- | -------------------------------------------------- |
+| 宿主     | [three-app.ts](../packages/three/src/core/three-app.ts)   | 实例状态、平台监听、统一 render、构造失败回滚      |
+| 帧调度   | [frame-loop.ts](../packages/three/src/core/frame-loop.ts) | 单 RAF、epoch 失效、delta 计时与限幅、回调内重启   |
+| 资源归属 | [resources.ts](../packages/three/src/core/resources.ts)   | 显式登记、逆序去重、聚合异常、清理前先终止 scope   |
+| 控制器   | [controls.ts](../packages/three/src/controls.ts)          | 可选依赖，不创建额外循环，手动移除与宿主释放不重复 |
 
 创建过程：校验容器/配置/ResizeObserver → 创建 scene/camera/renderer → 挂 canvas → 绑定 observer、窗口 resize、文档 visibility 和 DPR 媒体查询 → 初始 resize。后续步骤失败则调用 dispose 回滚；回滚异常与原错误聚合。
 
@@ -132,7 +132,7 @@ ThreeApp.contextLost 为只读黏性诊断，初始 false；自有 canvas 收到
 
 模型另有只读 resources 扩展 ResourceScope：模型 dispose 标记结束后先调用它，再 detach、清局部节点/骨骼并释放共享资产租约；扩展失败仍继续清理，聚合错误。单独释放扩展 scope 不等于移除模型，也不影响已拍摄快照的归属。动画登记于此，loader 不导入动画实现。
 
-流程：校验 URL 与预取消状态 → 创建独立 manager/loader → 登记 pending 清理句柄与取消监听 → 原生 loadAsync → [资源快照](../packages/three/src/gltf-resources.ts) → 若已终止则释放迟到模型 → 登记模型句柄 → 可选加入场景 → 再次检查宿主是否被同步挂载事件销毁 → 清监听和 pending → resolve。普通失败保持原始错误；signal、宿主或 scope 结束立即 reject AbortError。
+流程：校验 URL 与预取消状态 → 创建独立 manager/loader → 登记 pending 清理句柄与取消监听 → 原生 loadAsync → [资源快照](../packages/three/src/loaders/gltf-resources.ts) → 若已终止则释放迟到模型 → 登记模型句柄 → 可选加入场景 → 再次检查宿主是否被同步挂载事件销毁 → 清监听和 pending → resolve。普通失败保持原始错误；signal、宿主或 scope 结束立即 reject AbortError。
 
 不调用 manager.abort：r187 FileLoader 按 URL 全局合并请求，运输中止可能连带其他任务。取消是逻辑取消；底层网络/解码可继续，但迟到成功会释放而不挂载，迟到失败有拒绝处理器。完成后 signal 不再影响模型；app.resources 接管模型，手动或宿主释放均幂等。
 
@@ -156,11 +156,11 @@ loadGLTF 增加 draco:DracoOptions 和 meshoptDecoder。Draco 显式提供以 / 
 
 每任务独立 DRACOLoader，配置后交给该任务 GLTFLoader，不预加载；普通调用不创建它。逻辑取消和宿主销毁只结束外部 Promise，原生加载仍可完成；原生成功或失败的 continuation 最后释放任务解码器，取消不提前终止 Worker，迟到模型仍清理。设置中失败/取消且尚未开始请求则立即回滚。解码器 dispose 失败通过 onCleanupError 报告，不撤销模型或覆盖原错误；Reporter 失败沿用兜底日志。
 
-独立实例有重复初始化成本，后续真实并发场景再设计共享服务，见 [ADR-0005](adr/0005-compressed-models.md)。主包不分发二进制、不默认 CDN、不使用废弃的纯 JS 类型配置；演示通过 Vite URL 导入本地 Draco 文件、按需导入 Meshopt。开发编码器固定 draco3dgltf 1.5.7 / meshoptimizer 0.25.0，只生成原创几何，许可见 [记录](../apps/website/public/licenses/README.md)。一般资产优化留后续。
+独立实例有重复初始化成本，后续真实并发场景再设计共享服务，见 [ADR-0005](adr/0005-compressed-models.md)。主包不分发二进制、不默认 CDN、不使用废弃的纯 JS 类型配置；演示通过 Vite URL 导入本地 Draco 文件、按需导入 Meshopt。开发编码器固定 draco3dgltf 1.5.7 / meshoptimizer 0.25.0，只生成原创几何，许可见 [记录](../fixtures/licenses/README.md)。一般资产优化留后续。
 
 ## KTX2 模型契约
 
-loadGLTF 的 ktx2:KTX2Options 接受显式 transcoderPath（以 / 结尾的非空目录，或 `{js,wasm}` URL 对）及 workerLimit（默认 1，整数 1–32）。配置拍快照并在分配前校验；任务内部 [TaskKTX2Loader](../packages/three/src/ktx2-task.ts) 经 detectSupport(app.renderer) 初始化能力，借用 renderer，不提前加载 WASM。URL 对在私有 LoadingManager 中只映射原生两个转码文件，模型纹理 URL 保持原样。
+loadGLTF 的 ktx2:KTX2Options 接受显式 transcoderPath（以 / 结尾的非空目录，或 `{js,wasm}` URL 对）及 workerLimit（默认 1，整数 1–32）。配置拍快照并在分配前校验；任务内部 [TaskKTX2Loader](../packages/three/src/loaders/ktx2-task.ts) 经 detectSupport(app.renderer) 初始化能力，借用 renderer，不提前加载 WASM。URL 对在私有 LoadingManager 中只映射原生两个转码文件，模型纹理 URL 保持原样。
 
 parse 前复制 ArrayBuffer，隔离 FileLoader 合并请求/缓存与原生全局 task cache，保证独立模型不共享 Texture；不修改 Cache。适配层计数已开始的解析，原生模型完成时关闭新解析，现有解析全部结束才释放 Worker/Blob URL。逻辑取消只结束外部 Promise；迟到成功仍由模型快照清理。原生模型失败且仍有解析时继续等待回调，对未移交的 KTX2 纹理逐项释放；释放错误经 onCleanupError 报告，不阻断其他解码器清理。
 
@@ -300,7 +300,7 @@ add 接收 object、独占挂载的 detached element、局部 offset=[0,0,0]、a
 
 [耗时 reporter](../tests/browser/timing-reporter.ts) 从 runner 事件记录每次尝试与最慢 API/expect 操作，供超时诊断；它不采集 GPU 用时或改变测试行为。默认 trace 保留操作、DOM、网络与源码，关闭连续截图采集，显式截图仍保留；配置、复现命令和对照结果见 Harness。
 
-[模型单测](../packages/three/tests/loaders.test.ts) 使用真实 scene/geometry/material/texture/skeleton 和受控 loadAsync，验证取消、迟到失败、清理、快照归属、进度回调错误及同步挂载销毁。新增 [浏览器模型回归](../tests/browser/models.spec.ts) 用项目原创的内嵌纹理 GLTF/GLB 验证真实解码、相同 URL 单次请求的取消隔离和原生 ImageBitmap.close。测试资产通过 [生成器](../scripts/generate-model-fixtures.mjs) 重建，来源见 [资产说明](../apps/website/public/models/README.md)。
+[模型单测](../packages/three/tests/loaders.test.ts) 使用真实 scene/geometry/material/texture/skeleton 和受控 loadAsync，验证取消、迟到失败、清理、快照归属、进度回调错误及同步挂载销毁。新增 [浏览器模型回归](../tests/browser/models.spec.ts) 用项目原创的内嵌纹理 GLTF/GLB 验证真实解码、相同 URL 单次请求的取消隔离和原生 ImageBitmap.close。测试资产通过 [生成器](../scripts/generate-model-fixtures.mjs) 重建，来源见 [资产说明](../fixtures/models/README.md)。
 
 [拾取单测](../packages/three/tests/interaction.test.ts) 使用真实 Raycaster/geometry/camera 和可控事件目标，覆盖坐标、矩阵、动态目标、可见性/layers、手势与派发竞争、清理和多实例。[拾取浏览器回归](../tests/browser/interaction.spec.ts) 验证 CSS 缩放、真实 OrbitControls 拖拽、双实例、模型替换与重建。
 
@@ -376,6 +376,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-060  | Room 环境契约                     | environment.ts、原生 Room/PMREM                  | 临时资源/状态回滚、反射像素和 GPU 资源基线                 |
 | FR-061  | 常用特效契约                      | effects.ts、特效合集演示                         | 原生形状/参数单测、双相机像素/泛光/资源基线                |
 | FR-062  | 点云飞线与流光契约                | Points/路径带和共用EffectPlayback                | 采样快照/数量边界、真实点绘制、循环清理和包声明            |
+| FR-063  | 包/文档/示例工程契约              | 分组实现、examples、apps/docs、共享fixtures      | 单测/打包/既有GPU与站点验证                                |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
@@ -482,3 +483,7 @@ effects新增attachRipple(app,options?)/attachLightPillar(app,options?)/attachSh
 EffectPlayback提取既有disposed/state/phase/speed及pause/resume/seek/setSpeed/dispose；EffectHandle继续扩展它并暴露原生mesh。attachFlyPoints(app,FlyPointsOptions):FlyPointsHandle扩展EffectPlayback且暴露points:Points<BufferGeometry,ShaderMaterial>，不改变旧mesh类型。FlyPointsOptions含curve、count=256（2..65536整数）、size=6（1..64有限物理像素）、tail=.25（原tail约束）；近似弧长采样复制为position/aProgress，Float32范围检查，曲线构建后不持有。原生点大小受硬件限制，DPR不自动缩放。
 
 attachFlowLine(app,FlowLineOptions):EffectHandle含curve、width=.12、segments=128（原路径细分1..4096）、pulses=3（1..32整数）、tail=.3。复用独立路径带，纵向UV按全路径长度归一、多段脉冲与横向柔化；速度是重复图案周期，不是单个光头全程次数。所有形态不自动start/render；直接/后处理绘制中结束均先失效、后移除节点与清GPU，宿主/scope清理共用，见ADR-0046。
+
+## 包、文档与示例工程契约
+
+SDK导出与运行时接口不变，内部实现分组。examples的mount(context)返回自有ThreeApp，画廊结束旧宿主后加载候选，以版本隔离迟到模块；仅消费公开包名，共用fixtures。旧apps/website保留回归。apps/docs以docs为内容源，API从包README迁入17个主题，源码包含指向实际examples文件；源码链接转GitHub，Markdown禁原始HTML，保留死链检查。示例通过受控生成目录嵌入/play/，SSR不执行SDK。见[ADR-0047](adr/0047-package-docs-examples.md)。

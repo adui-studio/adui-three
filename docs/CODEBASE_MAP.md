@@ -4,23 +4,25 @@
 
 ## 已存在文件
 
+工程入口：[目录边界](development/package-layout.md)、[正式示例](../examples/README.md)、[VitePress](../apps/docs/README.md)、[共享资产](../fixtures/README.md)。SDK公开入口保留根级，私有实现按职责分组，以下源码链接已同步。
+
 | 入口                                                                                                                                                                                      | 职责                                                |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | [package.json](../package.json) / [pnpm-workspace.yaml](../pnpm-workspace.yaml)                                                                                                           | 根脚本、apps/* 与 packages/* 工作区和依赖 catalog   |
 | [vite.config.ts](../vite.config.ts) / [tsconfig.json](../tsconfig.json)                                                                                                                   | 格式、Lint、类型和任务配置                          |
-| [主包定义](../packages/three/package.json) / [API 文档](../packages/three/README.md)                                                                                                      | 包名、peer、导出和使用契约                          |
-| [index.ts](../packages/three/src/index.ts) / [three-app.ts](../packages/three/src/three-app.ts)                                                                                           | 核心公开入口、实例生命周期与尺寸监听                |
-| [frame-loop.ts](../packages/three/src/frame-loop.ts) / [resources.ts](../packages/three/src/resources.ts)                                                                                 | 统一调度和显式资源归属                              |
+| [主包定义](../packages/three/package.json) / [API 文档](api/index.md)                                                                                                                     | 包名、peer、导出和使用契约                          |
+| [index.ts](../packages/three/src/index.ts) / [three-app.ts](../packages/three/src/core/three-app.ts)                                                                                      | 核心公开入口、实例生命周期与尺寸监听                |
+| [frame-loop.ts](../packages/three/src/core/frame-loop.ts) / [resources.ts](../packages/three/src/core/resources.ts)                                                                       | 统一调度和显式资源归属                              |
 | [controls.ts](../packages/three/src/controls.ts)                                                                                                                                          | 可选 OrbitControls 子入口                           |
 | [interaction.ts](../packages/three/src/interaction.ts)                                                                                                                                    | 可选拾取、点击/悬停与监听清理                       |
 | [labels.ts](../packages/three/src/labels.ts)                                                                                                                                              | DOM 投影、独占元素挂载与标签层清理                  |
 | [animation.ts](../packages/three/src/animation.ts)                                                                                                                                        | 单 Mixer、片段控制、双范围清理与事件重入            |
 | [camera.ts](../packages/three/src/camera.ts)                                                                                                                                              | 世界包围球取景、裁剪面和原生控件同步                |
-| [loaders.ts](../packages/three/src/loaders.ts) / [gltf-resources.ts](../packages/three/src/gltf-resources.ts)                                                                             | GLTF/GLB 逻辑取消与资源快照                         |
-| [ktx2-task.ts](../packages/three/src/ktx2-task.ts)                                                                                                                                        | KTX2 输入隔离、在途解析计数和纹理移交               |
+| [loaders.ts](../packages/three/src/loaders.ts) / [gltf-resources.ts](../packages/three/src/loaders/gltf-resources.ts)                                                                     | GLTF/GLB 逻辑取消与资源快照                         |
+| [ktx2-task.ts](../packages/three/src/loaders/ktx2-task.ts)                                                                                                                                | KTX2 输入隔离、在途解析计数和纹理移交               |
 | [打包配置](../packages/three/vite.config.ts)                                                                                                                                              | ESM/声明、多入口和 Three.js 外部化                  |
 | [演示入口](../apps/website/src/main.ts) / [样式](../apps/website/src/style.css)                                                                                                           | 双实例生命周期、模型/动画、取景/效果/纹理与变换操作 |
-| [模型生成器](../scripts/generate-model-fixtures.mjs) / [资产说明](../apps/website/public/models/README.md)                                                                                | 原创测试模型及来源                                  |
+| [模型生成器](../scripts/generate-model-fixtures.mjs) / [资产说明](../fixtures/models/README.md)                                                                                           | 原创测试模型及来源                                  |
 | [Basis 编码工具入口](../scripts/basis-encoder.mjs)                                                                                                                                        | 固定官方提交和哈希的开发工具下载、校验与编码        |
 | [文档检查](../scripts/check-docs.mjs) / [检查器测试](../scripts/check-docs.test.mjs)                                                                                                      | 链接、需求、ADR、Skills 与命令验证                  |
 | [包消费检查](../scripts/check-package.mjs) / [消费样例](../tests/package/consumer.ts.txt) / [声明样例](../tests/package/declarations.ts.txt) / [运行时检查](../tests/package/runtime.mjs) | 工作区外 tarball 安装、入口与严格类型验收           |
@@ -29,7 +31,7 @@
 
 ## 测试入口
 
-- [世界边界](../packages/three/src/object-bounds.ts) 由 geometry 导出并与两类取景共享；[数学单测](../packages/three/tests/object-bounds.test.ts) 和 [浏览器回归](../tests/browser/object-bounds.spec.ts) 覆盖当前姿态、缓存、独立快照与按需测量。
+- [世界边界](../packages/three/src/geometry/object-bounds.ts) 由 geometry 导出并与两类取景共享；[数学单测](../packages/three/tests/object-bounds.test.ts) 和 [浏览器回归](../tests/browser/object-bounds.spec.ts) 覆盖当前姿态、缓存、独立快照与按需测量。
 
 - [泛光实现](../packages/three/src/postprocessing.ts) / [单测](../packages/three/tests/postprocessing.test.ts) / [浏览器回归](../tests/browser/postprocessing.spec.ts)：HDR/描边像素、组合顺序、原生目标清理、场景异常恢复及尺寸与帧内销毁。
 
@@ -40,26 +42,26 @@
 - [拾取单测](../packages/three/tests/interaction.test.ts) / [浏览器交互](../tests/browser/interaction.spec.ts)：坐标、目标过滤、手势、订阅与销毁，多实例和模型切换。
 - [标签单测](../packages/three/tests/labels.test.ts) / [浏览器标签](../tests/browser/labels.spec.ts)：投影与可见性、DOM 所有权、清理、暂停 resize 与指针/键盘交互。
 - [动画单测](../packages/three/tests/animation.test.ts) / [浏览器动画](../tests/browser/animation.spec.ts)：真实数值采样、片段/状态、模型移除、事件重入与双实例。
-- [压缩浏览器回归](../tests/browser/compression.spec.ts) 配合加载器单测：配置、Worker 生命周期、同 URL 取消、初始化时销毁和错误恢复。[解码许可](../apps/website/public/licenses/README.md) 记录本地分发来源。
+- [压缩浏览器回归](../tests/browser/compression.spec.ts) 配合加载器单测：配置、Worker 生命周期、同 URL 取消、初始化时销毁和错误恢复。[解码许可](../fixtures/licenses/README.md) 记录本地分发来源。
 - [KTX2 单测](../packages/three/tests/ktx2-task.test.ts) / [浏览器回归](../tests/browser/ktx2.spec.ts)：缓冲隔离、部分失败清理、真实转码、上传/删除、同 URL、初始化销毁和 RGBA 回退。
 - [相机单测](../packages/three/tests/camera.test.ts) / [浏览器取景](../tests/browser/camera.spec.ts)：投影、世界变换、控件惯性/限制、同步事件、暂停绘制和大模型。
-- [过渡实现](../packages/three/src/camera-transition.ts) / [规划校验](../packages/three/src/camera-frame.ts) / [相机协调](../packages/three/src/camera-runtime.ts)：同相机互斥、宿主 delta 插值和中断清理，通过 camera 入口导出。
+- [过渡实现](../packages/three/src/camera/camera-transition.ts) / [规划校验](../packages/three/src/camera/camera-frame.ts) / [相机协调](../packages/three/src/camera/camera-runtime.ts)：同相机互斥、宿主 delta 插值和中断清理，通过 camera 入口导出。
 - [过渡单测](../packages/three/tests/camera-transition.test.ts) / [浏览器过渡](../tests/browser/camera-transition.spec.ts)：暂停、替换、异常、原生输入与模型/宿主清理。
 
-- [变换手柄](../packages/three/src/transform-controls.ts) / [原生单测](../packages/three/tests/transform-controls.test.ts) / [浏览器交互](../tests/browser/transform.spec.ts)：controls 入口导出，原生拖拽、轨道控制协调和 helper 资源快照清理。
+- [变换手柄](../packages/three/src/controls/transform-controls.ts) / [原生单测](../packages/three/tests/transform-controls.test.ts) / [浏览器交互](../tests/browser/transform.spec.ts)：controls 入口导出，原生拖拽、轨道控制协调和 helper 资源快照清理。
 
-- [textures.ts](../packages/three/src/textures.ts) / [单测](../packages/three/tests/textures.test.ts) / [真实纹理回归](../tests/browser/textures.spec.ts)：颜色/翻转、独立解码、取消与 GPU/位图清理；[PNG 生成器](../scripts/generate-texture-fixture.mjs) / [原创资产](../apps/website/public/textures/README.md)。
+- [textures.ts](../packages/three/src/textures.ts) / [单测](../packages/three/tests/textures.test.ts) / [真实纹理回归](../tests/browser/textures.spec.ts)：颜色/翻转、独立解码、取消与 GPU/位图清理；[PNG 生成器](../scripts/generate-texture-fixture.mjs) / [原创资产](../fixtures/textures/README.md)。
 
 - [动画时间轴回归](../tests/browser/animation-seek.spec.ts)：公开 seek 秒接口、暂停宿主的实际标签姿态、恢复/端点和模型生命周期；复用动画单测与既有原创节点资产。
 
-- [独立 KTX2](../packages/three/src/ktx2-texture.ts) / [单测](../packages/three/tests/ktx2-texture.test.ts) / [浏览器回归](../tests/browser/ktx2-texture.spec.ts)：复用转码适配，原生二维纹理所有权与取消；模型/独立纹理共用 [GPU/Worker 探针](../tests/browser/ktx2-probe.ts)。
+- [独立 KTX2](../packages/three/src/textures/ktx2-texture.ts) / [单测](../packages/three/tests/ktx2-texture.test.ts) / [浏览器回归](../tests/browser/ktx2-texture.spec.ts)：复用转码适配，原生二维纹理所有权与取消；模型/独立纹理共用 [GPU/Worker 探针](../tests/browser/ktx2-probe.ts)。
 
 - [动画渐变回归](../tests/browser/animation-blend.spec.ts)：真实 GLB、权重交接的标签连续性、暂停/中断、定位/停止与模型/宿主清理；数学用例复用 animation.test.ts。
 
 ## 调用链与定位
 
 - [environment.ts](../packages/three/src/environment.ts) / [单测](../packages/three/tests/environment.test.ts) / [浏览器回归](../tests/browser/environment.spec.ts)：HDR 加载、逻辑取消、独占场景绑定和预热 GPU 清理。
-- [HDR 生成器](../scripts/generate-environment-fixture.mjs) / [原创环境资产](../apps/website/public/environments/README.md)：无网络 RGBE 数学渐变，支持逐字节重建。
+- [HDR 生成器](../scripts/generate-environment-fixture.mjs) / [原创环境资产](../fixtures/environments/README.md)：无网络 RGBE 数学渐变，支持逐字节重建。
 
 页面 index.html → bootstrap.ts → main.ts / instances.ts / orthographic.ts / path.ts / navigation.ts / path-geometry.ts → 主包及可选子入口 → 调度更新、Mixer、渲染与 DOM 投影，或异步模型/拾取事件及即时取景。应用依赖主库，库不反向引用应用。
 
@@ -77,7 +79,7 @@ test:package → 主包 build → 系统临时目录中 pack/install → Node �
 
 generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨骼样例”消费；gltf-clone.spec.ts 同时验证真实骨骼/morph 像素、UUID 轨道与各自骨骼纹理的释放。
 
-模型实例由 [gltf-clone.ts](../packages/three/src/gltf-clone.ts) 复制树/片段、重绑 UUID 并管理局部清理；[gltf-assets.ts](../packages/three/src/gltf-assets.ts) 保存内部弱引用登记和共享资产租约。loaders 公开导出，animation 接受实例。[原生实例测试](../packages/three/tests/gltf-clone.test.ts) 覆盖骨骼/morph/错误/所有权，[浏览器实例回归](../tests/browser/gltf-clone.spec.ts) 验证实际 GPU、跨宿主和反复释放。
+模型实例由 [gltf-clone.ts](../packages/three/src/loaders/gltf-clone.ts) 复制树/片段、重绑 UUID 并管理局部清理；[gltf-assets.ts](../packages/three/src/loaders/gltf-assets.ts) 保存内部弱引用登记和共享资产租约。loaders 公开导出，animation 接受实例。[原生实例测试](../packages/three/tests/gltf-clone.test.ts) 覆盖骨骼/morph/错误/所有权，[浏览器实例回归](../tests/browser/gltf-clone.spec.ts) 验证实际 GPU、跨宿主和反复释放。
 
 ## 蒙皮拾取
 
@@ -95,23 +97,23 @@ generate-model-fixtures.mjs 另生成原创 skin-morph.glb，演示“加载骨�
 
 [实例清理故障回归](../tests/browser/geometry-disposal.spec.ts) 仅在 Playwright 路由中提供锁定 Three.js 的默认 ESM 分发入口和构建后的库模块，验证扩展 scope 错误与原生事件监听顺序的真实 WebGL 差异；附件记录实际原生模块请求，不向产品暴露测试接口或引入外部 CDN。
 
-[camera-frame.ts](../packages/three/src/camera-frame.ts) 在 precise 世界边界采样前准备蒙皮骨骼和绑定逆矩阵；相机单测覆盖外部骨骼、父级移动、Detached 模式与所有者失效，camera.spec.ts 验证暂停缩放后的实际像素和即时/平滑取景距离。
+[camera-frame.ts](../packages/three/src/camera/camera-frame.ts) 在 precise 世界边界采样前准备蒙皮骨骼和绑定逆矩阵；相机单测覆盖外部骨骼、父级移动、Detached 模式与所有者失效，camera.spec.ts 验证暂停缩放后的实际像素和即时/平滑取景距离。
 
 [动画循环浏览器回归](../tests/browser/animation-loops.spec.ts) 验证有限重复完成、重播/移除/重建和真实骨骼往返后的精确 GPU 像素；animation.ts 在原生迭代结束后归一化有限往返端点，原生 Mixer 数学与事件边界由 animation.test.ts 覆盖。
 
-对象路径运动在 [path-animation.ts](../packages/three/src/path-animation.ts)，由 animation 公开导出；[单测](../packages/three/tests/path-animation.test.ts) 覆盖曲线数学与生命周期。[path.ts](../apps/website/src/path.ts) 经 bootstrap 的 `?demo=path` 独立消费，[浏览器回归](../tests/browser/path.spec.ts) 核对实际像素、拾取、独立运动和 GPU 释放。
+对象路径运动在 [path-animation.ts](../packages/three/src/animation/path-animation.ts)，由 animation 公开导出；[单测](../packages/three/tests/path-animation.test.ts) 覆盖曲线数学与生命周期。[path.ts](../apps/website/src/path.ts) 经 bootstrap 的 `?demo=path` 独立消费，[浏览器回归](../tests/browser/path.spec.ts) 核对实际像素、拾取、独立运动和 GPU 释放。
 
 [动画通知单测](../packages/three/tests/animation-events.test.ts) 对比原生事件与采样后姿态，覆盖订阅和命令排队；[通知浏览器回归](../tests/browser/animation-events.spec.ts) 验证实际片段串接及模型/宿主清理。实现仍位于 animation.ts，无新增运行时入口。
 
-正交/透视宿主共用 [three-app.ts](../packages/three/src/three-app.ts) 内部 SceneHost；[宿主单测](../packages/three/tests/three-app.test.ts) 包含投影/尺寸/生命周期验证。[orthographic.ts](../apps/website/src/orthographic.ts) 经 bootstrap 的 `?demo=orthographic` 比较两种相机，[浏览器回归](../tests/browser/orthographic.spec.ts) 验证实际像素、原生缩放/拾取/标签及重复 GPU 清理。
+正交/透视宿主共用 [three-app.ts](../packages/three/src/core/three-app.ts) 内部 SceneHost；[宿主单测](../packages/three/tests/three-app.test.ts) 包含投影/尺寸/生命周期验证。[orthographic.ts](../apps/website/src/orthographic.ts) 经 bootstrap 的 `?demo=orthographic` 比较两种相机，[浏览器回归](../tests/browser/orthographic.spec.ts) 验证实际像素、原生缩放/拾取/标签及重复 GPU 清理。
 
-正交规划/应用在 [camera-orthographic.ts](../packages/three/src/camera-orthographic.ts)，复用 camera-frame 的内部边界准备；[数学/控制器单测](../packages/three/tests/camera-orthographic.test.ts) 覆盖 zoom/裁剪/约束与写锁。orthographic 演示和对应浏览器回归增加放大后取景、窄屏重算及零尺寸恢复。
+正交规划/应用在 [camera-orthographic.ts](../packages/three/src/camera/camera-orthographic.ts)，复用 camera-frame 的内部边界准备；[数学/控制器单测](../packages/three/tests/camera-orthographic.test.ts) 覆盖 zoom/裁剪/约束与写锁。orthographic 演示和对应浏览器回归增加放大后取景、窄屏重算及零尺寸恢复。
 
-正交过渡复用 [camera-transition.ts](../packages/three/src/camera-transition.ts) 的泛型执行器与正交准备；[过渡单测](../packages/three/tests/camera-orthographic-transition.test.ts) 验证 zoom/取消/配置和微小终点。orthographic 演示增加过渡、宿主启停和输入/尺寸/重建操作。
+正交过渡复用 [camera-transition.ts](../packages/three/src/camera/camera-transition.ts) 的泛型执行器与正交准备；[过渡单测](../packages/three/tests/camera-orthographic-transition.test.ts) 验证 zoom/取消/配置和微小终点。orthographic 演示增加过渡、宿主启停和输入/尺寸/重建操作。
 
 正交效果集成在 orthographic 演示中消费既有 postprocessing：组合泛光/描边、原生旁路和拾取选择；[效果浏览器回归](../tests/browser/orthographic-effects.spec.ts) 核验真实像素、对侧隔离、暂停尺寸、三轮纹理/帧缓冲释放及重建。
 
-视图快照位于 [camera-view.ts](../packages/three/src/camera-view.ts)，[单测](../packages/three/tests/camera-view.test.ts) 覆盖 JSON/镜头/控制器及生命周期；投影演示保存数值 JSON 并跨重建恢复，[浏览器回归](../tests/browser/camera-view.spec.ts) 比较缩放/平移后的相同像素和当前宽高比。
+视图快照位于 [camera-view.ts](../packages/three/src/camera/camera-view.ts)，[单测](../packages/three/tests/camera-view.test.ts) 覆盖 JSON/镜头/控制器及生命周期；投影演示保存数值 JSON 并跨重建恢复，[浏览器回归](../tests/browser/camera-view.spec.ts) 比较缩放/平移后的相同像素和当前宽高比。
 
 EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专用单测](../packages/three/tests/environment-exr.test.ts) 覆盖解码/输入/生命周期。[生成器](../scripts/generate-exr-fixture.mjs) 由原环境生成命令调用，[浏览器回归](../tests/browser/environment-exr.spec.ts) 检查照明与实际 GPU 目标释放；public/licenses 保留原生 EXR/fflate 声明。
 
@@ -131,7 +133,7 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 管线 getter 的真实生命周期回归见 [pipeline-getters.spec.ts](../tests/browser/pipeline-getters.spec.ts)，覆盖两类宿主在挂接/绘制/尺寸读取时销毁，验证旧调用跳过和独立实例像素。
 
-视角平滑恢复位于 [camera-view-transition.ts](../packages/three/src/camera-view-transition.ts)，复用 camera-view 预检和 camera-runtime 写锁/登记；[专项单测](../packages/three/tests/camera-view-transition.test.ts) 覆盖插值/租约/异常。投影演示和既有 camera-view 浏览器回归增加书签平滑恢复、暂停、输入及重建验证，独立包消费覆盖公开导出。
+视角平滑恢复位于 [camera-view-transition.ts](../packages/three/src/camera/camera-view-transition.ts)，复用 camera-view 预检和 camera-runtime 写锁/登记；[专项单测](../packages/three/tests/camera-view-transition.test.ts) 覆盖插值/租约/异常。投影演示和既有 camera-view 浏览器回归增加书签平滑恢复、暂停、输入及重建验证，独立包消费覆盖公开导出。
 
 模型级倍速在 animation.ts 复用 Mixer 与命令队列，原有动画/通知单测覆盖速度、权重和排队；[倍速浏览器专项](../tests/browser/animation-rate.spec.ts) 核验真实冻结像素、独立实例和有限结束。
 
@@ -139,7 +141,7 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 
 路径倍速复用 path-animation.ts 现有步长与写入保护；path-animation 单测覆盖零速度/预算/重入，path.spec.ts 增加实际箭头像素、拾取和所有者重建，演示滑块只控制 A。
 
-过渡节奏位于 [easing.ts](../packages/three/src/easing.ts)，camera/animation 共享固定数学预设，两个入口只公开 TransitionEasing 类型与选项。相机/渐变单测覆盖四分之一进度数值、实际权重交接和非法输入，投影/模型演示提供下次节奏选择。
+过渡节奏位于 [easing.ts](../packages/three/src/shared/easing.ts)，camera/animation 共享固定数学预设，两个入口只公开 TransitionEasing 类型与选项。相机/渐变单测覆盖四分之一进度数值、实际权重交接和非法输入，投影/模型演示提供下次节奏选择。
 
 相机倍速与暂停共用 camera-runtime.ts 的 createCameraClockController；camera-pause 单测覆盖四种运动的速度、延迟交接和终点丢弃。投影演示以最新过渡为滑块目标，camera-pause 浏览器回归同时证明零速度冻结和宿主继续绘制。
 
@@ -148,19 +150,19 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 ## 角色控制与碰撞
 
 - [collision.ts](../packages/three/src/collision.ts)：普通 Mesh 世界快照、真实 BVH 胶囊/射线查询；[测试](../packages/three/tests/collision.test.ts)。
-- [character-body.ts](../packages/three/src/character-body.ts)：私有有限子步运动器；[真实表面测试](../packages/three/tests/character-body.test.ts)。
+- [character-body.ts](../packages/three/src/navigation/character-body.ts)：私有有限子步运动器；[真实表面测试](../packages/three/tests/character-body.test.ts)。
 - [navigation.ts](../packages/three/src/navigation.ts)：第一/第三人称原生控件、相机租约和输入；[单测](../packages/three/tests/navigation.test.ts)。
 - [双实例演示](../apps/website/src/navigation.ts) / [浏览器回归](../tests/browser/navigation.spec.ts)：`/?demo=navigation`，原生指针锁、墙体、遮挡与反复清理。
 
 ## 路径几何
 
-[path-geometry.ts](../packages/three/src/path-geometry.ts) 经 geometry 导出圆角曲线、路径带/箭头和原生管道；[单测](../packages/three/tests/path-geometry.test.ts) 比较真实曲线/法线/UV和原生管道，验证闭合/边界/重入。[演示](../apps/website/src/path-geometry.ts) 位于 `/?demo=path-geometry`；[浏览器回归](../tests/browser/path-geometry.spec.ts) 读取实际像素和 WebGL buffer 存量。与 path-animation.ts 的运动逻辑独立。
+[path-geometry.ts](../packages/three/src/geometry/path-geometry.ts) 经 geometry 导出圆角曲线、路径带/箭头和原生管道；[单测](../packages/three/tests/path-geometry.test.ts) 比较真实曲线/法线/UV和原生管道，验证闭合/边界/重入。[演示](../apps/website/src/path-geometry.ts) 位于 `/?demo=path-geometry`；[浏览器回归](../tests/browser/path-geometry.spec.ts) 读取实际像素和 WebGL buffer 存量。与 path-animation.ts 的运动逻辑独立。
 
 ## 光影与滤镜
 
 - [effects.ts](../packages/three/src/effects.ts) / [测试](../packages/three/tests/effects.test.ts)：飞线/光墙/雷达shader和宿主时钟。
 - [lighting.ts](../packages/three/src/lighting.ts) / [测试](../packages/three/tests/lighting.test.ts)：方向光阴影视锥、PCF/VSM和资源租约。
-- [render-retirement.ts](../packages/three/src/render-retirement.ts) / [测试](../packages/three/tests/render-retirement.test.ts)：私有同步绘制结束清理，由两类宿主共用的基类调用。
+- [render-retirement.ts](../packages/three/src/core/render-retirement.ts) / [测试](../packages/three/tests/render-retirement.test.ts)：私有同步绘制结束清理，由两类宿主共用的基类调用。
 - [光影演示](../apps/website/src/effects.ts) / [GPU回归](../tests/browser/effects.spec.ts)：`/?demo=effects` 双实例、阴影/滤镜对比、原生回调销毁和贴图回收。postprocessing.ts现含两个官方颜色ShaderPass。
 
 ## Editor 基准

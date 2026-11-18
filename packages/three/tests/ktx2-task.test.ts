@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { CompressedTexture } from "three";
 import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
-import { TaskKTX2Loader } from "../src/ktx2-task.ts";
+import { TaskKTX2Loader } from "../src/loaders/ktx2-task.ts";
 
 afterEach(() => vi.restoreAllMocks());
 

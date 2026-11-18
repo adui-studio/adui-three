@@ -16,7 +16,7 @@ for (let y = 0; y < height; y++) {
     pixels[offset + 3] = 130; // Linear RGB ranges up to about 4; flat RGBE scanline encoding.
   }
 }
-const directory = new URL("../apps/website/public/environments/", import.meta.url);
+const directory = new URL("../fixtures/environments/", import.meta.url);
 await mkdir(directory, { recursive: true });
 await writeFile(new URL("studio.hdr", directory), Buffer.concat([header, pixels]));
 await generateEXRFixture(directory);

@@ -10,9 +10,9 @@ import {
   VSMShadowMap,
 } from "three";
 import type { Object3D } from "three";
-import type { AnyThreeApp } from "./three-app.ts";
-import { ResourceScope } from "./resources.ts";
-import { retireAfterRender } from "./render-retirement.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
+import { ResourceScope } from "./core/resources.ts";
+import { retireAfterRender } from "./core/render-retirement.ts";
 export interface ShadowLightOptions {
   /** World bounds to cover, including the receiving area. Copied; fit again after moving the scene. */
   bounds: Box3;

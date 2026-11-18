@@ -4,7 +4,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { fitOrthographicObject, transitionOrthographicToObject } from "../src/camera.ts";
 import type { CameraTransitionOptions } from "../src/camera.ts";
 import type { OrthographicThreeApp, ThreeAppState, FrameInfo } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 
 function fixture(orbit = false) {
   const camera = new OrthographicCamera(-8, 8, 4, -4, 0, 1000);

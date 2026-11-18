@@ -10,9 +10,9 @@ import {
   VSMShadowMap,
   WebGLRenderTarget,
 } from "three";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { attachShadowLight } from "../src/lighting.ts";
-import { renderWithRetirement } from "../src/render-retirement.ts";
+import { renderWithRetirement } from "../src/core/render-retirement.ts";
 import type { AnyThreeApp } from "../src/index.ts";
 const cleanup: Array<() => void> = [];
 afterEach(() => {

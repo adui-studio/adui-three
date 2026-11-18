@@ -74,7 +74,7 @@ test("equal URLs share one download, cancellation skips only one parse and dispo
   page,
 }) => {
   await observeKTX2(page);
-  const body = await readFile("apps/website/public/models/checker.ktx2");
+  const body = await readFile("fixtures/models/checker.ktx2");
   let requests = 0;
   let release: () => void = () => {};
   const gate = new Promise<void>((resolve) => {

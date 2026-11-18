@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - examples
 
 catalogMode: prefer
 
@@ -12,10 +13,15 @@ catalog:
   typescript: ^7.0.2
   vite: npm:@voidzero-dev/vite-plus-core@1.4.0
   vite-plus: 1.4.0
+  vue: 3.5.45
 overrides:
+  "vitepress@1.6.4>vite": 5.4.21
   vite@*: "catalog:"
 peerDependencyRules:
   allowAny:
     - vite
   allowedVersions:
     vite: "*"
+
+allowBuilds:
+  "esbuild@0.21.5": true

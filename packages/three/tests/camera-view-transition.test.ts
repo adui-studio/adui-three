@@ -25,7 +25,7 @@ import type {
   ThreeApp,
   ThreeAppState,
 } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 
 function fixture(orthographic = false, orbit = false) {
   const camera = orthographic

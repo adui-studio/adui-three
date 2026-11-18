@@ -7,9 +7,9 @@ import {
   NoToneMapping,
   ReinhardToneMapping,
 } from "three";
-import type { AnyThreeApp } from "./three-app.ts";
-import type { ResourceScope } from "./resources.ts";
-import { isRendererDrawing, retireAfterRender } from "./render-retirement.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
+import type { ResourceScope } from "./core/resources.ts";
+import { isRendererDrawing, retireAfterRender } from "./core/render-retirement.ts";
 export type ToneMappingMode =
   | "none"
   | "linear"

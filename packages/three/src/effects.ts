@@ -13,10 +13,10 @@ import {
   Vector3,
 } from "three";
 import type { Curve } from "three";
-import type { AnyThreeApp } from "./three-app.ts";
-import { ResourceScope } from "./resources.ts";
-import { createPathCurve, createPathTube, createPathRibbon } from "./path-geometry.ts";
-import { retireAfterRender } from "./render-retirement.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
+import { ResourceScope } from "./core/resources.ts";
+import { createPathCurve, createPathTube, createPathRibbon } from "./geometry/path-geometry.ts";
+import { retireAfterRender } from "./core/render-retirement.ts";
 export interface EffectOptions {
   color?: number;
   intensity?: number;

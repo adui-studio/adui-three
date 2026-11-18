@@ -1,0 +1,16 @@
+{
+  "name": "@adui/three-docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../scripts/prepare-docs.mjs && vitepress dev --host 127.0.0.1 --port 5174 --strictPort",
+    "build": "node ../../scripts/prepare-docs.mjs && vitepress build",
+    "preview": "vitepress preview --host 127.0.0.1 --port 4174 --strictPort"
+  },
+  "devDependencies": {
+    "@adui/three-examples": "workspace:*",
+    "@types/node": "catalog:",
+    "vitepress": "1.6.4"
+  }
+}

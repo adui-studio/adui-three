@@ -13,7 +13,7 @@ import {
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 import type { FrameInfo, ThreeApp, ThreeAppState } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { loadGLTF } from "../src/loaders.ts";
 import { attachGLTFAnimations } from "../src/animation.ts";
 

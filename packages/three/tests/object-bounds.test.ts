@@ -17,7 +17,7 @@ import {
 } from "three";
 import type { Object3D } from "three";
 import { computeObjectBounds } from "../src/geometry.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 
 const scopes: ResourceScope[] = [];
 function fixture() {

@@ -158,7 +158,7 @@ if (!development) {
   viewHost.resources.dispose();
   mesh.geometry.dispose();
   mesh.material.dispose();
-  await assert.rejects(import("@adui/three/src/three-app.ts"), {
+  await assert.rejects(import("@adui/three/src/core/three-app.ts"), {
     code: "ERR_PACKAGE_PATH_NOT_EXPORTED",
   });
   const core = await readFile(fileURLToPath(import.meta.resolve("@adui/three")), "utf8");

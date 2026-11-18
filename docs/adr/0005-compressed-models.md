@@ -32,6 +32,6 @@
 - [Draco glTF 扩展](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_draco_mesh_compression)
 - [Meshopt glTF 扩展](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Vendor/EXT_meshopt_compression)
 - [Meshoptimizer 0.25 编码接口](https://github.com/zeux/meshoptimizer/tree/v0.25/js)
-- [演示许可记录](../../apps/website/public/licenses/README.md)
+- [演示许可记录](../../fixtures/licenses/README.md)
 
 接口与实际结果同步 [SDD](../SDD.md)、[需求](../REQUIREMENTS.md) 和 [Harness](../HARNESS.md)。

@@ -16,7 +16,7 @@ import type { Box3 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { computeOrthographicFrame, fitOrthographicObject } from "../src/camera.ts";
 import type { OrthographicThreeApp, ThreeAppState } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import type { FitObjectOptions } from "../src/camera.ts";
 
 // Native controls here stay unconnected: they install no DOM listeners or GPU resources.

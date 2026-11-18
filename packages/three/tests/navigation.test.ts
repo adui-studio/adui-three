@@ -12,7 +12,7 @@ import {
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { attachFirstPersonControls, attachThirdPersonControls } from "../src/navigation.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import type { ThreeApp, FrameInfo } from "../src/index.ts";
 const cleanup: Array<() => void> = [];
 afterEach(() => {

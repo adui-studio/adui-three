@@ -2,13 +2,15 @@
 
 ## 目标与当前阶段
 
+当前整理阶段：SDK内部实现分组，公开入口不变；正式示例在examples，旧apps/website用于回归；VitePress在apps/docs，内容统一于docs，资产在fixtures。dev默认正式示例，旧场景用dev:playground，文档用docs:dev/build/preview。决定见ADR-0047，验证见Harness。
+
 更新日期：2026-11-18。主 npm 包 @adui/three，版本0.0.0，尚未发布。最近已交付第一/第三人称与 BVH、独立路径几何、飞线/光墙/雷达、实时阴影和颜色滤镜；已按用户指定的 Three.js Editor 干净配置实现 Neutral/1 预设、七种色调与曝光、Basic 阴影和原生 Room PMREM；当前新增点云飞线、路径流光、扩散波纹、光柱和能量护罩。普通宿主默认保持兼容。/?demo=editor 提供 SDK 与直接原生颜色/环境对照；代码和 [SDD](SDD.md) 描述实现，[需求](REQUIREMENTS.md) 描述目标。本地归档见 [迁移指南](MIGRATION.md)，旧业务兼容仍待实测。
 
 用户授权持续封装、分步提交推送；提交描述和正文使用中文，格式 type(scope): emoji 中文描述。不得改写已有提交或擅自发布 npm。用户明确“不做任何 CI”：不新增/启用工作流，不调整组织或仓库 Actions 设置。历史工作流已由 e6ea2c2 移除，保留当时的本地输入回归修复。
 
 ## 当前实现
 
-- 单主包 packages/three 与演示 apps/website，保留 Vite+/TypeScript/pnpm；初始化 utils、计数器及品牌模板已清理。库不反向依赖应用、Store、私有资产或固定 DOM。
+- 单主包 packages/three，正式示例 examples、VitePress 配置 apps/docs 与回归演示 apps/website；内容统一在 docs，共用资产集中在 fixtures。保留 Vite+/TypeScript/pnpm；初始化 utils、计数器及品牌模板已清理。库不反向依赖应用、Store、私有资产或固定 DOM。
 - ESM/ES2022 与声明；Three.js 和 @types/three 开发基准 0.187.0，peer >=0.187.0 <0.188.0。Three.js/addons 外部化，development 指向随包 src。
 - 核心 ThreeApp、OrthographicThreeApp、ResourceScope：透视/正交具体相机类型，共用内部 SceneHost 的单 RAF、启停/隐藏/零尺寸、DPR、显式所有权、异步 signal、独占借用 RenderPipeline 与单次 render。正交保留竖向跨度、中心和 zoom；通用模块接受 AnyThreeApp。运行时预检 renderer 配置，拒绝非空外部 canvas/context，保证自有上下文边界。原生缓冲/投影和管线尺寸失败分别保留待重试状态；尺寸处理中拒绝递归绘制/resize/重挂接。
 - controls：OrbitControls；TransformControls 负责 helper/初始 GPU 快照，借用模型与轨道控制，拖拽/取消按值恢复配置，无第二循环。

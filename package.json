@@ -7,18 +7,25 @@
     "ready": "vp run docs:test && vp run docs:check && vp check && vp run -r test && vp run -r build",
     "docs:check": "node scripts/check-docs.mjs",
     "docs:test": "node --test scripts/check-docs.test.mjs",
-    "dev": "vp run @adui/three#build && vp run website#dev",
+    "dev": "vp run @adui/three#build && vp run @adui/three-examples#dev",
     "test:browser": "playwright test",
     "test:package": "vp run @adui/three#build && node scripts/check-package.mjs",
-    "fixtures:models": "node scripts/generate-model-fixtures.mjs && vp fmt apps/website/public/models",
+    "fixtures:models": "node scripts/generate-model-fixtures.mjs && vp fmt fixtures/models",
     "fixtures:environment": "node scripts/generate-environment-fixture.mjs",
-    "fixtures:textures": "node scripts/generate-texture-fixture.mjs"
+    "fixtures:textures": "node scripts/generate-texture-fixture.mjs",
+    "dev:playground": "vp run @adui/three#build && vp run website#dev",
+    "examples:build": "vp run @adui/three#build && vp run @adui/three-examples#build",
+    "docs:dev": "vp run @adui/three#build && vp run @adui/three-examples#build && vp run @adui/three-docs#dev",
+    "docs:build": "vp run @adui/three#build && vp run @adui/three-examples#build && vp run @adui/three-docs#build",
+    "docs:preview": "vp run @adui/three-docs#preview",
+    "test:site": "playwright test --config playwright.site.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "draco3dgltf": "catalog:",
     "meshoptimizer": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "vue": "catalog:"
   },
   "devEngines": {
     "packageManager": {

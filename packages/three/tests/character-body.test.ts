@@ -1,8 +1,8 @@
 import { afterEach, expect, test } from "vite-plus/test";
 import { BoxGeometry, Mesh, Vector3 } from "three";
 import { createCollisionWorld } from "../src/collision.ts";
-import { createCharacterBody } from "../src/character-body.ts";
-import type { CharacterBodyOptions } from "../src/character-body.ts";
+import { createCharacterBody } from "../src/navigation/character-body.ts";
+import type { CharacterBodyOptions } from "../src/navigation/character-body.ts";
 const cleanup: Array<() => void> = [];
 afterEach(() => {
   for (const fn of cleanup.splice(0).reverse()) fn();

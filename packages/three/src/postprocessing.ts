@@ -9,8 +9,8 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { OutlinePass } from "three/addons/postprocessing/OutlinePass.js";
 import type { Pass } from "three/addons/postprocessing/Pass.js";
-import type { AnyThreeApp, ViewportSize } from "./three-app.ts";
-import { ResourceScope } from "./resources.ts";
+import type { AnyThreeApp, ViewportSize } from "./core/three-app.ts";
+import { ResourceScope } from "./core/resources.ts";
 
 export interface BloomOptions {
   /** Nonnegative finite intensity. Default 1. */

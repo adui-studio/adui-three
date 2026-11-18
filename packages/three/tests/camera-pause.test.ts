@@ -9,7 +9,7 @@ import {
 } from "../src/camera.ts";
 import type { CameraTransitionHandle, CameraViewTransitionHandle } from "../src/camera.ts";
 import type { AnyThreeApp, ThreeApp, OrthographicThreeApp, FrameInfo } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 
 type Mode = "perspective-frame" | "orthographic-frame" | "perspective-view" | "orthographic-view";
 const modes: Mode[] = [

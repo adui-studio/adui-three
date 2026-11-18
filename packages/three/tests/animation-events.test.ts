@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vite-plus/test";
 import { AnimationClip, Group, NumberKeyframeTrack } from "three";
 import type { FrameInfo, ThreeApp } from "../src/index.ts";
 import type { GLTFInstance } from "../src/loaders.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import { attachGLTFAnimations } from "../src/animation.ts";
 
 const scopes: ResourceScope[] = [];

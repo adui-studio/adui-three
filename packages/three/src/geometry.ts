@@ -1,9 +1,9 @@
 import { Color, InstancedMesh, Matrix4, Object3D } from "three";
 import type { BufferAttribute, BufferGeometry, Material } from "three";
-import type { AnyThreeApp } from "./three-app.ts";
-import { ResourceScope } from "./resources.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
+import { ResourceScope } from "./core/resources.ts";
 
-export { computeObjectBounds } from "./object-bounds.ts";
+export { computeObjectBounds } from "./geometry/object-bounds.ts";
 
 export interface CreateInstancedMeshOptions {
   /** Borrowed. The caller keeps geometry/material/textures alive. */
@@ -224,10 +224,10 @@ export function createInstancedMesh(
     throw error;
   }
 }
-export { createPathCurve, createPathRibbon, createPathTube } from "./path-geometry.ts";
+export { createPathCurve, createPathRibbon, createPathTube } from "./geometry/path-geometry.ts";
 export type {
   PathCurveOptions,
   PathGeometryOptions,
   PathRibbonOptions,
   PathTubeOptions,
-} from "./path-geometry.ts";
+} from "./geometry/path-geometry.ts";

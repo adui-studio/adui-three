@@ -15,12 +15,15 @@ function fixture(t) {
     "AGENTS.md",
     "README.md",
     "CONTRIBUTING.md",
+    "LICENSE",
     ".agents",
     ".github",
     "skills-lock.json",
     "docs",
     "scripts",
     "apps",
+    "examples",
+    "fixtures",
     "packages",
     "package.json",
     "pnpm-workspace.yaml",
@@ -32,7 +35,10 @@ function fixture(t) {
   ]) {
     cpSync(join(source, name), join(root, name), {
       recursive: true,
-      filter: (path) => !/(?:^|[/\\])(?:node_modules|dist)(?:[/\\]|$)/.test(path),
+      filter: (path) =>
+        !/(?:^|[/\\])(?:node_modules|dist|cache)(?:[/\\]|$)|(?:apps[/\\])?docs[/\\]public[/\\]play/.test(
+          path,
+        ),
     });
   }
   return root;
@@ -76,6 +82,17 @@ test("folded and literal Skill descriptions are accepted", (t) => {
 });
 
 const cases = [
+  [
+    "broken example source include",
+    (root) => {
+      const file = join(root, "docs/examples/basic.md");
+      writeFileSync(
+        file,
+        readFileSync(file, "utf8") + "\n<<< ../../examples/src/cases/missing.ts\n",
+      );
+    },
+    /broken source include/,
+  ],
   [
     "missing core file",
     (root) => rmSync(join(root, "docs/PROJECT_CONTEXT.md")),
@@ -149,10 +166,10 @@ const cases = [
   [
     "broken public asset provenance link",
     (root) => {
-      const file = join(root, "apps/website/public/environments/README.md");
+      const file = join(root, "fixtures/environments/README.md");
       writeFileSync(file, `${readFileSync(file, "utf8")}\n[generator](missing-generator.mjs)\n`);
     },
-    /apps\/website\/public\/environments\/README.md: broken link/,
+    /fixtures\/environments\/README.md: broken link/,
   ],
   [
     "unknown command",

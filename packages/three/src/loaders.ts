@@ -4,15 +4,15 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import type { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
-import type { AnyThreeApp } from "./three-app.ts";
-import { collectGLTFResources } from "./gltf-resources.ts";
-import { gltfAssets, SharedGLTFAssets } from "./gltf-assets.ts";
-import { ResourceScope } from "./resources.ts";
-import { TaskKTX2Loader } from "./ktx2-task.ts";
-import type { TranscoderPath } from "./ktx2-task.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
+import { collectGLTFResources } from "./loaders/gltf-resources.ts";
+import { gltfAssets, SharedGLTFAssets } from "./loaders/gltf-assets.ts";
+import { ResourceScope } from "./core/resources.ts";
+import { TaskKTX2Loader } from "./loaders/ktx2-task.ts";
+import type { TranscoderPath } from "./loaders/ktx2-task.ts";
 
-export { cloneGLTF } from "./gltf-clone.ts";
-export type { CloneGLTFOptions, GLTFInstance } from "./gltf-clone.ts";
+export { cloneGLTF } from "./loaders/gltf-clone.ts";
+export type { CloneGLTFOptions, GLTFInstance } from "./loaders/gltf-clone.ts";
 
 export interface ModelProgress {
   /** Bytes of the primary GLTF/GLB request, not total dependency/decode progress. */

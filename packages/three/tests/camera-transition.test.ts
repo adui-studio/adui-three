@@ -4,7 +4,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { computeObjectFrame, fitObject, transitionToObject } from "../src/camera.ts";
 import type { CameraTransitionOptions } from "../src/camera.ts";
 import type { ThreeApp, ThreeAppState, FrameInfo } from "../src/index.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 
 function fixture(orbit = false) {
   const camera = new PerspectiveCamera(50, 16 / 9, 0.1, 1000);

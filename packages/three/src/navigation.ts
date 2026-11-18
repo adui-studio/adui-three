@@ -2,16 +2,16 @@ import { PerspectiveCamera, Quaternion, Ray, Vector3 } from "three";
 import type { Object3D } from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { ThreeApp } from "./three-app.ts";
-import type { ResourceScope } from "./resources.ts";
+import type { ThreeApp } from "./core/three-app.ts";
+import type { ResourceScope } from "./core/resources.ts";
 import type { CollisionWorld } from "./collision.ts";
-import { createCharacterBody } from "./character-body.ts";
+import { createCharacterBody } from "./navigation/character-body.ts";
 import {
   beginCameraWrite,
   cancelCameraMotion,
   registerCameraMotion,
   removeCameraMotion,
-} from "./camera-runtime.ts";
+} from "./camera/camera-runtime.ts";
 
 export interface CharacterInput {
   forward?: number;

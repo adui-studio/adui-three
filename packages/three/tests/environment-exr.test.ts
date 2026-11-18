@@ -11,7 +11,7 @@ import {
 import type { DataTexture } from "three";
 import { EXRLoader } from "three/addons/loaders/EXRLoader.js";
 import { loadEXR, attachEnvironment } from "../src/environment.ts";
-import { ResourceScope } from "../src/resources.ts";
+import { ResourceScope } from "../src/core/resources.ts";
 import type { AnyThreeApp } from "../src/index.ts";
 
 afterEach(() => vi.restoreAllMocks());
@@ -46,9 +46,7 @@ function transport() {
   return requests;
 }
 function bytes(name = "studio.exr"): ArrayBuffer {
-  const data = readFileSync(
-    new URL(`../../../apps/website/public/environments/${name}`, import.meta.url),
-  );
+  const data = readFileSync(new URL(`../../../fixtures/environments/${name}`, import.meta.url));
   return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
 }
 function nativeDecoder(): (this: EXRLoader, buffer: ArrayBuffer) => DataTexture {

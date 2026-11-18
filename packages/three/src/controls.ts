@@ -1,8 +1,11 @@
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { AnyThreeApp } from "./three-app.ts";
+import type { AnyThreeApp } from "./core/three-app.ts";
 
-export { attachTransformControls } from "./transform-controls.ts";
-export type { TransformControlsHandle, TransformControlsOptions } from "./transform-controls.ts";
+export { attachTransformControls } from "./controls/transform-controls.ts";
+export type {
+  TransformControlsHandle,
+  TransformControlsOptions,
+} from "./controls/transform-controls.ts";
 
 export interface OrbitControlsHandle {
   readonly controls: OrbitControls;

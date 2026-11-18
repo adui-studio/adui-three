@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vite-plus/test";
-import { renderWithRetirement, retireAfterRender } from "../src/render-retirement.ts";
+import { renderWithRetirement, retireAfterRender } from "../src/core/render-retirement.ts";
 test("retirement is synchronous outside draw and waits for the owning renderer inside draw", () => {
   const renderer = {},
     other = {},
