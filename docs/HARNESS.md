@@ -2,7 +2,7 @@
 
 ## 环境与安装
 
-Node.js >=22.18.0，pnpm 12.16.1，Vite+ 1.4.0。工作区只含主包与演示，无后端服务或秘密环境变量要求；模型 fixtures 由项目本地生成。
+Node.js >=22.18.0，pnpm 12.16.1，Vite+ 1.4.0。工作区包含SDK、正式examples、回归playground与VitePress，无后端服务或秘密环境变量要求；模型 fixtures 由项目本地生成。
 
 ```sh
 pnpm install --frozen-lockfile
@@ -12,24 +12,28 @@ pnpm install --frozen-lockfile
 
 ## 命令
 
-| 命令                            | 范围                                                               |
-| ------------------------------- | ------------------------------------------------------------------ |
-| `pnpm run dev`                  | 先构建主包声明，再启动演示；development 条件指向主包 src，支持 HMR |
-| `pnpm run docs:test`            | 文档检查器的正确输入与失败路径回归                                 |
-| `pnpm run docs:check`           | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                 |
-| `pnpm exec vp check`            | 格式、Lint 与类型检查                                              |
-| `pnpm exec vp run -r test`      | 主包单元测试（最新数量见验证记录）                                 |
-| `pnpm exec vp run -r build`     | 主包 ESM/声明与 website 类型检查、生产构建                         |
-| `pnpm run ready`                | 文档测试/校验、静态检查、主包单测和全部构建                        |
-| `pnpm run test:browser`         | 构建演示并执行真实 Chromium 多步骤回归                             |
-| `pnpm run test:package`         | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型 |
-| `pnpm run fixtures:textures`    | 离线生成原创 PNG 方向图和失败样例                                  |
-| `pnpm run fixtures:environment` | 离线确定性重建原创 RGBE HDR / 未压缩 EXR 环境                      |
-| `pnpm run fixtures:models`      | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                       |
+| 命令                                                | 范围                                                                   |
+| --------------------------------------------------- | ---------------------------------------------------------------------- |
+| `pnpm run dev`                                      | 先构建主包声明，再启动正式示例；development 条件指向主包 src，支持 HMR |
+| `pnpm run dev:playground`                           | 保留原双实例回归演示                                                   |
+| `pnpm run examples:build`                           | 构建正式示例                                                           |
+| `pnpm run docs:dev` / `docs:build` / `docs:preview` | VitePress与内嵌/play/示例                                              |
+| `pnpm run test:site`                                | 文档导航/搜索、正式示例与复杂DOM交互                                   |
+| `pnpm run docs:test`                                | 文档检查器的正确输入与失败路径回归                                     |
+| `pnpm run docs:check`                               | 文档、链接、命令、需求追踪、ADR 和 Skills 基本结构                     |
+| `pnpm exec vp check`                                | 格式、Lint 与类型检查                                                  |
+| `pnpm exec vp run -r test`                          | 主包单元测试（最新数量见验证记录）                                     |
+| `pnpm exec vp run -r build`                         | 主包 ESM/声明、两个消费者与 VitePress 生产构建                         |
+| `pnpm run ready`                                    | 文档测试/校验、静态检查、主包单测和全部构建                            |
+| `pnpm run test:browser`                             | 构建演示并执行真实 Chromium 多步骤回归                                 |
+| `pnpm run test:package`                             | 构建并实际打包，在工作区外安装 tarball 后验证入口、资源/数学和类型     |
+| `pnpm run fixtures:textures`                        | 离线生成原创 PNG 方向图和失败样例                                      |
+| `pnpm run fixtures:environment`                     | 离线确定性重建原创 RGBE HDR / 未压缩 EXR 环境                          |
+| `pnpm run fixtures:models`                          | 重建原创 GLTF/GLB 与失败样例，并格式化 .gltf                           |
 
 首次浏览器回归需执行 `pnpm exec playwright install chromium`。测试使用 Playwright 1.64.1 / Chromium / SwiftShader，DPR=3 验证宿主上限 2；preview 使用 127.0.0.1:4173，端口需空闲，测试结束自动收尾。截图和失败 trace 位于忽略提交的 test-results。
 
-test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装真实 tarball、固定开发基准 three 和当前锁定的 TypeScript；不修改工作区依赖或锁文件。先以库声明消费方式编译，再为直接 import three 的应用添加匹配 @types/three，执行 NodeNext、Bundler、Bundler+development 三种类型解析，均使用 strict 与 skipLibCheck=false。两个 .ts.txt 仅是输入样例，复制到临时项目后才编译；Node 检查另覆盖十六个运行时入口、禁止 fetch、数学/资源操作、私有路径拒绝和 development 源码文件存在性。development 仅检查解析，不尝试在 Node 执行 node_modules 内的 TS。
+test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装真实 tarball、固定开发基准 three 和当前锁定的 TypeScript；不修改工作区依赖或锁文件。先以库声明消费方式编译，再为直接 import three 的应用添加匹配 @types/three，执行 NodeNext、Bundler、Bundler+development 三种类型解析，均使用 strict 与 skipLibCheck=false。两个 .ts.txt 仅是输入样例，复制到临时项目后才编译；Node 检查另覆盖十七个运行时入口、禁止 fetch、数学/资源操作、私有路径拒绝和 development 源码文件存在性。development 仅检查解析，不尝试在 Node 执行 node_modules 内的 TS。
 
 该命令独立于 ready，安装可能访问 registry、复用本地 store；不表示离线可用、发布权限已确认或包已发布。成功时核验临时绝对路径后仅删除本次项目；失败打印并保留诊断目录。依据见 [pnpm pack](https://pnpm.io/cli/pack)、[pnpm install](https://pnpm.io/cli/install)、[Node 条件导出](https://nodejs.org/api/packages.html#conditional-exports) 与 [skipLibCheck](https://www.typescriptlang.org/tsconfig/skipLibCheck.html)。
 
@@ -45,11 +49,11 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 向独立工程交付本地归档的命令与消费步骤见 [迁移指南](MIGRATION.md#接入当前开发包)。先构建主包，再 pack 到被忽略的根 dist/local-packages；与 test:package 的临时独立安装验证区分，本地归档不会自动安装到旧业务工程或发布 npm。
 
-[检查器](../scripts/check-docs.mjs) 仅使用 Node 内置模块。扫描根 README/AGENTS/CONTRIBUTING、docs、.github、.agents/skills、packages 与 apps/website/public 的 Markdown，跳过 node_modules/dist 目录和代码围栏。README 检查存在、非空和链接，不强制初始化时期的标题。
+[检查器](../scripts/check-docs.mjs) 仅使用 Node 内置模块。扫描根 README/AGENTS/CONTRIBUTING、docs、.github、.agents/skills、packages 与 fixtures、examples与apps文档的 Markdown，跳过 node_modules/dist 目录和代码围栏。README 检查存在、非空和链接，不强制初始化时期的标题。
 
 静态校验包括核心章节、相对文件/Markdown 锚点、需求编号/状态/验收/SDD 追踪、ADR 索引、Skills 的 name/description 基础元数据和根脚本引用。支持行内与 YAML 多行 description，不是完整 YAML 解析器。导入的 Skills 保留上游格式，但仍检查其元数据与引用。
 
-[16 项检查器测试](../scripts/check-docs.test.mjs) 覆盖正确基线、包 README 锚点/公共资产来源链接、依赖与构建目录跳过、坏链接、重复需求、缺失验收/追踪、非法状态、ADR 索引、Skill 元数据和命令引用。互联网链接、Mermaid 渲染、需求语义和许可证不靠静态检查宣称正确。私钥头扫描不等同完整安全审计。
+[17 项检查器测试](../scripts/check-docs.test.mjs) 覆盖正确基线、包 README 锚点/公共资产来源链接、依赖与构建目录跳过、坏链接、重复需求、缺失验收/追踪、非法状态、ADR 索引、Skill 元数据和命令引用。互联网链接、Mermaid 渲染、需求语义和许可证不靠静态检查宣称正确。私钥头扫描不等同完整安全审计。
 
 ## 验证记录
 
@@ -62,6 +66,18 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 旧 utils 源码与模板素材已删除；其被忽略的本地 dist/node_modules 目录递归清理被自动审批审查以 blocked by policy 拒绝，不属于工作区包或待提交文件。
 
 ## 限制与诊断
+
+2026-11-18 包结构与正式文档示例：SDK 内部实现按职责迁入 9 个目录，保留 17 个公开入口与全部运行时契约；主包 manifest 的名称、版本、导出、files、依赖和 peer 与整理前一致。26 个公共资产文件迁入 fixtures，16 个模型/图片/环境资产的 Git blob 与原路径逐个一致。正式 examples 包含 8 个主题，以公开 API 和同一宿主循环实现画廊、源码、启停及销毁重建；原 website 留作回归。根/包 README 收敛为入口说明，详细 API 迁入 docs/api，指南、示例与开发文档统一由 VitePress 呈现。
+
+VitePress 固定稳定版 1.6.4，Vite 5.4.21 仅在该父依赖下覆盖；根开发依赖 Vue 3.5.45 供跨目录 Markdown SSR 解析，不进入 SDK。首次安装被 pnpm 未批准的 esbuild 脚本规则终止，仅允许精确 esbuild 0.21.5 后冻结安装通过；首次 SSR 构建缺少根 vue/server-renderer，补齐开发依赖后构建通过。锁定安装、ready 均通过：17 项文档检查器测试、741 项 SDK 单测、288 文件格式与 160 源文件 Lint/类型检查，主包、正式示例、回归演示及 VitePress 客户端/SSR 构建成功；后续静态检查仍为零警告/错误。检查器新增真实源码包含与坏引用回归；首次文档测试 fixture 漏复制新增 README 引用的 LICENSE，补齐 fixture 后通过。
+
+test:site 最终 11/11 通过（259653.141 毫秒，约 4.3 分钟），零重试/跳过；覆盖 SSR API 正文、导航、本地搜索、源码包含及 GitHub 源文件链接、8 个例子的实际 WebGL 像素、复杂 DOM 表单/按钮、暂停/销毁重建、历史前进后退和迟到 GLB 不复活旧场景。文档首页与完整设备卡片截图已目视检查。前四轮为 0/4、1/4、2/4、10/11：修正静态示例应暂存于 docs/public/play 的 srcDir 边界、带锚点的标题定位、状态选择器覆盖详情 DOM、点击代理误匹配详情祖先；将 8 主题聚合长用例拆开，保留断言和 60 秒预算，最后为惰性模块/原始源码的网络完成建立等待边界。未放宽像素或生命周期断言，未启用重试。各轮 JSON 保留于忽略的 playwright-report/site-*-20261118.json。
+
+既有 GPU 首轮完整 134/135 通过（617606.626 毫秒，约 10.3 分钟），零重试/跳过；animation-blend 的第 111 行在点击后断言短暂 blending=true 失败，trace 显示点击调用开始至该断言约 2.146 秒，观测时已为 false。该轮无动画实现或测试源码改动；保持源码、断言、等待与超时原样，单独复验两项 2/2 通过（40028.912 毫秒）。首轮报告、失败 trace 与复验报告保留在 playwright-report/full-restructure-first-20261118.json、restructure-animation-blend-first-20261118 和 restructure-animation-blend-recheck-20261118.json。完整再验结果另记，不把分组成功描述为全量成功或时间波动已解决。
+
+既有 GPU 完整再验 135/135 通过（591926.029 毫秒，约 9.9 分钟），零重试/跳过，报告保留于 playwright-report/full-restructure-final-20261118.json；相机、压缩资产、动画、拾取、复杂标签、第一/第三人称、特效/阴影、截图、移动输入和多实例生命周期全部覆盖。本轮未修改原浏览器断言或超时，保留首轮失败与分组复验记录，不把本次通过外推为长期稳定性结论。
+
+test:package 两次通过真实 tarball 独立安装、17 个 ESM/开发入口、无 DOM 导入以及四次 skipLibCheck=false 的严格声明/消费编译；私有路径拒绝断言同步指向迁移后的实际 src/core/three-app.ts。本地交付归档仍为 86 文件，仅包含 dist/src/README/LICENSE；没有正式示例、文档站、共享资产或测试。无 CI、远程站点部署或 npm 发布；TypeScript 7 API 实验提示与消费应用大 chunk 提示保留，Chromium/SwiftShader 结果不外推完整设备兼容、长期资源或性能指标。
 
 2026-11-18 常用效果与点云飞线：新增扩散波纹、开放圆柱光柱、视角护罩、原生Points尾迹与路径带多段流光；EffectPlayback复用同一时钟/绘制结束资源管理，保留旧mesh类型。ready通过741项主包单测、16项文档测试、221文件格式、141源文件静态检查及全部构建；effects本身24项单测。十七入口真实tarball、无DOM导入与四次严格类型消费通过。首轮浏览器17/18：资源测试误把composer保留的全屏三角形计入特效泄漏，原生Pass.js确认其自有几何后，分别验证直接场景3个、composer场景4个基础几何，并新增释放composer后回到3个几何/0纹理；实现无需修改。修正后受影响的18项浏览器联测全部通过（101270.315毫秒，约1.7分钟），零重试/跳过，包含两类相机五种形态的真实像素、192点原生绘制、时间冻结、泛光往返和三轮几何/程序/纹理基线。截图已目视检查，报告存于忽略目录playwright-report/effects-collection-first-20261118.json和effects-collection-final-20261118.json。该轮执行受影响联测，未重新运行完整135项；此前131项完整基线属于Editor交付。实测仍为Chromium/SwiftShader，不推断硬件点大小、长期性能或完整浏览器兼容。
 
@@ -293,4 +309,4 @@ ready 通过 13 项文档检查器测试、135 文件格式、80 源文件静态
 
 环境、命令、测试、构建、文档规则或验证范围变化时更新；只保留有用的近期证据，不累积初始化阶段的模板测试日志。
 
-2026-11-18 本地归档已更新：dist/local-packages/adui-three-0.0.0.tgz，包含新增常用特效，共86文件、17运行时入口，无应用/测试/node_modules/.agents；SHA256为E94CA9B88951790171C620486FE077E787621A879C93F7C7D22C216965D98D4A。仅本地分发，不发布npm。
+2026-11-18 本地归档已更新：dist/local-packages/adui-three-0.0.0.tgz，使用整理后的内部目录与正式包 README，共86文件、17运行时入口，无应用/测试/node_modules/.agents；SHA256为F6B294DB82C6EC0CF2936A6AACB80A38054E7F8C25C7CA85685FDEA432F40720。仅本地分发，不发布npm。
