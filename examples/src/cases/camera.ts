@@ -9,7 +9,7 @@ import { addBox, addGround, button, createScene } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
 import { Vector3 } from "three";
 export async function mount(context: ExampleContext) {
-  const app = await createScene(context.container, { orbit: false }),
+  const app = await createScene(context, { orbit: false }),
     orbit = attachOrbitControls(app);
   addGround(app);
   const left = addBox(app, new Vector3(-2, 0.75, 0)),

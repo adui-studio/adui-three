@@ -2,7 +2,7 @@
 
 ## 组成
 
-catalog.ts登记惰性模块、标题与原始源码。cases模块导出mount(context)，返回Promise<SceneApp>，统一使用ThreeApp.create；shared.ts只包含场景和DOM辅助。
+catalog.ts登记惰性模块、标题与原始源码。cases模块导出mount(context)，返回Promise<SceneApp>，统一使用ThreeApp.create；shared.ts包含场景和DOM辅助，ExampleContext.renderer选择webgl/webgpu/webgpu-strict，创建signal与配置一并传递。9主题使用相同工具栏，URL的renderer参数与浏览器历史同步，并显示实际backend。
 
 异步示例使用 context.signal 取消尚未完成的初始化；挂载后由宿主 signal 管理任务。画廊先取消旧初始化并结束旧实例，并以请求版本防止迟到模块覆盖页面；模型和动画继续使用SDK资源生命周期。
 

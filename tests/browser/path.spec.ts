@@ -33,6 +33,8 @@ async function arrow(page: Page) {
     const rect = canvas.getBoundingClientRect();
     return {
       count,
+      localX: (x / count / width) * rect.width,
+      localY: (1 - y / count / height) * rect.height,
       x: rect.left + (x / count / width) * rect.width,
       y: rect.bottom - (y / count / height) * rect.height,
       error: gl.getError(),
@@ -165,12 +167,14 @@ test("path timeline samples paused native pixels, retains picking and resumes or
   const sampled = await arrow(page);
   expect(sampled.count).toBeGreaterThan(15);
   expect(sampled.error).toBe(0);
-  expect(Math.hypot(first.x - sampled.x, first.y - sampled.y)).toBeGreaterThan(5);
+  expect(Math.hypot(first.localX - sampled.localX, first.localY - sampled.localY)).toBeGreaterThan(
+    5,
+  );
   await page.mouse.click(sampled.x, sampled.y);
   await expect(page.getByTestId("path-picked")).toHaveText("路径 A");
   await slider.fill("0");
   const reset = await arrow(page);
-  expect(Math.hypot(first.x - reset.x, first.y - reset.y)).toBeLessThan(1);
+  expect(Math.hypot(first.localX - reset.localX, first.localY - reset.localY)).toBeLessThan(1);
   await slider.fill("100");
   await expect(page.getByTestId("path-state")).toHaveText("paused");
   await expect(page.getByTestId("path-result")).toHaveText("—");
@@ -210,7 +214,9 @@ test("real path pixels move, per-object pause retains picking and another target
   const moved = await arrow(page);
   expect(moved.count).toBeGreaterThan(15);
   expect(moved.error).toBe(0);
-  expect(Math.hypot(moved.x - original.x, moved.y - original.y)).toBeGreaterThan(5);
+  expect(
+    Math.hypot(moved.localX - original.localX, moved.localY - original.localY),
+  ).toBeGreaterThan(5);
   const position = await page.getByTestId("path-position").textContent();
   const peer = await page.getByTestId("path-peer-progress").textContent();
   await expect(page.getByTestId("path-peer-progress")).not.toHaveText(peer!);

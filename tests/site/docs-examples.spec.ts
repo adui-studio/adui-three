@@ -167,3 +167,76 @@ test("WebGPU example initializes asynchronously, exposes its actual backend and 
   await expect(page.locator(".detail")).toHaveAttribute("data-state", "running");
   await expect(page.locator("canvas")).toHaveCount(1);
 });
+
+for (const id of [
+  "basic",
+  "model",
+  "camera",
+  "labels",
+  "effects",
+  "shadows",
+  "navigation",
+  "instances",
+  "webgpu",
+]) {
+  test(`formal example ${id} uses the same API on the node renderer`, async ({ page }) => {
+    await page.goto(`/play/?example=${id}&renderer=webgpu`);
+    const detail = page.locator(".detail");
+    await expect(detail).toHaveAttribute("data-state", "running");
+    await expect(detail).toHaveAttribute("data-renderer", "webgpu");
+    await expect(detail).toHaveAttribute("data-backend", /webgl2|webgpu/);
+    await expect(page.getByRole("combobox", { name: "渲染器", exact: true })).toHaveValue("webgpu");
+    const png = await page.locator("canvas").screenshot();
+    const colors = await page.evaluate(
+      async (bytes) => {
+        const bitmap = await createImageBitmap(
+          new Blob([new Uint8Array(bytes)], { type: "image/png" }),
+        );
+        const surface = document.createElement("canvas");
+        surface.width = bitmap.width;
+        surface.height = bitmap.height;
+        const context = surface.getContext("2d")!;
+        context.drawImage(bitmap, 0, 0);
+        bitmap.close();
+        const pixels = context.getImageData(0, 0, surface.width, surface.height).data,
+          values = new Set<number>();
+        for (let i = 0; i < pixels.length; i += 4)
+          values.add((pixels[i]! << 16) | (pixels[i + 1]! << 8) | pixels[i + 2]!);
+        return values.size;
+      },
+      [...png],
+    );
+    expect(colors).toBeGreaterThan(8);
+    if (id === "effects")
+      await page.screenshot({ path: "test-results/formal-webgpu-effects.png", fullPage: true });
+  });
+}
+
+test("renderer selection rebuilds one host, restores history and keeps strict failures visible", async ({
+  page,
+}) => {
+  await page.goto("/play/?example=basic&renderer=webgl");
+  await expect(page.locator(".detail")).toHaveAttribute("data-state", "running");
+  await page.getByRole("combobox", { name: "渲染器", exact: true }).selectOption("webgpu");
+  await expect(page).toHaveURL(/renderer=webgpu/);
+  await expect(page.locator(".detail")).toHaveAttribute("data-renderer", "webgpu");
+  await expect(page.locator("canvas")).toHaveCount(1);
+  await page.goBack();
+  await expect(page.getByRole("combobox", { name: "渲染器", exact: true })).toHaveValue("webgl");
+  await expect(page.locator(".detail")).toHaveAttribute("data-renderer", "webgl");
+  const available = await page.evaluate(async () => {
+    const gpu = Reflect.get(navigator, "gpu") as
+      | { requestAdapter(options: { featureLevel: string }): Promise<object | null> }
+      | undefined;
+    return !!(await gpu?.requestAdapter({ featureLevel: "compatibility" }));
+  });
+  await page.getByRole("combobox", { name: "渲染器", exact: true }).selectOption("webgpu-strict");
+  if (available) {
+    await expect(page.locator(".detail")).toHaveAttribute("data-backend", "webgpu");
+    await expect(page.locator(".detail")).toHaveAttribute("data-state", "running");
+  } else {
+    await expect(page.locator(".detail")).toHaveAttribute("data-state", "error");
+    await expect(page.getByRole("status")).toContainText("原生 WebGPU 初始化失败");
+    await expect(page.locator("canvas")).toHaveCount(0);
+  }
+});

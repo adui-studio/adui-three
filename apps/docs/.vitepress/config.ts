@@ -26,7 +26,7 @@ const api = [
 ];
 const recipes = [
   ["basic", "场景与生命周期"],
-  ["webgpu", "WebGPU 基础宿主"],
+  ["webgpu", "渲染器与输出"],
   ["model", "模型与动画"],
   ["camera", "相机与视角"],
   ["labels", "交互 DOM 标签"],

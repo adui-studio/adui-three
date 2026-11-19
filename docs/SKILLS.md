@@ -144,3 +144,5 @@ EXR 阶段使用 threejs-loaders，核验 r187 EXRLoader/DataTextureLoader 和 O
 2026-11-19 正式API阶段沿用threejs-fundamentals，并重新核验官方Renderer异步初始化/清理和TypeScript构造签名。原WebGL同步构造采用固定公开签名，WebGPU在私有准备完成后构造同一宿主，避免宽泛型与未就绪对象；正式示例统一create/renderOnce/destroy，验证仍仅本地进行。
 
 2026-11-19 统一扩展阶段使用仓库 threejs-postprocessing 和 threejs-shaders；以 r187 RenderPipeline、BloomNode、OutlineNode、PointsNodeMaterial、ShadowNode 和原生 PMREM 源码核验替代旧 GLSL 的节点实现。时钟仍使用宿主 delta，回退像素和原生 GPU 验收分别报告。
+
+2026-11-19 正式入口整理使用仓库 create-readme、git-commit 和 gitmoji（提交格式仍以贡献指南为准）；连接原生 Chrome 验收使用 computer-use。自动化 Chromium 的 SwiftShader 限制与用户 NVIDIA Ampere 原生结果分开记录，不将测试环境限制推断为用户硬件缺失。

@@ -2,7 +2,7 @@ import { attachDOMLabels } from "@adui/three/labels";
 import { addBox, addGround, createScene } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
 export async function mount(context: ExampleContext) {
-  const app = await createScene(context.container);
+  const app = await createScene(context);
   addGround(app);
   const cube = addBox(app);
   const overlay = document.createElement("div");

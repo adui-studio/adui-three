@@ -6,12 +6,11 @@ import {
   attachShield,
 } from "@adui/three/effects";
 import { attachPostprocessing } from "@adui/three/postprocessing";
-import type { PostprocessingHandle } from "@adui/three/postprocessing";
 import { QuadraticBezierCurve3, Vector3 } from "three";
 import { addGround, button, createScene, select } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
 export async function mount(context: ExampleContext) {
-  const app = await createScene(context.container);
+  const app = await createScene(context);
   addGround(app);
   const curve = new QuadraticBezierCurve3(
     new Vector3(-3, 0.2, -1),
@@ -52,7 +51,7 @@ export async function mount(context: ExampleContext) {
   button(app, context.tools, "继续特效", () => {
     for (const h of handles) h.resume();
   });
-  let post: PostprocessingHandle | undefined;
+  let post: ReturnType<typeof attachPostprocessing> | undefined;
   button(app, context.tools, "切换泛光", () => {
     if (post) {
       post.dispose();

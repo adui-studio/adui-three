@@ -31,6 +31,6 @@ pnpm add -D @types/three@0.187.0
 
 ## 平台
 
-ESM、默认WebGL2，可选 [WebGPU基础宿主](../api/webgpu.md)。导入模块不创建DOM、Worker或网络请求，创建宿主需要浏览器容器。框架挂载/卸载和UI状态由应用管理。
+ESM、默认WebGL2，可选 [WebGPU渲染器与扩展](../api/webgpu.md)。导入模块不创建DOM、Worker或网络请求，创建宿主需要浏览器容器。框架挂载/卸载和UI状态由应用管理。
 
 [最小场景](getting-started.md) · [旧版迁移](../MIGRATION.md)

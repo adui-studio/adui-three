@@ -92,6 +92,21 @@ h1 {
   line-height: 1.9;
   font-size: 17px;
 }
+.renderer-choice {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.backend-info {
+  align-self: center;
+  color: var(--accent);
+  font-size: 12px;
+  margin-right: auto;
+  overflow-wrap: anywhere;
+}
 .catalog {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

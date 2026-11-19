@@ -4,6 +4,8 @@
 
 ## 已存在文件
 
+项目入口：根/包 README 描述使用和能力；examples/src/main.ts 管理9主题的后端选择、历史和取消，shared.ts 接受 ExampleContext。website 的 [workbench.ts](../apps/website/src/workbench.ts) 提供场景导航，[capabilities.ts](../apps/website/src/capabilities.ts) 提供浏览器设备诊断；双后端扩展页面包含17项可见自检。
+
 跨后端扩展：私有 [features 注册](../packages/three/src/core/webgpu-features.ts)、[TSL 材质与 PMREM](../packages/three/src/webgpu/features.ts)、[节点后处理](../packages/three/src/webgpu/postprocessing.ts) 和 [共用参数校验](../packages/three/src/postprocessing/options.ts)。回归在 [生命周期单测](../packages/three/tests/webgpu-features.test.ts)、[像素测试](../tests/browser/webgpu-features.spec.ts) 与 [双后端页面](../apps/website/src/webgpu-features.ts)。
 
 正式配置类型位于 [app-options.ts](../packages/three/src/core/app-options.ts)，主工厂与统一类位于 [three-app.ts](../packages/three/src/core/three-app.ts)；[webgpu-host.ts](../packages/three/src/core/webgpu-host.ts) 是私有异步准备实现，不单独导出。

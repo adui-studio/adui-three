@@ -1,5 +1,6 @@
 import type { SceneApp } from "@adui/three";
 import { ThreeApp } from "@adui/three";
+import type { ThreeAppCreateOptions, ThreeAppInstance } from "@adui/three";
 import { attachOrbitControls } from "@adui/three/controls";
 import { attachRendererSettings, createEditorRenderPreset } from "@adui/three/rendering";
 import {
@@ -13,18 +14,31 @@ import {
   PlaneGeometry,
   Vector3,
 } from "three";
+export type ExampleRenderer = "webgl" | "webgpu" | "webgpu-strict";
 export interface ExampleContext {
+  renderer: ExampleRenderer;
   container: HTMLElement;
   signal: AbortSignal;
   tools: HTMLElement;
   status(message: string): void;
 }
 export async function createScene(
-  container: HTMLElement,
+  context: ExampleContext,
   options: { orbit?: boolean; lights?: boolean } = {},
-): Promise<ThreeApp> {
+): Promise<ThreeAppInstance> {
   const preset = createEditorRenderPreset();
-  const app = await ThreeApp.create(container, { renderer: { type: "webgl", ...preset.renderer } });
+  const creation: ThreeAppCreateOptions =
+    context.renderer === "webgl"
+      ? { renderer: { type: "webgl", ...preset.renderer }, signal: context.signal }
+      : {
+          renderer: {
+            type: "webgpu",
+            allowFallback: context.renderer !== "webgpu-strict",
+            ...preset.renderer,
+          },
+          signal: context.signal,
+        };
+  const app = await ThreeApp.create(context.container, creation);
   attachRendererSettings(app, preset.color);
   app.scene.background = new Color(0x0d1920);
   app.camera.position.set(6, 4, 7);
@@ -42,7 +56,7 @@ export async function createScene(
   return app;
 }
 export function addBox(
-  app: ThreeApp,
+  app: SceneApp,
   position = new Vector3(0, 0.75, 0),
   color = 0x65b8a0,
 ): Mesh<BoxGeometry, MeshStandardMaterial> {
@@ -54,7 +68,7 @@ export function addBox(
   app.scene.add(mesh);
   return mesh;
 }
-export function addGround(app: ThreeApp): Mesh<PlaneGeometry, MeshStandardMaterial> {
+export function addGround(app: SceneApp): Mesh<PlaneGeometry, MeshStandardMaterial> {
   const floor = new Mesh(
     app.resources.track(new PlaneGeometry(16, 16)),
     app.resources.track(new MeshStandardMaterial({ color: 0x263c45, roughness: 0.9 })),

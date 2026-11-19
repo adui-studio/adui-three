@@ -13,14 +13,6 @@ export interface Example {
 }
 export const examples: readonly Example[] = [
   {
-    id: "webgpu",
-    title: "WebGL 与 WebGPU",
-    tag: "WEBGPU",
-    description: "异步初始化、实际后端、模型动画与独立生命周期。",
-    load: () => import("./cases/webgpu.ts"),
-    source: () => import("./cases/webgpu.ts?raw").then((m) => m.default),
-  },
-  {
     id: "basic",
     title: "场景与生命周期",
     tag: "CORE",
@@ -83,5 +75,13 @@ export const examples: readonly Example[] = [
     description: "一百个实例，共享资产与独立实例数据。",
     load: () => import("./cases/instances.ts"),
     source: () => import("./cases/instances.ts?raw").then((m) => m.default),
+  },
+  {
+    id: "webgpu",
+    title: "渲染器与输出",
+    tag: "RENDERING",
+    description: "同一场景切换后端，组合泛光、环境与截图。",
+    load: () => import("./cases/webgpu.ts"),
+    source: () => import("./cases/webgpu.ts?raw").then((m) => m.default),
   },
 ];

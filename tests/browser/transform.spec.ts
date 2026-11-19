@@ -10,6 +10,7 @@ async function pause(page: Page): Promise<void> {
 }
 
 async function greenAxis(panel: Locator) {
+  await panel.locator("canvas").scrollIntoViewIfNeeded();
   return panel.evaluate((element) => {
     element.querySelector<HTMLButtonElement>('[data-action="render"]')!.click();
     const canvas = element.querySelector("canvas")!;
@@ -82,6 +83,7 @@ test("real gizmo dragging moves the object while orbit and another host remain s
   });
   await a.getByRole("button", { name: "释放手柄", exact: true }).click();
   await expect(a).toHaveAttribute("data-transform-mode", "idle");
+  await a.locator("canvas").scrollIntoViewIfNeeded();
   const box = await a.locator("canvas").boundingBox();
   await page.mouse.move(box!.x + 40, box!.y + 40);
   await page.mouse.down();

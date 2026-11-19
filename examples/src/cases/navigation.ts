@@ -5,7 +5,7 @@ import { BoxGeometry, CapsuleGeometry, Group, Mesh, MeshStandardMaterial, Vector
 import { addGround, button, createScene } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
 export async function mount(context: ExampleContext) {
-  const app = await createScene(context.container, { orbit: false }),
+  const app = await createScene(context, { orbit: false }),
     floor = addGround(app);
   const wall = new Mesh(
     app.resources.track(new BoxGeometry(5, 2, 0.4)),

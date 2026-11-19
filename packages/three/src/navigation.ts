@@ -2,7 +2,7 @@ import { PerspectiveCamera, Quaternion, Ray, Vector3 } from "three";
 import type { Object3D } from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { ThreeApp } from "./core/three-app.ts";
+import type { PerspectiveSceneApp } from "./core/three-app.ts";
 import type { ResourceScope } from "./core/resources.ts";
 import type { CollisionWorld } from "./collision.ts";
 import { createCharacterBody } from "./navigation/character-body.ts";
@@ -74,13 +74,13 @@ function positive(value: number, name: string, zero = false): number {
   return value;
 }
 export function attachFirstPersonControls(
-  app: ThreeApp,
+  app: PerspectiveSceneApp,
   options: CharacterControlsOptions = {},
 ): FirstPersonControlsHandle {
   return attach(app, null, options) as FirstPersonControlsHandle;
 }
 export function attachThirdPersonControls(
-  app: ThreeApp,
+  app: PerspectiveSceneApp,
   actor: Object3D,
   options: ThirdPersonControlsOptions = {},
 ): ThirdPersonControlsHandle {
@@ -88,7 +88,7 @@ export function attachThirdPersonControls(
 }
 
 function attach(
-  app: ThreeApp,
+  app: PerspectiveSceneApp,
   actor: Object3D | null,
   options: ThirdPersonControlsOptions,
 ): FirstPersonControlsHandle | ThirdPersonControlsHandle {

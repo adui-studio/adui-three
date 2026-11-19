@@ -1,10 +1,10 @@
 # 长期上下文
 
-当前扩展支持：FR-067 已实现，同一套 attach/capture/environment API 覆盖 WebGL 与 WebGPU 节点实现；后处理统一 configure。TSL 实现、实例化飞点、阴影/Room 目标清理沿用宿主循环和绘制结束边界。节点 WebGL 回退验证不能代替原生 WebGPU 验收；正交 WebGPU 仍未接入。详见 [ADR-0051](adr/0051-renderer-feature-parity.md)。
+当前扩展支持：FR-067 已实现，同一套 attach/capture/environment API 覆盖 WebGL 与 WebGPU 节点实现；后处理统一 configure。TSL 实现、实例化飞点、阴影/Room 目标清理沿用宿主循环和绘制结束边界。已连接使用者 Chrome/NVIDIA Ampere 通过原生17项扩展专项；自动化 Chromium 仍只暴露软件设备，完整设备矩阵未完成；正交 WebGPU 仍未接入。详见 [ADR-0051](adr/0051-renderer-feature-parity.md)。
 
 ## 目标与当前阶段
 
-2026-11-19 正式API定稿：ThreeApp.create + renderer.type/allowFallback；同一实际类，主要生命周期start/stop/renderOnce/destroy。WebGPU仅为私有按需实现，原17入口保持。此前顶层backend/fallback、独立webgpu入口及创建类型名已按ADR-0050撤回；原生GPU硬件验收仍未完成。
+2026-11-19 正式API定稿：ThreeApp.create + renderer.type/allowFallback；同一实际类，主要生命周期start/stop/renderOnce/destroy。WebGPU仅为私有按需实现，原17入口保持。此前顶层backend/fallback、独立webgpu入口及创建类型名已按ADR-0050撤回；原生NVIDIA Ampere浏览器专项已补测，自动化软件设备及完整硬件矩阵分开记录。
 
 当前整理阶段：SDK内部实现分组，公开入口不变；正式示例在examples，旧apps/website用于回归；VitePress在apps/docs，内容统一于docs，资产在fixtures。dev默认正式示例，旧场景用dev:playground，文档用docs:dev/build/preview。决定见ADR-0047，验证见Harness。
 

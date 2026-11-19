@@ -10,10 +10,10 @@ import { fitObject } from "@adui/three/camera";
 import { BoxGeometry, Color, Mesh, MeshBasicMaterial, Vector3 } from "three";
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML =
-  `<main><h1>WebGPU 基础宿主回归</h1><p role="status">准备中</p><div class="gpu-panels" style="display:flex;gap:16px"></div></main>`;
+  `<main><h1>双后端生命周期验证</h1><p role="status">准备中</p><div class="gpu-panels" style="display:flex;gap:16px"></div></main>`;
 const root = document.querySelector<HTMLElement>(".gpu-panels")!;
 const status = document.querySelector<HTMLElement>("[role=status]")!;
-const backend = new URLSearchParams(location.search).get("backend") ?? "webgpu";
+const backend = new URLSearchParams(location.search).get("backend") ?? "auto";
 const lifetime = new AbortController();
 async function mount(id: string): Promise<void> {
   const panel = document.createElement("section");

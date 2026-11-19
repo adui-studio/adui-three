@@ -1,5 +1,7 @@
 # 第一与第三人称
 
+第一/第三人称控件接受共同的 PerspectiveSceneApp，可用于 WebGL 或 WebGPU 透视宿主；碰撞、输入和运动仍在宿主时钟内处理，不读取图形后端能力。
+
 ## 第一与第三人称
 
 按需导入 navigation；核心不会加载碰撞库。第一人称使用原生 PointerLockControls，第三人称使用原生 OrbitControls，二者共享宿主更新和角色运动逻辑。先 dispose 旧 attachOrbitControls / 导航句柄，再切换控制器。演示：开发服务的 `/?demo=navigation`，两个场景独立运行。

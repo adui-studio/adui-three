@@ -43,10 +43,10 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div class="shell">
     <header class="topbar"><a class="brand" href="#">adui<span>/</span>three</a><span class="version">CORE · 0.0.0</span><a class="source" href="https://github.com/adui-studio/adui-three">GitHub ↗</a></header>
     <main>
-      <section class="intro"><div class="eyebrow"><span class="dot"></span> CORE PLAYGROUND</div><h1>一个场景，<br><span>清晰的生命周期。</span></h1><p>从创建到释放，让 Three.js 场景的每一步都可控。<br>两个独立实例，一起验证最小核心。</p></section>
+      <section class="intro"><div class="eyebrow"><span class="dot"></span> INTEGRATION WORKBENCH</div><h1>一个场景，<br><span>清晰的生命周期。</span></h1><p>从创建到释放，让 Three.js 场景的每一步都可控。<br>两个独立实例，验证场景、资源和交互的完整生命周期。</p></section>
       <section class="workspace" aria-label="双实例演示"></section>
       <section class="notes"><div><span class="note-index">01 / COMPOSE</span><h2>保留原生能力</h2><p>直接使用 scene、camera 与 renderer。OrbitControls 从可选入口接入。</p></div><div><span class="note-index">02 / OWN</span><h2>明确资源归属</h2><p>只有显式登记的资源交由宿主释放。场景中的外部共享资源由所有者管理。</p></div><div><span class="note-index">03 / OBSERVE</span><h2>验证每个边界</h2><p>暂停、改变容器尺寸、销毁再重建，观察两个实例的独立状态。</p></div></section>
-    </main><footer><span>@adui/three · 本地开发预览，尚未发布</span><a href="/?demo=instances">实例化网格演示 ↗</a><a href="/?demo=path">路径运动演示 ↗</a><a href="/?demo=orthographic">相机投影演示 ↗</a><span>TypeScript / ESM / WebGL 2</span></footer>
+    </main><footer><span>@adui/three · SDK 验证工作台 · v0.0.0</span><a href="/?demo=instances">实例化网格演示 ↗</a><a href="/?demo=path">路径运动演示 ↗</a><a href="/?demo=orthographic">相机投影演示 ↗</a><span>TypeScript / ESM / WebGL 2</span></footer>
   </div>`;
 
 const teardown: Array<() => void> = [];

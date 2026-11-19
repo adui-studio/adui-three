@@ -379,6 +379,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-063  | 包/文档/示例工程契约              | 分组实现、examples、apps/docs、共享fixtures      | 单测/打包/既有GPU与站点验证                                |
 | FR-064  | 可选 WebGPU 基础宿主契约          | webgpu、共用 SceneHost 与 SceneApp               | 异步单测/打包/节点回退，原生GPU需适配器验收                |
 | FR-065  | ThreeApp统一创建契约              | ThreeApp.create / rendererType / options         | 参数快照、取消、类型收窄、真实浏览器与示例                 |
+| FR-068  | 正式项目入口与双后端示例契约      | README、renderer选择、工作台导航与能力诊断       | 构建/文档/严格消费、站点/导航/移动布局及原生浏览器专项     |
 | FR-067  | 跨后端扩展契约                    | 共用公开模块、私有TSL/PMREM与configure           | 节点图/时钟/生命周期、像素/裁剪/阴影/回收和类型消费        |
 | FR-066  | 正式宿主API契约                   | app-options、ThreeApp统一类、私有WebGPU准备      | 配置/身份/生命周期、17入口、GPU与正式示例                  |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
@@ -527,3 +528,9 @@ attachPostprocessing / attachBloom 的 configure 在两种后端同名同选项�
 节点 renderer.shadowMap 没有 WebGL 的 autoUpdate/needsUpdate 字段；更新只写 light.shadow。原生 light.dispose 负责节点 Shadow/VSM 全部目标，不重复手动销毁。Room 内部选择对应 PMREMGenerator，恢复 renderer 状态并清理临时生成器；已产生输出遇到清理失败也释放。原生 fromScene 抛出前未返回的内部目标仍无法通过公开 API 回收。
 
 截图共用同任务 drawImage 复制与编码取消；节点路径不检查 WebGL context。WebGPU 宿主在绘制内 destroy 立即失效，但原生 renderer.dispose 退休后才执行，destroy Promise 等待它完成。详见 [ADR-0051](adr/0051-renderer-feature-parity.md)。
+
+## 正式项目入口与双后端示例契约（FR-068）
+
+examples 的 ExampleContext.renderer 为 webgl / webgpu / webgpu-strict，初始化 signal 与 renderer 一并交给 ThreeApp.create。9个主题使用相同入口，shared.createScene 返回 ThreeAppInstance；借用场景辅助接受 SceneApp，角色导航接受 PerspectiveSceneApp。切换主题/后端先取消旧创建并结束旧实例，以请求版本阻止迟到写入。renderer 查询参数和浏览器历史同步，实际 rendererType/backend 单独显示，严格失败不会静默回退。
+
+website 仍为私有集成工作台，原路径和选择器保持。bootstrap 安装统一导航，capabilities 只请求浏览器 core/compatibility 适配器，不请求设备或更改设置。双后端扩展页面通过公开 SDK 函数提供单项操作、截图预览和17项可见自检，结果按实际后端判读。GPUAdapter 来自当前浏览器环境；CLI Chromium 与连接的用户 Chrome 设备结果分别记录。根/包 README 面向接入和能力导航，不复制完整 API 或将未发布包写成已可从 npm 安装。

@@ -5,7 +5,6 @@ import { attachGLTFAnimations } from "@adui/three/animation";
 import { fitObject } from "@adui/three/camera";
 import { attachPicking } from "@adui/three/interaction";
 import { attachPostprocessing } from "@adui/three/postprocessing";
-import type { NodePostprocessingHandle } from "@adui/three/postprocessing";
 import { attachRendererSettings } from "@adui/three/rendering";
 import { attachShadowLight } from "@adui/three/lighting";
 import { attachRipple } from "@adui/three/effects";
@@ -16,10 +15,15 @@ import { button } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
 
 export async function mount(context: ExampleContext) {
-  const app = await ThreeApp.create(context.container, {
-    renderer: { type: "webgpu" },
-    signal: context.signal,
-  });
+  const app = await ThreeApp.create(
+    context.container,
+    context.renderer === "webgl"
+      ? { renderer: { type: "webgl" }, signal: context.signal }
+      : {
+          renderer: { type: "webgpu", allowFallback: context.renderer !== "webgpu-strict" },
+          signal: context.signal,
+        },
+  );
   try {
     app.scene.background = new Color(0x0d1920);
     attachRendererSettings(app, { toneMapping: "neutral", exposure: 1 });
@@ -33,7 +37,7 @@ export async function mount(context: ExampleContext) {
     app.scene.add(floor);
     const ripple = attachRipple(app, { radius: 2, opacity: 0.4 });
     ripple.mesh.position.set(-2, -1.48, 0);
-    let post: NodePostprocessingHandle | undefined;
+    let post: ReturnType<typeof attachPostprocessing> | undefined;
     button(app, context.tools, "切换泛光", () => {
       if (post) {
         post.dispose();

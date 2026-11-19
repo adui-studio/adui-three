@@ -290,6 +290,9 @@ export async function consumeWebGPU(container: HTMLElement, overlay: HTMLElement
   fx.dispose();
   const settings = attachRendererSettings(app); settings.dispose();
   const environment = createRoomEnvironment(app); environment.dispose();
+  orbit.dispose();
+  const thirdPerson = attachThirdPersonControls(app, model.scene, {keyboard:false}); thirdPerson.dispose();
+  const firstPerson = attachFirstPersonControls(app, {keyboard:false}); firstPerson.dispose();
   const nodeEffect = attachRipple(app);
   const native: import("three/webgpu").MeshBasicNodeMaterial = nodeEffect.mesh.material;
   nodeEffect.dispose(); void [strength,native];

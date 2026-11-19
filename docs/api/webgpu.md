@@ -78,4 +78,10 @@ signal 仅取消创建，覆盖按需导入与设备初始化；成功后模型�
 
 模型/动画、控件、CPU 拾取、DOM 标签、相机、纹理及几何复用既有模块。泛光/描边/颜色滤镜、八种动态特效、实时阴影、色调与曝光、Room/HDR/EXR 环境和截图共用现有入口，内部按 renderer 选择原生实现；后处理统一用 configure 更新参数。原生 pass / node / material 仍按实际渲染器保留不同类型，不能直接互换。正交宿主仍通过 OrthographicThreeApp 创建，目前只支持 WebGL。
 
-正式 API 契约不代表 npm 已发布或所有设备已验收。当前环境没有原生 WebGPU 适配器，回退像素验证不能代替原生 WebGPU GPU 验收；节点实现已完成并经 WebGL 后端回退执行验证，原生设备矩阵仍待验收。资源限制见 [ADR-0048](../adr/0048-webgpu-host.md)，正式决策见 [ADR-0050](../adr/0050-public-app-api.md)，扩展决策见 [ADR-0051](../adr/0051-renderer-feature-parity.md)，实际验证见 [Harness](../HARNESS.md)。
+正式 API 契约不代表 npm 已发布或所有设备已验收。自动化 Chromium 环境仅暴露 SwiftShader，core/compatibility 适配器均返回 null；这不是使用者电脑缺显卡或 npm 依赖。已连接用户 Chrome/NVIDIA Ampere，在严格模式下确认 backend=webgpu，并通过17项原生扩展专项；完整浏览器/设备矩阵仍待扩展，详见验收记录。资源限制见 [ADR-0048](../adr/0048-webgpu-host.md)，正式决策见 [ADR-0050](../adr/0050-public-app-api.md)，扩展决策见 [ADR-0051](../adr/0051-renderer-feature-parity.md)，实际验证见 [Harness](../HARNESS.md)。
+
+## 诊断 GPUAdapter
+
+GPUAdapter 由浏览器在安全上下文中选择。返回 null 可能与浏览器策略、驱动、软件渲染或远程运行环境有关，不能单独判定显卡能力。项目的 website 提供 ?demo=capabilities，分别检测 core/compatibility 并显示厂商、架构和回退标记；?demo=webgpu-features&backend=webgpu 运行严格模式及17项扩展自检。正式示例任意主题也可选择严格 WebGPU，并查看实际后端。
+
+参考 [WebGPU 适配器选择规范](https://www.w3.org/TR/webgpu/#adapter-selection)。

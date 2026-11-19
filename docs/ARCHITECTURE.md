@@ -2,6 +2,8 @@
 
 ## 当前架构
 
+正式 examples 通过 ExampleContext 传入 renderer 与创建 signal，所有主题共用后端选择和实际后端显示；website 保持私有集成工作台，统一导航与浏览器能力诊断不进入 SDK。适配器检测结果属于浏览器运行环境，自动化软件设备与连接的原生 GPU 分别记录。
+
 [ADR-0051](adr/0051-renderer-feature-parity.md)：后处理、动态特效、阴影、色彩、环境及截图共用公开入口。私有 webgpu/features 在 GPU 工厂交付前注册 TSL 实现；普通 WebGL 入口不静态导入节点实现。后处理参数校验共用，原生 pass/node 为后端特有逃生口，正式调整使用 configure。
 
 当前是pnpm工作区：packages/three为SDK，examples为正式示例，apps/docs为VitePress，apps/website为回归playground，fixtures共享原创资产。根包private；核心仍基于Three.js0.187.0，默认WebGL2、可选WebGPU及统一扩展，无框架适配、数据库或后端服务。
