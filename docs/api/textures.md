@@ -23,7 +23,7 @@ image.resources.track({
     }
   },
 });
-if (app.state !== "running") app.render();
+if (app.state !== "running") app.renderOnce();
 // image.dispose(); // 先解除材质引用，再清 GPU 和原始位图；宿主也会释放。
 ```
 

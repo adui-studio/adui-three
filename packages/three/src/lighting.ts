@@ -1,3 +1,4 @@
+import { isNodeRenderer } from "./core/webgpu-features.ts";
 import {
   BasicShadowMap,
   Box3,
@@ -10,7 +11,7 @@ import {
   VSMShadowMap,
 } from "three";
 import type { Object3D } from "three";
-import type { AnyThreeApp } from "./core/three-app.ts";
+import type { SceneApp } from "./core/three-app.ts";
 import { ResourceScope } from "./core/resources.ts";
 import { retireAfterRender } from "./core/render-retirement.ts";
 export interface ShadowLightOptions {
@@ -74,10 +75,7 @@ function meshes(roots: readonly Object3D[]): Set<Mesh> {
   return result;
 }
 /** Owns one directional light, its target/maps and one renderer shadow-settings lease. */
-export function attachShadowLight(
-  app: AnyThreeApp,
-  options: ShadowLightOptions,
-): ShadowLightHandle {
+export function attachShadowLight(app: SceneApp, options: ShadowLightOptions): ShadowLightHandle {
   const renderer = app.renderer;
   if (app.state === "disposed" || app.resources.disposed || options.scope?.disposed)
     throw new Error("Shadow owner has been disposed");
@@ -101,7 +99,7 @@ export function attachShadowLight(
     mapSize < 128 ||
     mapSize > 4096 ||
     (mapSize & (mapSize - 1)) !== 0 ||
-    mapSize > renderer.capabilities.maxTextureSize ||
+    (!isNodeRenderer(renderer) && mapSize > renderer.capabilities.maxTextureSize) ||
     !Number.isInteger(blurSamples) ||
     blurSamples < 1 ||
     blurSamples > 32 ||
@@ -132,10 +130,11 @@ export function attachShadowLight(
     all = new Set([...casters, ...receivers]);
   for (const object of all)
     if (objects.has(object)) throw new Error("A mesh already has a managed shadow lease");
+  const glShadow = isNodeRenderer(renderer) ? undefined : renderer.shadowMap;
   const previous = {
     enabled: renderer.shadowMap.enabled,
     type: renderer.shadowMap.type,
-    autoUpdate: renderer.shadowMap.autoUpdate,
+    autoUpdate: glShadow?.autoUpdate,
   };
   const nativeType =
     type === "basic" ? BasicShadowMap : type === "pcf" ? PCFShadowMap : VSMShadowMap;
@@ -177,7 +176,7 @@ export function attachShadowLight(
       throw new Error("Shadow light requires an untransformed automatic scene");
   };
   const update = (): void => {
-    renderer.shadowMap.needsUpdate = true;
+    if (glShadow) glShadow.needsUpdate = true;
     light.shadow.needsUpdate = true;
   };
   const fit = (value: Box3): void => {
@@ -292,13 +291,14 @@ export function attachShadowLight(
               if (renderer.shadowMap.enabled === true)
                 renderer.shadowMap.enabled = previous.enabled;
               if (renderer.shadowMap.type === nativeType) renderer.shadowMap.type = previous.type;
-              if (renderer.shadowMap.autoUpdate === true)
-                renderer.shadowMap.autoUpdate = previous.autoUpdate;
-              renderer.shadowMap.needsUpdate = true;
+              if (glShadow?.autoUpdate === true && previous.autoUpdate !== undefined)
+                glShadow.autoUpdate = previous.autoUpdate;
+              if (glShadow) glShadow.needsUpdate = true;
             }
             const owned = new ResourceScope();
-            if (light.shadow.map) owned.track(light.shadow.map);
-            if (light.shadow.mapPass) owned.track(light.shadow.mapPass);
+            if (!isNodeRenderer(renderer) && light.shadow.map) owned.track(light.shadow.map);
+            if (!isNodeRenderer(renderer) && light.shadow.mapPass)
+              owned.track(light.shadow.mapPass);
             light.shadow.map = null;
             light.shadow.mapPass = null;
             clean(() => owned.dispose());
@@ -315,7 +315,7 @@ export function attachShadowLight(
     installed = true;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = nativeType;
-    renderer.shadowMap.autoUpdate = true;
+    if (glShadow) glShadow.autoUpdate = true;
     update();
     for (const object of casters) object.castShadow = true;
     for (const object of receivers) object.receiveShadow = true;

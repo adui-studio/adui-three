@@ -1,7 +1,7 @@
 import { addBox, addGround, createScene } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
-export function mount(context: ExampleContext) {
-  const app = createScene(context.container);
+export async function mount(context: ExampleContext) {
+  const app = await createScene(context.container);
   addGround(app);
   const cube = addBox(app);
   app.onUpdate(({ delta }) => {

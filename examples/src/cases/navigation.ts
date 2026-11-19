@@ -4,8 +4,8 @@ import type { FirstPersonControlsHandle, ThirdPersonControlsHandle } from "@adui
 import { BoxGeometry, CapsuleGeometry, Group, Mesh, MeshStandardMaterial, Vector3 } from "three";
 import { addGround, button, createScene } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
-export function mount(context: ExampleContext) {
-  const app = createScene(context.container, { orbit: false }),
+export async function mount(context: ExampleContext) {
+  const app = await createScene(context.container, { orbit: false }),
     floor = addGround(app);
   const wall = new Mesh(
     app.resources.track(new BoxGeometry(5, 2, 0.4)),

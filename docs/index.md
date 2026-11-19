@@ -25,4 +25,4 @@ features:
 
 ## 当前状态
 
-版本0.0.0，尚未发布npm。实现基于Three.js0.187.0、ESM和WebGL2；验证范围见[本地验证](HARNESS.md)，接入方法见[安装与版本](guide/installation.md)。
+版本0.0.0，尚未发布npm。实现基于Three.js0.187.0、ESM、默认WebGL2和可选WebGPU基础宿主；验证范围见[本地验证](HARNESS.md)，接入方法见[安装与版本](guide/installation.md)。

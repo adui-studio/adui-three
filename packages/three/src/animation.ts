@@ -7,7 +7,7 @@ import {
 } from "three";
 import type { AnimationAction, AnimationClip, Object3D } from "three";
 import type { GLTFInstance, GLTFModel } from "./loaders.ts";
-import type { AnyThreeApp } from "./core/three-app.ts";
+import type { SceneApp } from "./core/three-app.ts";
 import { resolveTransitionEasing } from "./shared/easing.ts";
 import type { TransitionEasing } from "./shared/easing.ts";
 export type { TransitionEasing } from "./shared/easing.ts";
@@ -92,7 +92,7 @@ const roots = new WeakSet<Object3D>();
 
 /** One owned mixer for a GLTF model, driven exclusively by the host's update phase. */
 export function attachGLTFAnimations(
-  app: AnyThreeApp,
+  app: SceneApp,
   model: GLTFModel | GLTFInstance,
 ): GLTFAnimationsHandle {
   const assertOwners = (): void => {

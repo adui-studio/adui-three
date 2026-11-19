@@ -2,7 +2,9 @@
 
 ## 当前架构
 
-当前是pnpm工作区：packages/three为SDK，examples为正式示例，apps/docs为VitePress，apps/website为回归playground，fixtures共享原创资产。根包private；核心仍基于Three.js0.187.0/WebGL2，无框架适配、数据库或后端服务。
+[ADR-0051](adr/0051-renderer-feature-parity.md)：后处理、动态特效、阴影、色彩、环境及截图共用公开入口。私有 webgpu/features 在 GPU 工厂交付前注册 TSL 实现；普通 WebGL 入口不静态导入节点实现。后处理参数校验共用，原生 pass/node 为后端特有逃生口，正式调整使用 configure。
+
+当前是pnpm工作区：packages/three为SDK，examples为正式示例，apps/docs为VitePress，apps/website为回归playground，fixtures共享原创资产。根包private；核心仍基于Three.js0.187.0，默认WebGL2、可选WebGPU及统一扩展，无框架适配、数据库或后端服务。
 
 已存在工具链：Vite+ 1.4.0，TypeScript 声明 ^7.0.2，Node 要求 >=22.18.0，包管理器声明 pnpm 12.16.1。版本事实来自配置与锁文件，不代表新库兼容范围。[代码地图](CODEBASE_MAP.md) 定位现有文件。
 
@@ -157,3 +159,9 @@ effects保持同一可选入口，新增圆形波纹、开放圆柱光柱、Fres
 ## 正式文档与示例架构
 
 公开入口稳定，内部实现分组；正式示例与回归playground独立，资产共享。VitePress呈现指南、API、源码示例和开发记录，嵌入示例但SSR不执行SDK。文档依赖隔离，见[ADR-0047](adr/0047-package-docs-examples.md)。
+
+可选 [WebGPU 基础宿主](adr/0048-webgpu-host.md) 按需加载的私有初始化实现，共用内部 SceneHost，默认 WebGL 路径不静态加载或初始化 three/webgpu。SceneApp 接通后端无关模块，AnyThreeApp 保留 WebGL 专属契约；初始化与原生清理处理异步竞争，不引入第二调度。
+
+[统一创建决策](adr/0049-unified-app-creation.md)：ThreeApp.create 通过 renderer.type 选择渲染器，动态导入可选 WebGPU 实现；创建配置/position 先快照，取消覆盖模块导入和既有初始化。默认同步构造、独立可选入口和原生 renderer 类型保持。
+
+[正式 API 决策](adr/0050-public-app-api.md) 收敛主要用法为 ThreeApp.create、renderer.type/allowFallback、renderOnce、destroy。WebGPU 改为 core/webgpu-host 私有准备流程，统一实际宿主类与精确泛型，原17个公开入口保留；阶段性额外入口与旧创建字段撤回。

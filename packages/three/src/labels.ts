@@ -1,6 +1,6 @@
-import { Vector3 } from "three";
+import { WebGPUCoordinateSystem, Vector3 } from "three";
 import type { Object3D } from "three";
-import type { AnyThreeApp } from "./core/three-app.ts";
+import type { SceneApp } from "./core/three-app.ts";
 
 export interface DOMLabelOptions {
   /** Borrowed object in app.scene; a detached or hidden ancestor hides the label. */
@@ -49,7 +49,7 @@ function cleanup(actions: readonly (() => void)[], message: string): void {
 }
 
 /** Screen-space HTML labels in an application-provided positioned overlay (no border/padding). */
-export function attachDOMLabels(app: AnyThreeApp, container: HTMLElement): DOMLabelsHandle {
+export function attachDOMLabels(app: SceneApp, container: HTMLElement): DOMLabelsHandle {
   const assertHost = (): void => {
     if (app.state === "disposed" || app.resources.disposed)
       throw new Error("ThreeApp has been disposed");
@@ -121,7 +121,10 @@ export function attachDOMLabels(app: AnyThreeApp, container: HTMLElement): DOMLa
         ![projected.x, projected.y, projected.z].every(Number.isFinite) ||
         Math.abs(projected.x) > 1 ||
         Math.abs(projected.y) > 1 ||
-        projected.z < (app.camera.reversedDepth ? 0 : -1) ||
+        projected.z <
+          (app.camera.reversedDepth || app.camera.coordinateSystem === WebGPUCoordinateSystem
+            ? 0
+            : -1) ||
         projected.z > 1
       ) {
         wrapper.hidden = true;

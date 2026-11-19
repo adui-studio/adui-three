@@ -1,7 +1,7 @@
 import { OrthographicCamera, Vector3 } from "three";
 import type { Object3D } from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { OrthographicThreeApp } from "../core/three-app.ts";
+import type { OrthographicSceneApp } from "../core/three-app.ts";
 import { computeObjectBounds } from "../geometry/object-bounds.ts";
 import type { FitObjectOptions, ObjectFrame, ObjectFrameOptions } from "./camera-frame.ts";
 import { beginCameraWrite, cancelCameraMotion } from "./camera-runtime.ts";
@@ -108,7 +108,7 @@ interface PreparedOrthographicFrame {
 
 /** Internal preparation shared by immediate fitting and host-driven transitions. */
 export function prepareOrthographicFrame(
-  app: OrthographicThreeApp,
+  app: OrthographicSceneApp,
   object: Object3D,
   options: FitObjectOptions = {},
 ): PreparedOrthographicFrame {
@@ -120,7 +120,7 @@ export function prepareOrthographicFrame(
   };
   const active = (): void => {
     if (app.state === "disposed" || app.resources.disposed)
-      throw new Error("ThreeApp has been disposed");
+      throw new Error("PerspectiveSceneApp has been disposed");
     if (app.size.width <= 0 || app.size.height <= 0)
       throw new Error("A nonzero viewport is required");
     ownedCamera();
@@ -184,7 +184,7 @@ export function prepareOrthographicFrame(
 
 /** Apply a validated orthographic fit without rendering, starting or scheduling the host. */
 export function fitOrthographicObject(
-  app: OrthographicThreeApp,
+  app: OrthographicSceneApp,
   object: Object3D,
   options: FitObjectOptions = {},
 ): OrthographicObjectFrame {

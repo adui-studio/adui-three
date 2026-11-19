@@ -1,4 +1,5 @@
-import type { AnyThreeApp } from "./core/three-app.ts";
+import { isNodeRenderer } from "./core/webgpu-features.ts";
+import type { SceneApp } from "./core/three-app.ts";
 
 export interface CaptureRegion {
   /** Top-left origin in actual drawing-buffer pixels, independent of CSS size and DPR. */
@@ -43,7 +44,7 @@ function aborted(): DOMException {
 
 /** Draw once and copy the canvas synchronously, then encode an independent image. No DOM overlays. */
 export async function captureFrame(
-  app: AnyThreeApp,
+  app: SceneApp,
   options: CaptureFrameOptions = {},
 ): Promise<Blob> {
   const { type = "image/png", quality, signal, region: requestedRegion } = options;
@@ -65,9 +66,9 @@ export async function captureFrame(
       !app.size.width ||
       !app.size.height ||
       document.hidden ||
-      app.renderer.getContext().isContextLost()
+      (!isNodeRenderer(app.renderer) && app.renderer.getContext().isContextLost())
     )
-      throw new Error("Capture requires a visible nonzero canvas and an available WebGL context");
+      throw new Error("Capture requires a visible nonzero canvas and an available renderer");
     if (app.renderer.getRenderTarget() !== null)
       throw new Error("Capture requires the default canvas render target");
   };

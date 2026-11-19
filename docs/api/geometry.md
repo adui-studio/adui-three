@@ -14,7 +14,7 @@ const instances = createInstancedMesh(app, { geometry, material, capacity: 100 }
 instances.setMatrixAt(0, new Matrix4().makeTranslation(2, 0, 0));
 instances.setColorAt(0, new Color(0xff0000));
 instances.setCount(1);
-app.render();
+app.renderOnce();
 instances.dispose(); // 不释放借用的 geometry/material
 ```
 

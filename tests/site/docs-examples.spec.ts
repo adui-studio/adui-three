@@ -27,7 +27,7 @@ test("VitePress renders guides and API on the server, navigates and searches loc
   await page.getByRole("link", { name: "开发", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^开发文档/, level: 1 })).toBeVisible();
   await page.goto("/examples/basic.html");
-  await expect(page.locator(".vp-doc")).toContainText("export function mount");
+  await expect(page.locator(".vp-doc")).toContainText(/export (?:async )?function mount/);
   const source = page.locator('.vp-doc a[href*="github.com"][href*="shared.ts"]').first();
   await expect(source).toHaveAttribute(
     "href",
@@ -80,7 +80,7 @@ for (const id of [
       expect(output.error).toBe(0);
       expect(output.colors).toBeGreaterThan(8);
       await page.getByText("查看示例源码", { exact: true }).click();
-      await expect(page.locator(".source pre")).toContainText("export function mount");
+      await expect(page.locator(".source pre")).toContainText(/export (?:async )?function mount/);
       if (id === "effects")
         await page.screenshot({ path: "test-results/formal-effects.png", fullPage: true });
     },
@@ -137,4 +137,33 @@ test("leaving a loading model cannot replace the new example or revive its old c
   await expect(page.locator(".detail")).toHaveAttribute("data-state", "running");
   await expect(page.locator("canvas")).toHaveCount(1);
   await expect(page.getByRole("status")).toContainText("点云");
+});
+
+test("WebGPU example initializes asynchronously, exposes its actual backend and survives switching", async ({
+  page,
+}) => {
+  await page.goto("/play/?example=webgpu");
+  await expect(page.locator(".detail")).toHaveAttribute("data-state", "running");
+  await expect(page.getByRole("status")).toContainText("实际后端：");
+  await expect(page.getByRole("button", { name: "暂停动画", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "切换泛光", exact: true }).click();
+  await page.getByRole("button", { name: "切换环境", exact: true }).click();
+  await page.getByRole("button", { name: "截图", exact: true }).click();
+  const preview = page.getByAltText("当前渲染截图");
+  await expect(preview).toBeVisible();
+  await expect
+    .poll(() => preview.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0);
+  await expect(page.locator("canvas")).toHaveCount(1);
+  await page.getByText("查看示例源码", { exact: true }).click();
+  await expect(page.locator(".source pre")).toContainText("ThreeApp.create");
+  await page.getByRole("button", { name: "销毁", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await page.getByRole("button", { name: "重建", exact: true }).click();
+  await expect(page.locator(".detail")).toHaveAttribute("data-state", "running");
+  await page.getByRole("link", { name: "← 全部示例", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await page.locator('a[data-example="basic"]').click();
+  await expect(page.locator(".detail")).toHaveAttribute("data-state", "running");
+  await expect(page.locator("canvas")).toHaveCount(1);
 });

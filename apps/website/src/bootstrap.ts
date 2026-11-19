@@ -1,5 +1,7 @@
 const demo = new URLSearchParams(location.search).get("demo");
-if (demo === "effects-collection") await import("./effects-collection.ts");
+if (demo === "webgpu-features") await import("./webgpu-features.ts");
+else if (demo === "webgpu") await import("./webgpu.ts");
+else if (demo === "effects-collection") await import("./effects-collection.ts");
 else if (demo === "editor") await import("./editor.ts");
 else if (demo === "effects") await import("./effects.ts");
 else if (demo === "path-geometry") await import("./path-geometry.ts");

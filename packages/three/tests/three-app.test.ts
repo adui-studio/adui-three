@@ -3,8 +3,16 @@ import { afterEach, expect, test, vi } from "vite-plus/test";
 import { BoxGeometry, Mesh, MeshBasicMaterial } from "three";
 import type { WebGLRendererParameters } from "three";
 import { OrthographicThreeApp, ThreeApp } from "../src/index.ts";
-import type { AnyThreeApp, OrthographicThreeAppOptions, ThreeAppOptions } from "../src/index.ts";
+import type {
+  AnyThreeApp,
+  OrthographicThreeAppOptions,
+  ThreeAppOptions,
+  ThreeAppCreateOptions,
+} from "../src/index.ts";
 import { attachOrbitControls } from "../src/controls.ts";
+
+const gpuFactory = vi.hoisted(() => ({ create: vi.fn() }));
+vi.mock("../src/core/webgpu-host.ts", () => ({ initializeWebGPUHost: gpuFactory.create }));
 
 vi.mock("three/addons/controls/OrbitControls.js", () => ({
   OrbitControls: class {
@@ -33,6 +41,125 @@ vi.mock("three", async (importOriginal) => {
 });
 
 const apps: AnyThreeApp[] = [];
+
+test("unified factory defaults to an idle WebGL host without loading the GPU factory", async () => {
+  gpuFactory.create.mockClear();
+  const env = fixture();
+  const app = await ThreeApp.create(env.container as unknown as HTMLElement);
+  apps.push(app);
+  expect(app).toBeInstanceOf(ThreeApp);
+  expect(app.rendererType).toBe("webgl");
+  expect(app.backend).toBe("webgl2");
+  expect(app.state).toBe("ready");
+  expect(env.frames.size).toBe(0);
+  expect(gpuFactory.create).not.toHaveBeenCalled();
+});
+
+test.each([true, false])(
+  "unified WebGPU factory maps fallback=%s and returns the initialized host",
+  async (fallback) => {
+    gpuFactory.create.mockReset();
+    const env = fixture(),
+      host = { rendererType: "webgpu", backend: "webgl2" } as ThreeApp<"webgpu">;
+    gpuFactory.create.mockResolvedValue(host);
+    const app = await ThreeApp.create(env.container as unknown as HTMLElement, {
+      renderer: { type: "webgpu", allowFallback: fallback },
+    });
+    expect(app).toBe(host);
+    expect(gpuFactory.create).toHaveBeenCalledWith(
+      env.container,
+      {
+        backend: fallback ? "auto" : "webgpu",
+        renderer: {},
+      },
+      expect.any(Function),
+    );
+    expect(env.container.appendChild).not.toHaveBeenCalled();
+  },
+);
+
+test("unified WebGPU factory snapshots renderer, camera position and default fallback before lazy import", async () => {
+  gpuFactory.create.mockReset();
+  gpuFactory.create.mockResolvedValue({} as ThreeApp<"webgpu">);
+  const env = fixture(),
+    position: [number, number, number] = [1, 2, 3];
+  const options: ThreeAppCreateOptions = {
+    renderer: { type: "webgpu", alpha: false },
+    camera: { position },
+    maxPixelRatio: 1,
+  };
+  const pending = ThreeApp.create(env.container as unknown as HTMLElement, options);
+  options.renderer!.alpha = true;
+  position[0] = 100;
+  options.maxPixelRatio = 8;
+  await pending;
+  expect(gpuFactory.create).toHaveBeenCalledWith(
+    env.container,
+    {
+      backend: "auto",
+      renderer: { alpha: false },
+      camera: { position: [1, 2, 3] },
+      maxPixelRatio: 1,
+    },
+    expect.any(Function),
+  );
+});
+
+test("unified factory cancels during lazy import without starting GPU initialization", async () => {
+  gpuFactory.create.mockReset();
+  const env = fixture(),
+    controller = new AbortController();
+  const pending = ThreeApp.create(env.container as unknown as HTMLElement, {
+    renderer: { type: "webgpu" },
+    signal: controller.signal,
+  });
+  controller.abort();
+  await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  expect(gpuFactory.create).not.toHaveBeenCalled();
+  expect(env.container.appendChild).not.toHaveBeenCalled();
+});
+
+test("invalid selectors and pre-aborted creation allocate no canvas or renderer", async () => {
+  gpuFactory.create.mockReset();
+  const env = fixture(),
+    controller = new AbortController();
+  controller.abort();
+  for (const options of [
+    { backend: "other" },
+    { renderer: { type: "other" } },
+    { backend: "auto" },
+    { renderer: { type: "webgpu", allowFallback: "webgl" } },
+    { renderer: { type: "webgl", allowFallback: true } },
+    { renderer: { type: "webgpu" }, camera: null },
+    { renderer: { type: "webgl" }, signal: controller.signal },
+    { renderer: { type: "webgpu" }, signal: controller.signal },
+  ])
+    await expect(
+      ThreeApp.create(
+        env.container as unknown as HTMLElement,
+        options as unknown as ThreeAppCreateOptions,
+      ),
+    ).rejects.toBeDefined();
+  expect(gpuFactory.create).not.toHaveBeenCalled();
+  expect(env.container.appendChild).not.toHaveBeenCalled();
+  expect(() => env.create({ renderer: { type: "webgpu" } } as unknown as ThreeAppOptions)).toThrow(
+    "ThreeApp.create",
+  );
+});
+
+test("unified WebGL factory rolls back synchronous cancellation during mounting", async () => {
+  const env = fixture(),
+    controller = new AbortController();
+  env.container.appendChild.mockImplementation(() => controller.abort());
+  await expect(
+    ThreeApp.create(env.container as unknown as HTMLElement, {
+      renderer: { type: "webgl" },
+      signal: controller.signal,
+    }),
+  ).rejects.toMatchObject({ name: "AbortError" });
+  expect(env.canvas.remove).toHaveBeenCalledOnce();
+  expect(env.observer.disconnect).toHaveBeenCalledOnce();
+});
 
 test("context loss disposes the host, aborts pending work and releases assets without requesting another loss", () => {
   const env = fixture();
@@ -629,13 +756,13 @@ test("single draw reports invocation and returns false for hidden or zero-size h
     update = vi.fn();
   app.onAfterRender(after);
   app.onUpdate(update);
-  expect(app.render()).toBe(true);
+  expect(app.renderOnce()).toBe(true);
   env.document.hidden = true;
-  expect(app.render()).toBe(false);
+  expect(app.renderOnce()).toBe(false);
   env.document.hidden = false;
   env.container.clientHeight = 0;
   app.resize();
-  expect(app.render()).toBe(false);
+  expect(app.renderOnce()).toBe(false);
   expect(after).toHaveBeenCalledOnce();
   expect(update).not.toHaveBeenCalled();
   expect(env.frames.size).toBe(0);
@@ -1176,6 +1303,20 @@ test("borrowed and shared scene resources are detached without being disposed", 
   expect(disposeMaterial).not.toHaveBeenCalled();
   geometry.dispose();
   material.dispose();
+});
+
+test("native disposal failure still releases the context and stays observable asynchronously", async () => {
+  const env = fixture(),
+    app = env.create();
+  vi.spyOn(app.renderer, "dispose").mockImplementation(() => {
+    throw new Error("native dispose");
+  });
+  expect(() => app.dispose()).toThrow(AggregateError);
+  expect(vi.spyOn(app.renderer, "forceContextLoss")).toHaveBeenCalledOnce();
+  expect(env.canvas.remove).toHaveBeenCalledOnce();
+  await expect(app.disposeAsync()).rejects.toMatchObject({
+    errors: [expect.objectContaining({ message: "native dispose" })],
+  });
 });
 
 test("initialization failure rolls back already-created DOM and GPU resources", () => {

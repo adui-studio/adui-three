@@ -1,7 +1,7 @@
-import type { ThreeApp } from "@adui/three";
+import type { SceneApp } from "@adui/three";
 import type { ExampleContext } from "./shared.ts";
 interface ExampleModule {
-  mount(context: ExampleContext): ThreeApp;
+  mount(context: ExampleContext): SceneApp | Promise<SceneApp>;
 }
 export interface Example {
   id: string;
@@ -12,6 +12,14 @@ export interface Example {
   source(): Promise<string>;
 }
 export const examples: readonly Example[] = [
+  {
+    id: "webgpu",
+    title: "WebGL 与 WebGPU",
+    tag: "WEBGPU",
+    description: "异步初始化、实际后端、模型动画与独立生命周期。",
+    load: () => import("./cases/webgpu.ts"),
+    source: () => import("./cases/webgpu.ts?raw").then((m) => m.default),
+  },
   {
     id: "basic",
     title: "场景与生命周期",

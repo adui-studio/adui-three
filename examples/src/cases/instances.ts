@@ -2,8 +2,8 @@ import { createInstancedMesh } from "@adui/three/geometry";
 import { BoxGeometry, Color, Matrix4, MeshStandardMaterial } from "three";
 import { addGround, button, createScene } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
-export function mount(context: ExampleContext) {
-  const app = createScene(context.container);
+export async function mount(context: ExampleContext) {
+  const app = await createScene(context.container);
   addGround(app);
   const geometry = app.resources.track(new BoxGeometry(0.55, 0.55, 0.55)),
     material = app.resources.track(new MeshStandardMaterial({ roughness: 0.5 }));

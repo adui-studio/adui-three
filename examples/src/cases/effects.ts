@@ -10,8 +10,8 @@ import type { PostprocessingHandle } from "@adui/three/postprocessing";
 import { QuadraticBezierCurve3, Vector3 } from "three";
 import { addGround, button, createScene, select } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
-export function mount(context: ExampleContext) {
-  const app = createScene(context.container);
+export async function mount(context: ExampleContext) {
+  const app = await createScene(context.container);
   addGround(app);
   const curve = new QuadraticBezierCurve3(
     new Vector3(-3, 0.2, -1),

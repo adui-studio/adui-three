@@ -14,6 +14,7 @@ import type { Pass } from "three/addons/postprocessing/Pass.js";
 import type { RenderPipeline, ThreeApp, ThreeAppState } from "../src/index.ts";
 import { ResourceScope } from "../src/core/resources.ts";
 import { attachBloom, attachPostprocessing } from "../src/postprocessing.ts";
+import { renderWithRetirement } from "../src/core/render-retirement.ts";
 
 const state = vi.hoisted(() => ({
   instances: [] as EffectComposer[],
@@ -158,6 +159,41 @@ test("creates the native three-pass chain with explicit defaults without startin
   expect(instance.renderTarget1.width).toBe(1280);
   expect(instance.renderTarget1.height).toBe(720);
   expect(env.env.renderer.render).not.toHaveBeenCalled();
+});
+
+test("unified configure snapshots selection and validates all requested effects before writing", () => {
+  const e = fixture(),
+    h = attachPostprocessing(e.app, { bloom: {}, outline: {}, colorAdjustment: {} });
+  const mesh = new Mesh(),
+    selected = [mesh];
+  h.configure({
+    bloom: { strength: 2 },
+    outline: { selectedObjects: selected },
+    colorAdjustment: { hue: 0.3 },
+  });
+  selected.length = 0;
+  expect(h.outline!.selectedObjects).toEqual([mesh]);
+  expect(h.bloom!.strength).toBe(2);
+  expect(h.colorAdjustment!.hueSaturation.uniforms.hue!.value).toBe(0.3);
+  expect(() => h.configure({ bloom: { strength: 5 }, colorAdjustment: { contrast: 1 } })).toThrow();
+  expect(h.bloom!.strength).toBe(2);
+  h.dispose();
+  expect(() => h.configure({ bloom: {} })).toThrow("disposed");
+});
+
+test("unified configure retires after native drawing and ignores writes after disposal", () => {
+  const e = fixture(),
+    h = attachBloom(e.app);
+  renderWithRetirement(e.app.renderer, () => {
+    h.configure({ strength: 3 });
+    expect(h.pass.strength).toBe(1);
+  });
+  expect(h.pass.strength).toBe(3);
+  renderWithRetirement(e.app.renderer, () => {
+    h.configure({ strength: 5 });
+    h.dispose();
+  });
+  expect(h.pass.strength).toBe(3);
 });
 
 test("forwards exact host delta and keeps native parameter edits and enabled state live", () => {

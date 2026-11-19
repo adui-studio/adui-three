@@ -136,3 +136,11 @@ EXR 阶段使用 threejs-loaders，核验 r187 EXRLoader/DataTextureLoader 和 O
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。
 
 2026-11-18 文档整理阶段使用create-readme，收敛根/包README，将详细API迁入VitePress主题页并包含真实示例源码。参考其简洁结构，不复制上游项目内容或引入CI。
+
+2026-11-19 WebGPU基础阶段使用仓库 threejs-fundamentals，重新核验 r187 Renderer.init/dispose、onDeviceLost、坐标系和KTX2.detectSupport；不采用 r186 的同步清理假设，不另建RAF。浏览器分别记录原生适配器与回退路径，缺少适配器不宣称GPU验收。
+
+2026-11-19 统一创建阶段沿用已核验的 r187 init/dispose 和原生回退契约，将异步边界留在 ThreeApp.create。复用 Three.js 基础技能而不复制额外循环；按需导入取消与实例初始化分开验证，原生GPU环境限制继续保留。
+
+2026-11-19 正式API阶段沿用threejs-fundamentals，并重新核验官方Renderer异步初始化/清理和TypeScript构造签名。原WebGL同步构造采用固定公开签名，WebGPU在私有准备完成后构造同一宿主，避免宽泛型与未就绪对象；正式示例统一create/renderOnce/destroy，验证仍仅本地进行。
+
+2026-11-19 统一扩展阶段使用仓库 threejs-postprocessing 和 threejs-shaders；以 r187 RenderPipeline、BloomNode、OutlineNode、PointsNodeMaterial、ShadowNode 和原生 PMREM 源码核验替代旧 GLSL 的节点实现。时钟仍使用宿主 delta，回退像素和原生 GPU 验收分别报告。

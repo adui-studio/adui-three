@@ -1,4 +1,6 @@
+import { isNodeRenderer, getWebGPUFeatures } from "./core/webgpu-features.ts";
 import { Color, PMREMGenerator } from "three";
+import type { CubeRenderTarget } from "three/webgpu";
 import type { Texture, WebGLCubeRenderTarget } from "three";
 import { RoomEnvironment as NativeRoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import {
@@ -16,7 +18,7 @@ import {
 import type { DataTexture } from "three";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import { EXRLoader } from "three/addons/loaders/EXRLoader.js";
-import type { AnyThreeApp } from "./core/three-app.ts";
+import type { SceneApp } from "./core/three-app.ts";
 import { ResourceScope } from "./core/resources.ts";
 
 export interface EnvironmentProgress {
@@ -59,15 +61,15 @@ export interface EnvironmentBinding {
   dispose(this: void): void;
 }
 
-const owners = new WeakMap<EnvironmentAsset, AnyThreeApp>();
-const bindings = new WeakMap<AnyThreeApp, EnvironmentBinding>();
+const owners = new WeakMap<EnvironmentAsset, SceneApp>();
+const bindings = new WeakMap<SceneApp, EnvironmentBinding>();
 
 function aborted(): DOMException {
   return new DOMException("HDR loading was cancelled", "AbortError");
 }
 
 function asset<T extends Texture>(
-  app: AnyThreeApp,
+  app: SceneApp,
   texture: T,
   release: () => void = () => texture.dispose(),
 ): EnvironmentAsset<T> {
@@ -103,7 +105,7 @@ function asset<T extends Texture>(
 
 /** Load without mutating the scene. Cancellation is logical and skips late HDR parsing. */
 export function loadHDR(
-  app: AnyThreeApp,
+  app: SceneApp,
   url: string,
   options: LoadHDROptions = {},
 ): Promise<HDREnvironment> {
@@ -112,7 +114,7 @@ export function loadHDR(
 
 /** Load the native first EXR part as a linear half-float equirectangular environment. */
 export function loadEXR(
-  app: AnyThreeApp,
+  app: SceneApp,
   url: string,
   options: LoadHDROptions = {},
 ): Promise<HDREnvironment> {
@@ -131,7 +133,7 @@ export function loadEXR(
 }
 
 function loadEnvironment(
-  app: AnyThreeApp,
+  app: SceneApp,
   url: string,
   options: LoadHDROptions,
   decode: (buffer: ArrayBuffer) => DataTexture,
@@ -222,7 +224,7 @@ function loadEnvironment(
 
 /** Borrow an owned environment asset for this app. One explicit binding at a time; no draw or scheduler. */
 export function attachEnvironment(
-  app: AnyThreeApp,
+  app: SceneApp,
   environment: EnvironmentAsset,
   options: EnvironmentOptions = {},
 ): EnvironmentBinding {
@@ -275,7 +277,7 @@ export function attachEnvironment(
 
 /** Generate Editor's Room IBL using native PMREM. Explicit GPU work; never binds or starts the host. */
 export function createRoomEnvironment(
-  app: AnyThreeApp,
+  app: SceneApp,
   options: RoomEnvironmentOptions = {},
 ): RoomEnvironmentAsset {
   const renderer = app.renderer;
@@ -304,16 +306,19 @@ export function createRoomEnvironment(
     alpha: renderer.getClearAlpha(),
   };
   const temporary = new ResourceScope();
-  let output: WebGLCubeRenderTarget | undefined;
+  let output: WebGLCubeRenderTarget | CubeRenderTarget | undefined;
   const errors: unknown[] = [];
   try {
-    const room = temporary.track(new NativeRoomEnvironment()),
-      generator = temporary.track(new PMREMGenerator(renderer));
+    const room = temporary.track(new NativeRoomEnvironment());
     renderWithRetirement(renderer, () => {
-      let value: WebGLCubeRenderTarget | undefined;
+      let value: WebGLCubeRenderTarget | CubeRenderTarget | undefined;
       const failures: unknown[] = [];
       try {
-        value = generator.fromScene(room, sigma, 0.1, 100, { size });
+        if (isNodeRenderer(renderer)) value = getWebGPUFeatures().room(app, room, sigma, size);
+        else {
+          const generator = temporary.track(new PMREMGenerator(renderer));
+          value = generator.fromScene(room, sigma, 0.1, 100, { size });
+        }
       } catch (error) {
         failures.push(error);
       } finally {
@@ -329,7 +334,16 @@ export function createRoomEnvironment(
               renderer.toneMappingExposure = state.exposure;
             },
             () => renderer.setClearColor(state.clear, state.alpha),
-            () => renderer.setRenderTarget(state.target, state.face, state.mip),
+            () => {
+              if (isNodeRenderer(renderer))
+                renderer.setRenderTarget(state.target, state.face, state.mip);
+              else
+                renderer.setRenderTarget(
+                  state.target as WebGLCubeRenderTarget | null,
+                  state.face,
+                  state.mip,
+                );
+            },
           ]) {
             try {
               restore();

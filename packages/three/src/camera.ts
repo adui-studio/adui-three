@@ -1,6 +1,6 @@
 import type { Object3D } from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { ThreeApp } from "./core/three-app.ts";
+import type { PerspectiveSceneApp } from "./core/three-app.ts";
 import { prepareObjectFrame } from "./camera/camera-frame.ts";
 import type { FitObjectOptions, ObjectFrame } from "./camera/camera-frame.ts";
 import { beginCameraWrite, cancelCameraMotion } from "./camera/camera-runtime.ts";
@@ -33,7 +33,7 @@ export type {
 
 /** Instantaneous fit; no RAF, render, auto-start or resource ownership. */
 export function fitObject(
-  app: ThreeApp,
+  app: PerspectiveSceneApp,
   object: Object3D,
   options: FitObjectOptions = {},
 ): ObjectFrame {

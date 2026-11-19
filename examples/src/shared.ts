@@ -1,3 +1,4 @@
+import type { SceneApp } from "@adui/three";
 import { ThreeApp } from "@adui/three";
 import { attachOrbitControls } from "@adui/three/controls";
 import { attachRendererSettings, createEditorRenderPreset } from "@adui/three/rendering";
@@ -14,15 +15,16 @@ import {
 } from "three";
 export interface ExampleContext {
   container: HTMLElement;
+  signal: AbortSignal;
   tools: HTMLElement;
   status(message: string): void;
 }
-export function createScene(
+export async function createScene(
   container: HTMLElement,
   options: { orbit?: boolean; lights?: boolean } = {},
-): ThreeApp {
+): Promise<ThreeApp> {
   const preset = createEditorRenderPreset();
-  const app = new ThreeApp(container, { renderer: preset.renderer });
+  const app = await ThreeApp.create(container, { renderer: { type: "webgl", ...preset.renderer } });
   attachRendererSettings(app, preset.color);
   app.scene.background = new Color(0x0d1920);
   app.camera.position.set(6, 4, 7);
@@ -67,7 +69,7 @@ export function addGround(app: ThreeApp): Mesh<PlaneGeometry, MeshStandardMateri
   return floor;
 }
 export function button(
-  app: ThreeApp,
+  app: SceneApp,
   tools: HTMLElement,
   title: string,
   action: () => void,
@@ -79,7 +81,7 @@ export function button(
   return element;
 }
 export function select(
-  app: ThreeApp,
+  app: SceneApp,
   tools: HTMLElement,
   title: string,
   values: ReadonlyArray<readonly [string, string]>,

@@ -2,22 +2,24 @@
 
 ## API
 
+正式用法为 `await ThreeApp.create(container, { renderer: { type: "webgl" } })`；选择 renderer.type=webgpu，allowFallback=false要求原生设备。创建后配置场景并start，单帧使用renderOnce，卸载await destroy。完整配置见 [渲染器配置](webgpu.md)。
+
 renderer 配置在 DOM/GPU 分配前快照。类型 Omit 不阻止更宽的原生参数变量，运行时同样拒绝非空 canvas/context，null/undefined 字段丢弃且不修改原对象；renderer 本身不能是 null、数组或非对象。其他 getter 各读取一次，其后输入改写不进入 native 构造。两类宿主均只拥有自己创建的 canvas/WebGL 上下文；见 ADR-0002 的补充。
 
-| API                                   | 契约                                                                                                             |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `new ThreeApp(container, options?)`   | 同步创建自有 scene / PerspectiveCamera / WebGLRenderer，初始 ready，不自动运行                                   |
-| `scene`, `camera`, `renderer`         | 只读对象引用，允许修改原生对象属性；不要替换引用或额外启动渲染循环                                               |
-| `start(): void`                       | ready/stopped → running；重复调用无额外 RAF；disposed 后抛错                                                     |
-| `stop(): void`                        | 取消循环，转 stopped；重复调用及 disposed 后调用安全                                                             |
-| `onUpdate(callback): () => void`      | 同步帧回调，按注册顺序执行，返回幂等取消函数；同一函数可独立订阅多次                                             |
-| `onAfterRender(callback): () => void` | 全部更新与成功渲染后同步执行；订阅、取消与生命周期规则同 onUpdate，适合 DOM 投影                                 |
-| `resize(): void`                      | 同步读取容器 clientWidth/clientHeight 和 DPR，变化时才调整投影与绘制缓冲                                         |
-| `size`, `state`, `signal`             | 尺寸快照、状态与销毁时 abort 的只读 signal                                                                       |
-| `resources.track(resource)`           | 接管可 dispose 对象，返回原对象；同一 scope 内去重，不递归遍历                                                   |
-| `resources.untrack(resource)`         | 解除登记，不释放，归还调用方所有权                                                                               |
-| `dispose(): void`                     | 标记结束、取消 RAF、abort、清订阅/监听/observer、自有资源逆序释放、detach scene、释放 renderer/context 与 canvas |
-| `attachOrbitControls(app)`            | 可选子入口；返回原生 controls 和幂等 dispose；自动随 app 释放，共享主循环                                        |
+| API                                    | 契约                                                                                                             |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `ThreeApp.create(container, options?)` | 异步创建自有 scene / PerspectiveCamera / 所选 renderer，交付时 ready，不自动运行                                 |
+| `scene`, `camera`, `renderer`          | 只读对象引用，允许修改原生对象属性；不要替换引用或额外启动渲染循环                                               |
+| `start(): void`                        | ready/stopped → running；重复调用无额外 RAF；disposed 后抛错                                                     |
+| `stop(): void`                         | 取消循环，转 stopped；重复调用及 disposed 后调用安全                                                             |
+| `onUpdate(callback): () => void`       | 同步帧回调，按注册顺序执行，返回幂等取消函数；同一函数可独立订阅多次                                             |
+| `onAfterRender(callback): () => void`  | 全部更新与成功渲染后同步执行；订阅、取消与生命周期规则同 onUpdate，适合 DOM 投影                                 |
+| `resize(): void`                       | 同步读取容器 clientWidth/clientHeight 和 DPR，变化时才调整投影与绘制缓冲                                         |
+| `size`, `state`, `signal`              | 尺寸快照、状态与销毁时 abort 的只读 signal                                                                       |
+| `resources.track(resource)`            | 接管可 dispose 对象，返回原对象；同一 scope 内去重，不递归遍历                                                   |
+| `resources.untrack(resource)`          | 解除登记，不释放，归还调用方所有权                                                                               |
+| `destroy(): Promise<void>`             | 标记结束、取消 RAF、abort、清订阅/监听/observer、自有资源逆序释放、detach scene、释放 renderer/context 与 canvas |
+| `attachOrbitControls(app)`             | 可选子入口；返回原生 controls 和幂等 dispose；自动随 app 释放，共享主循环                                        |
 
 `ThreeAppOptions`：camera 的 fov/near/far/position 默认为 `50/0.1/1000/[3,2,5]` 并朝向原点；renderer 接受除 canvas/context 外的 WebGLRenderer 参数，默认 antialias=true；maxPixelRatio 默认 2；maxDelta 默认 0.1 秒。范围参数必须为有效正数，fov < 180，far > near，position 为三个有限数值。
 
@@ -37,7 +39,7 @@ const app = new OrthographicThreeApp(container, {
 });
 app.camera.zoom = 2;
 app.camera.updateProjectionMatrix();
-app.render();
+app.renderOnce();
 ```
 
 OrthographicThreeApp.camera 精确为 OrthographicCamera；默认 ThreeApp.camera 继续为 PerspectiveCamera。两者共享单循环、尺寸/DPR、资源、绘制管线和上下文丢失策略，均不会自动启动。frustumHeight 是未缩放的竖向世界单位跨度，必须正且有限；正交 near 可为 0，far 必须有限且大于 near。默认参数见示例，默认看向原点；renderer/maxPixelRatio/maxDelta 与 ThreeApp 相同。
@@ -52,7 +54,7 @@ OrthographicThreeApp.camera 精确为 OrthographicCamera；默认 ThreeApp.camer
 
 `render(): boolean` 在同步调用当前 renderer/pipeline 并正常返回时为 true；隐藏、零尺寸或准备中断导致未绘制时为 false。已绘制后完成通知中暂停宿主仍为 true；错误继续抛出。结果不保证第三方管线输出、像素变化或 GPU 完成。既有忽略返回值的调用可保持；自定义覆盖/测试替身需返回布尔值。
 
-`app.render()` 显式绘制一次：ready/stopped/running 可用，不执行 onUpdate、不启动 RAF、不累计时间；成功后执行 onAfterRender，传入 delta=0 与上次有效 elapsed。隐藏/零尺寸时无操作，销毁后抛错；更新、绘制和完成回调中重入拒绝。绘制/完成错误仍使宿主停止并重新抛出。
+`app.renderOnce()` 显式绘制一次：ready/stopped/running 可用，不执行 onUpdate、不启动 RAF、不累计时间；成功后执行 onAfterRender，传入 delta=0 与上次有效 elapsed。隐藏/零尺寸时无操作，销毁后抛错；更新、绘制和完成回调中重入拒绝。绘制/完成错误仍使宿主停止并重新抛出。
 
 ```ts
 import type { RenderPipeline } from "@adui/three";
@@ -66,7 +68,7 @@ const pipeline: RenderPipeline = {
   },
 };
 const detach = app.setRenderPipeline(pipeline);
-app.render();
+app.renderOnce();
 detach(); // 恢复原生绘制，不释放 pipeline；资源由其所有者管理。
 ```
 
@@ -84,7 +86,7 @@ detach(); // 恢复原生绘制，不释放 pipeline；资源由其所有者管�
 
 要求现代浏览器、WebGL 2、ResizeObserver、matchMedia；仅构造实例时访问 DOM，Node 下可安全导入包，SSR 不能构造 renderer。容器建议不设 padding；尺寸基于 clientWidth/clientHeight，CSS transform 不改变绘制分辨率。运行中的 DPR 变化通过媒体查询和 window resize 检测。自有 canvas 的样式和生命周期由宿主管理，不接管外部 canvas。
 
-`development` 条件导出指向随包包含的 src，便于 Vite 开发时 HMR；默认 import 导出指向 dist，类型来自 dist 声明。不提供 CJS、WebXR、WebGPU、URL 模型缓存或框架适配；显式模型实例按下述租约共享资产。
+`development` 条件导出指向随包包含的 src，便于 Vite 开发时 HMR；默认 import 导出指向 dist，类型来自 dist 声明。不提供 CJS、WebXR、URL 模型缓存或框架适配；WebGPU 通过统一工厂按需接入；显式模型实例按下述租约共享资产。
 
 ## WebGL 上下文丢失
 
@@ -103,3 +105,7 @@ app.signal.addEventListener(
 ```
 
 当前策略是显式重建，避免 r187 已观察到的旧 GPU 对象在原生恢复后清理报错；不会透明替换已公开的 renderer 引用。自有资源、异步取消和清理错误沿用 dispose 契约，借用管线须自行登记所有权。其他宿主的模型实例继续持有共享资产租约，仍可渲染/播放；不保证硬件故障后能重建成功。
+
+## 可选 WebGPU 与共用清理
+
+默认同步构造和 AnyThreeApp 的 WebGL 类型保持。renderer配置与 SceneApp 类型见 [WebGPU](webgpu.md)。所有宿主使用 destroy：同步结束后等待原生 renderer 清理并报告同步/异步失败。原 dispose/render/disposeAsync 保留低层兼容。

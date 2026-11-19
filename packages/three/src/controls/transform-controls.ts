@@ -2,7 +2,7 @@ import type { BufferGeometry, Material, Object3D } from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
 import type { TransformControlsMode } from "three/addons/controls/TransformControls.js";
-import type { AnyThreeApp } from "../core/three-app.ts";
+import type { SceneApp } from "../core/three-app.ts";
 import { ResourceScope } from "../core/resources.ts";
 
 export interface TransformControlsOptions {
@@ -24,11 +24,11 @@ export interface TransformControlsHandle {
   dispose(this: void): void;
 }
 
-const attached = new WeakMap<AnyThreeApp, TransformControlsHandle>();
+const attached = new WeakMap<SceneApp, TransformControlsHandle>();
 
 /** Own the native gizmo/listeners; borrow the transformed object and optional OrbitControls. */
 export function attachTransformControls(
-  app: AnyThreeApp,
+  app: SceneApp,
   options: TransformControlsOptions = {},
 ): TransformControlsHandle {
   if (app.signal.aborted || app.resources.disposed) throw new Error("ThreeApp has been disposed");

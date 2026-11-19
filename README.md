@@ -3,7 +3,7 @@
 以清晰的生命周期封装 Three.js。统一管理场景、相机、帧循环、尺寸和资源，保留原生 Three.js 对象，按需组合模型、交互、导航和视觉效果。
 
 > [!NOTE]
-> 当前版本 **0.0.0，尚未发布 npm**。ESM / TypeScript / WebGL 2；Three.js 与类型版本固定为 **0.187.0**，peer 范围为 `>=0.187.0 <0.188.0`。
+> 当前版本 **0.0.0，尚未发布 npm**。ESM / TypeScript / 默认 WebGL 2，可选 WebGPU，扩展 API 共用；Three.js 与类型版本固定为 **0.187.0**，peer 范围为 `>=0.187.0 <0.188.0`。
 
 [快速开始](docs/guide/getting-started.md) · [API 参考](docs/api/index.md) · [正式示例](examples/README.md) · [开发文档](docs/development/index.md)
 
@@ -35,7 +35,7 @@ import { ThreeApp } from "@adui/three";
 import { BoxGeometry, Mesh, MeshNormalMaterial } from "three";
 
 const container = document.querySelector<HTMLElement>("#scene")!;
-const app = new ThreeApp(container);
+const app = await ThreeApp.create(container, { renderer: { type: "webgl" } });
 const geometry = app.resources.track(new BoxGeometry());
 const material = app.resources.track(new MeshNormalMaterial());
 const cube = new Mesh(geometry, material);
@@ -46,10 +46,16 @@ app.onUpdate(({ delta }) => {
 app.start();
 
 // 页面或组件卸载时调用；不会递归接管未登记的借用资源。
-window.addEventListener("pagehide", () => app.dispose(), { once: true });
+window.addEventListener(
+  "pagehide",
+  () => {
+    void app.destroy().catch(console.error);
+  },
+  { once: true },
+);
 ```
 
-`scene`、`camera`、`renderer` 是原生对象。场景创建后默认不运行，暂停状态可 `app.render()` 绘制一帧。
+`scene`、`camera`、`renderer` 是原生对象。场景创建后默认不运行，暂停状态可 `app.renderOnce()` 绘制一帧。
 
 ## 能力
 
@@ -61,6 +67,8 @@ window.addEventListener("pagehide", () => app.dispose(), { once: true });
 | 导航与几何 | [第一/第三人称](docs/api/navigation.md)、[BVH 碰撞](docs/api/collision.md)、[路径与实例化](docs/api/geometry.md)                                       |
 | 视觉效果   | [点云飞线、流光与空间特效](docs/api/effects.md)、[阴影](docs/api/lighting.md)、[泛光/描边/滤镜](docs/api/postprocessing.md)                            |
 | 环境与输出 | [HDR/EXR/Room](docs/api/environment.md)、[图片/KTX2 纹理](docs/api/textures.md)、[Editor 渲染基准](docs/api/rendering.md)、[截图](docs/api/capture.md) |
+
+统一 [ThreeApp.create 后端选择](docs/api/webgpu.md) 通过 renderer.type:webgl/webgpu 创建宿主，提供异步初始化和实际后端诊断；原生 GPU 验收受当前适配器环境限制，效果兼容范围见文档。
 
 完整的 17 个公开入口见 [API 索引](docs/api/index.md)。库不依赖业务 Store、框架或固定 DOM 选择器。
 

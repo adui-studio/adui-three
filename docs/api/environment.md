@@ -1,5 +1,7 @@
 # 环境
 
+HDR、EXR、Room 及 attachEnvironment 同时接受两种渲染器。Room 生成内部选择对应 PMREMGenerator，输出资产和绑定拥有相同的释放协议；不会创建第二 renderer 或循环。
+
 ## HDR 环境
 
 配置读取完成后再次检查宿主、资产/扩展 scope 和绑定独占状态；选项 getter 引发的同步销毁或嵌套绑定会使外层调用在场景写入前失败。getter 自身产生的副作用由调用者负责，不撤销有效嵌套绑定。
@@ -11,7 +13,7 @@ const controller = new AbortController();
 const environment = await loadHDR(app, "/studio.hdr", { signal: controller.signal });
 // 加载只创建资产。应用先检查请求版本，决定是否应用。
 const binding = attachEnvironment(app, environment, { background: true, intensity: 1 });
-if (app.state !== "running") app.render();
+if (app.state !== "running") app.renderOnce();
 // binding.dispose(); // 恢复场景，资产可再次绑定。
 // environment.dispose(); // 先解绑，再释放纹理与原生缓存；宿主销毁也会释放。
 ```
@@ -29,7 +31,7 @@ import { loadEXR, attachEnvironment } from "@adui/three/environment";
 
 const exr = await loadEXR(app, "/studio.exr", { signal: abort.signal });
 const binding = attachEnvironment(app, exr, { background: true });
-app.render();
+app.renderOnce();
 binding.dispose();
 exr.dispose();
 ```

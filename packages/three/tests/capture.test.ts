@@ -81,6 +81,26 @@ test("capture draws once and snapshots the actual buffer synchronously before na
   expect(env.value.resources.disposed).toBe(false);
 });
 
+test("node renderer capture does not request a WebGL context and cancellation releases the encoding surface", async () => {
+  const env = fixture();
+  Reflect.set(env.app.renderer, "isWebGPURenderer", true);
+  Reflect.set(env.app.renderer, "getContext", () => {
+    throw new Error("Not a WebGL context");
+  });
+  const controller = new AbortController();
+  const result = captureFrame(env.app, {
+    signal: controller.signal,
+    region: { x: 4, y: 5, width: 40, height: 30 },
+  });
+  expect(env.render).toHaveBeenCalledOnce();
+  expect(env.surfaces[0]!.draw).toHaveBeenCalledWith(env.source, 4, 5, 40, 30, 0, 0, 40, 30);
+  const rejected = expect(result).rejects.toMatchObject({ name: "AbortError" });
+  controller.abort();
+  await rejected;
+  expect([env.surfaces[0]!.width, env.surfaces[0]!.height]).toEqual([0, 0]);
+  env.requests[0]!.callback(new Blob(["late"]));
+});
+
 test("encoding options snapshot primitives and return the browser's actual MIME fallback", async () => {
   const env = fixture();
   const options = { type: "image/webp" as const, quality: 0.8 };
@@ -123,7 +143,7 @@ test("invalid options and hidden/zero/offscreen/lost inputs reject before drawin
   await expect(captureFrame(env.app)).rejects.toThrow("nonzero");
   env.value.size.width = 600;
   env.gl.isContextLost.mockReturnValue(true);
-  await expect(captureFrame(env.app)).rejects.toThrow("WebGL");
+  await expect(captureFrame(env.app)).rejects.toThrow("available renderer");
   env.gl.isContextLost.mockReturnValue(false);
   env.target.mockReturnValue({});
   await expect(captureFrame(env.app)).rejects.toThrow("default canvas");

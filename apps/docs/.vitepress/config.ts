@@ -6,6 +6,7 @@ const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const source = resolve(repository, "docs");
 const api = [
   ["core", "场景与资源"],
+  ["webgpu", "渲染器选择"],
   ["controls", "控制器"],
   ["loaders", "模型加载"],
   ["animation", "动画"],
@@ -25,6 +26,7 @@ const api = [
 ];
 const recipes = [
   ["basic", "场景与生命周期"],
+  ["webgpu", "WebGPU 基础宿主"],
   ["model", "模型与动画"],
   ["camera", "相机与视角"],
   ["labels", "交互 DOM 标签"],

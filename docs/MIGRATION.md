@@ -95,3 +95,25 @@ model.resources.track({ dispose: () => unmountComponent() });
 接入业务页面后，至少验证：卸载中加载完成不会重新挂载、两个容器互不修改、暂停后 resize/拾取/标签一致、反复进入退出清理自有监听/资源。保留原始材质、坐标和动画后再加入业务效果，便于定位差异。当前 Chromium/SwiftShader 回归不能代替旧工程真实模型、设备和浏览器的迁移验收。
 
 本仓库本地检查使用 `pnpm run ready`、`pnpm run test:browser` 和 `pnpm run test:package`；不依赖 CI。旧项目迁移结果、额外格式支持和 npm 发布另按实际需求推进。
+
+## 正式宿主 API
+
+本会话尚未发布的创建方案按ADR-0050收敛，原始17个包入口和既有模块接口保留。
+
+| 阶段性写法                                                  | 正式写法                                                                 |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| ThreeApp.create(container,{backend:"webgpu",fallback:true}) | ThreeApp.create(container,{renderer:{type:"webgpu",allowFallback:true}}) |
+| CreateThreeAppOptions                                       | ThreeAppCreateOptions                                                    |
+| WebGPUThreeApp                                              | ThreeApp<"webgpu">                                                       |
+| 动态创建结果                                                | ThreeAppInstance，按rendererType收窄                                     |
+| app.render()                                                | app.renderOnce()                                                         |
+| app.disposeAsync()                                          | app.destroy()                                                            |
+| @adui/three/webgpu / createWebGPUApp                        | 从@adui/three导入ThreeApp，统一create                                    |
+
+旧顶层创建字段会明确拒绝，避免静默选错渲染器。同步new ThreeApp继续用于已有WebGL代码；dispose保留同步Disposable协议，旧render/disposeAsync保留兼容。正式新代码只使用create、start/stop、renderOnce、destroy。两种renderer下instanceof ThreeApp均成立；rendererType决定插件兼容，backend仅反映实际webgl2/webgpu。
+
+完整场景与生命周期见 [快速开始](guide/getting-started.md)，配置契约见 [API](api/webgpu.md)。正式API定稿不表示原生WebGPU设备矩阵已验收或npm已发布。
+
+## 渲染扩展统一
+
+切换 renderer.type 后，沿用 attachBloom、attachPostprocessing、attachFlyLine/attachFlowLine/attachFlyPoints/attachLightWall/attachRadar/attachRipple/attachLightPillar/attachShield、attachShadowLight、attachRendererSettings、createRoomEnvironment/attachEnvironment 和 captureFrame。后处理改用 effects.configure({ bloom: { strength: 2 } })、effects.configure({ outline: { selectedObjects: [mesh] } })；原生 pass/node 是不同类型，只有后端明确时直接访问。未指定的效果保留，指定效果的省略参数取默认值；完整说明见 [后处理](api/postprocessing.md)。

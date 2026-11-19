@@ -4,8 +4,8 @@ import { attachOrbitControls } from "@adui/three/controls";
 import { fitObject } from "@adui/three/camera";
 import { addGround, button, createScene } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
-export function mount(context: ExampleContext) {
-  const app = createScene(context.container, { orbit: false });
+export async function mount(context: ExampleContext) {
+  const app = await createScene(context.container, { orbit: false });
   const orbit = attachOrbitControls(app);
   addGround(app);
   context.status("正在加载本地原创 GLB…");

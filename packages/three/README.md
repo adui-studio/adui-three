@@ -3,7 +3,7 @@
 以生命周期为中心的 Three.js 场景封装。创建独立宿主，统一帧循环、尺寸和资源释放，并保留原生 `scene`、`camera`、`renderer`。
 
 > [!NOTE]
-> 当前版本 `0.0.0`，尚未发布 npm。使用工作区或本地 tarball；Three.js peer 为 `>=0.187.0 <0.188.0`，当前实现和验证基于 `0.187.0`。仅 ESM / WebGL 2。
+> 当前版本 `0.0.0`，尚未发布 npm。使用工作区或本地 tarball；Three.js peer 为 `>=0.187.0 <0.188.0`，当前实现和验证基于 `0.187.0`。ESM / 默认 WebGL 2，可选 WebGPU，扩展 API 共用。
 
 ## 使用
 
@@ -15,7 +15,7 @@ import { attachOrbitControls } from "@adui/three/controls";
 import { BoxGeometry, Mesh, MeshNormalMaterial } from "three";
 
 const container = document.querySelector<HTMLElement>("#scene")!;
-const app = new ThreeApp(container);
+const app = await ThreeApp.create(container, { renderer: { type: "webgl" } });
 const geometry = app.resources.track(new BoxGeometry());
 const material = app.resources.track(new MeshNormalMaterial());
 const cube = new Mesh(geometry, material);
@@ -27,10 +27,16 @@ app.onUpdate(({ delta }) => {
 app.start();
 
 // 在页面或组件的卸载钩子中调用：
-window.addEventListener("pagehide", () => app.dispose(), { once: true });
+window.addEventListener(
+  "pagehide",
+  () => {
+    void app.destroy().catch(console.error);
+  },
+  { once: true },
+);
 ```
 
-创建不自动启动。`start()` / `stop()` / `dispose()` 幂等；`render()` 在暂停时绘制一帧且不推进动画。几何体、材质和纹理分别登记，借用资产仍由原所有者管理。
+创建不自动启动。`start()` / `stop()` / `destroy()` 幂等；`renderOnce()` 在暂停时绘制一帧且不推进动画。几何体、材质和纹理分别登记，借用资产仍由原所有者管理。
 
 ## 按需导入
 
@@ -49,6 +55,8 @@ window.addEventListener("pagehide", () => app.dispose(), { once: true });
 | `@adui/three/postprocessing`           | 泛光、描边、颜色滤镜                              |
 | `@adui/three/environment` / `textures` | HDR/EXR/Room 与图片/KTX2 资产                     |
 | `@adui/three/capture`                  | 完整画布或区域截图                                |
+
+正式用 `await ThreeApp.create(container, { renderer: { type: "webgl" } })` 或选择 `renderer.type="webgpu"`。WebGPU 的 allowFallback 默认true；创建后start，单帧renderOnce，卸载await destroy。两条路径均为ThreeApp实例。rendererType表示渲染器族，backend表示实际图形API。原生GPU仍需适配器环境验收，现有WebGL专属效果不可接到节点renderer。
 
 子入口均独立声明；深层 `src` 路径不是公开 API。
 

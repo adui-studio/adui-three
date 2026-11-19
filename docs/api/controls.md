@@ -15,7 +15,7 @@ const gizmo = attachTransformControls(app, {
   size: 1, // 正有限数
 });
 gizmo.controls.addEventListener("change", () => {
-  if (!gizmo.disposed && app.state !== "running" && app.state !== "disposed") app.render();
+  if (!gizmo.disposed && app.state !== "running" && app.state !== "disposed") app.renderOnce();
 });
 // gizmo.controls.setMode("rotate"); gizmo.controls.setTranslationSnap(0.5);
 // 模型移除前：gizmo.detach();

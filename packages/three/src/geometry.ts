@@ -1,6 +1,6 @@
 import { Color, InstancedMesh, Matrix4, Object3D } from "three";
 import type { BufferAttribute, BufferGeometry, Material } from "three";
-import type { AnyThreeApp } from "./core/three-app.ts";
+import type { SceneApp } from "./core/three-app.ts";
 import { ResourceScope } from "./core/resources.ts";
 
 export { computeObjectBounds } from "./geometry/object-bounds.ts";
@@ -90,7 +90,7 @@ function attributeUpdates(): (attribute: BufferAttribute, start: number, count: 
 
 /** Own the instance object/buffers, borrow its reusable geometry/material. No updates or rendering. */
 export function createInstancedMesh(
-  app: AnyThreeApp,
+  app: SceneApp,
   options: CreateInstancedMeshOptions,
 ): InstancedMeshHandle {
   const { geometry, material, capacity, count = 0, addToScene = true } = options;

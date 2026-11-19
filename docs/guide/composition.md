@@ -12,6 +12,8 @@
 | Editor光影 | rendering + lighting + 可选environment       |
 | 重复物体   | geometry实例化，原几何/材质由应用拥有        |
 
+正式渲染器选择的可用模块与 WebGL 专属限制见 [WebGPU API](../api/webgpu.md)，回退仍使用节点 renderer，不能直接复用 GLSL 效果。
+
 ## 显式配置
 
 抗锯齿、反向深度是renderer创建参数；色调、曝光通过颜色句柄设置。阴影需要投射对象、接收区域和灯光；Room生成与绑定分离。普通宿主不强制采用整套Editor预设。

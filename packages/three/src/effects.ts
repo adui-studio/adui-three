@@ -1,3 +1,7 @@
+import type { MeshBasicNodeMaterial, PointsNodeMaterial } from "three/webgpu";
+import type { WebGPUCanvasRenderer } from "./core/scene-host.ts";
+import { getWebGPUFeatures, isNodeRenderer } from "./core/webgpu-features.ts";
+import type { EffectKind } from "./core/webgpu-features.ts";
 import {
   AdditiveBlending,
   BufferGeometry,
@@ -10,10 +14,13 @@ import {
   Mesh,
   Points,
   ShaderMaterial,
+  InstancedBufferGeometry,
+  InstancedBufferAttribute,
+  PlaneGeometry,
   Vector3,
 } from "three";
-import type { Curve } from "three";
-import type { AnyThreeApp } from "./core/three-app.ts";
+import type { Curve, Material } from "three";
+import type { AnyThreeApp, SceneApp } from "./core/three-app.ts";
 import { ResourceScope } from "./core/resources.ts";
 import { createPathCurve, createPathTube, createPathRibbon } from "./geometry/path-geometry.ts";
 import { retireAfterRender } from "./core/render-retirement.ts";
@@ -77,11 +84,13 @@ export interface EffectPlayback {
   setSpeed(this: void, speed: number): void;
   dispose(this: void): void;
 }
-export interface EffectHandle extends EffectPlayback {
-  readonly mesh: Mesh<BufferGeometry, ShaderMaterial>;
+export interface EffectHandle<M extends Material = ShaderMaterial> extends EffectPlayback {
+  readonly mesh: Mesh<BufferGeometry, M>;
 }
-export interface FlyPointsHandle extends EffectPlayback {
-  readonly points: Points<BufferGeometry, ShaderMaterial>;
+export interface FlyPointsHandle<M extends Material = ShaderMaterial> extends EffectPlayback {
+  readonly points:
+    | Points<BufferGeometry, M>
+    | (M extends ShaderMaterial ? never : Mesh<BufferGeometry, M>);
 }
 export interface FlyPointsOptions extends EffectOptions {
   curve: Curve<Vector3>;
@@ -109,7 +118,7 @@ function tail(value: number, name = "tail"): number {
     throw new RangeError(name + " must be in (0,1]");
   return value;
 }
-function settings(app: AnyThreeApp, options: EffectOptions) {
+function settings(app: SceneApp, options: EffectOptions) {
   if (app.state === "disposed" || app.resources.disposed || options.scope?.disposed)
     throw new Error("Effect owner has been disposed");
   const {
@@ -173,15 +182,15 @@ const shieldFragment =
   `uniform float uFresnel;uniform float uGrid;varying vec3 vNormal;varying vec3 vViewPosition;
 void main(){vec3 viewDirection=isOrthographic?vec3(0.0,0.0,1.0):normalize(vViewPosition);float rim=pow(1.0-clamp(abs(dot(normalize(vNormal),viewDirection)),0.0,1.0),uFresnel);vec2 cell=abs(fract(vUv*vec2(uGrid,uGrid*.5))-.5);float grid=1.0-smoothstep(.015,.045,min(cell.x,cell.y));float pulse=.65+.35*(.5+.5*cos((vUv.y-uPhase)*6.28318530718));float alpha=(.04+.8*rim+.12*grid)*pulse;` +
   output;
-type EffectNode = Mesh<BufferGeometry, ShaderMaterial> | Points<BufferGeometry, ShaderMaterial>;
+type EffectNode = Mesh<BufferGeometry, Material> | Points<BufferGeometry, Material>;
 function mountDrawable<T extends EffectNode, K extends "mesh" | "points">(
-  app: AnyThreeApp,
+  app: SceneApp,
   geometry: BufferGeometry,
   config: ReturnType<typeof settings>,
   fragmentShader: string,
   extra: Record<string, { value: number }>,
   key: K,
-  createNode: (geometry: BufferGeometry, material: ShaderMaterial) => T,
+  createNode: (geometry: BufferGeometry, material: Material) => T,
   vertex = vertexShader,
 ): EffectPlayback & Readonly<Record<K, T>> {
   const owned = new ResourceScope();
@@ -199,23 +208,27 @@ function mountDrawable<T extends EffectNode, K extends "mesh" | "points">(
   };
   try {
     const phaseUniform = { value: 0 };
+    const uniforms = {
+      uColor: { value: new Color(config.color).multiplyScalar(config.intensity) },
+      uOpacity: { value: config.opacity },
+      uPhase: phaseUniform,
+      ...extra,
+    };
     const material = owned.track(
-      new ShaderMaterial({
-        uniforms: {
-          uColor: { value: new Color(config.color).multiplyScalar(config.intensity) },
-          uOpacity: { value: config.opacity },
-          uPhase: phaseUniform,
-          ...extra,
-        },
-        vertexShader: vertex,
-        fragmentShader,
-        transparent: true,
-        depthWrite: false,
-        side: DoubleSide,
-        blending: AdditiveBlending,
-      }),
+      isNodeRenderer(app.renderer)
+        ? getWebGPUFeatures().effectMaterial(effectKind(fragmentShader), uniforms)
+        : new ShaderMaterial({
+            uniforms,
+            vertexShader: vertex,
+            fragmentShader,
+            transparent: true,
+            depthWrite: false,
+            side: DoubleSide,
+            blending: AdditiveBlending,
+          }),
     );
     const mesh = owned.track(createNode(geometry, material));
+    if (mesh.geometry !== geometry) owned.track(mesh.geometry);
     handle = Object.assign(
       {
         get disposed() {
@@ -322,13 +335,13 @@ function mountDrawable<T extends EffectNode, K extends "mesh" | "points">(
   }
 }
 function mount(
-  app: AnyThreeApp,
+  app: SceneApp,
   geometry: BufferGeometry,
   config: ReturnType<typeof settings>,
   fragment: string,
   extra: Record<string, { value: number }>,
   vertex = vertexShader,
-): EffectHandle {
+): EffectHandle<Material> {
   return mountDrawable(
     app,
     geometry,
@@ -351,7 +364,13 @@ const flowFragment =
   `uniform float uSpan;uniform float uPulses;uniform float uTail;
 void main(){float behind=fract(uPhase-vUv.x/uSpan*uPulses+1.0);float trail=pow(1.0-smoothstep(0.0,uTail,behind),2.0);float edge=1.0-smoothstep(.3,.5,abs(vUv.y-.5));float alpha=(.04+.96*trail)*edge;` +
   output;
-export function attachFlyLine(app: AnyThreeApp, options: FlyLineOptions): EffectHandle {
+export function attachFlyLine(app: AnyThreeApp, options: FlyLineOptions): EffectHandle;
+export function attachFlyLine(
+  app: SceneApp & { readonly renderer: WebGPUCanvasRenderer },
+  options: FlyLineOptions,
+): EffectHandle<MeshBasicNodeMaterial>;
+export function attachFlyLine(app: SceneApp, options: FlyLineOptions): EffectHandle<Material>;
+export function attachFlyLine(app: SceneApp, options: FlyLineOptions): EffectHandle<Material> {
   const config = settings(app, options),
     length = positive(options.curve.getLength(), "curve length"),
     trail = tail(options.tail ?? 0.25);
@@ -367,7 +386,13 @@ export function attachFlyLine(app: AnyThreeApp, options: FlyLineOptions): Effect
     uTail: { value: trail },
   });
 }
-export function attachLightWall(app: AnyThreeApp, options: LightWallOptions): EffectHandle {
+export function attachLightWall(app: AnyThreeApp, options: LightWallOptions): EffectHandle;
+export function attachLightWall(
+  app: SceneApp & { readonly renderer: WebGPUCanvasRenderer },
+  options: LightWallOptions,
+): EffectHandle<MeshBasicNodeMaterial>;
+export function attachLightWall(app: SceneApp, options: LightWallOptions): EffectHandle<Material>;
+export function attachLightWall(app: SceneApp, options: LightWallOptions): EffectHandle<Material> {
   const config = settings(app, options),
     height = positive(options.height ?? 2, "height"),
     segments = options.segments ?? 128;
@@ -407,7 +432,13 @@ export function attachLightWall(app: AnyThreeApp, options: LightWallOptions): Ef
   }
   return mount(app, geometry, config, wallFragment, {});
 }
-export function attachRadar(app: AnyThreeApp, options: RadarOptions = {}): EffectHandle {
+export function attachRadar(app: AnyThreeApp, options?: RadarOptions): EffectHandle;
+export function attachRadar(
+  app: SceneApp & { readonly renderer: WebGPUCanvasRenderer },
+  options?: RadarOptions,
+): EffectHandle<MeshBasicNodeMaterial>;
+export function attachRadar(app: SceneApp, options?: RadarOptions): EffectHandle<Material>;
+export function attachRadar(app: SceneApp, options: RadarOptions = {}): EffectHandle<Material> {
   const config = settings(app, options),
     radius = positive(options.radius ?? 2, "radius"),
     segments = options.segments ?? 64,
@@ -443,7 +474,13 @@ function subdivisions(value: number): number {
   return value;
 }
 /** Repeating expanding rings on the local XZ plane; move slightly above a receiving surface. */
-export function attachRipple(app: AnyThreeApp, options: RippleOptions = {}): EffectHandle {
+export function attachRipple(app: AnyThreeApp, options?: RippleOptions): EffectHandle;
+export function attachRipple(
+  app: SceneApp & { readonly renderer: WebGPUCanvasRenderer },
+  options?: RippleOptions,
+): EffectHandle<MeshBasicNodeMaterial>;
+export function attachRipple(app: SceneApp, options?: RippleOptions): EffectHandle<Material>;
+export function attachRipple(app: SceneApp, options: RippleOptions = {}): EffectHandle<Material> {
   const config = settings(app, options),
     radius = dimension(options.radius ?? 2, "radius"),
     segments = subdivisions(options.segments ?? 64),
@@ -459,10 +496,19 @@ export function attachRipple(app: AnyThreeApp, options: RippleOptions = {}): Eff
   });
 }
 /** Open cylinder rising along local Y, with its base at y=0. */
+export function attachLightPillar(app: AnyThreeApp, options?: LightPillarOptions): EffectHandle;
 export function attachLightPillar(
-  app: AnyThreeApp,
+  app: SceneApp & { readonly renderer: WebGPUCanvasRenderer },
+  options?: LightPillarOptions,
+): EffectHandle<MeshBasicNodeMaterial>;
+export function attachLightPillar(
+  app: SceneApp,
+  options?: LightPillarOptions,
+): EffectHandle<Material>;
+export function attachLightPillar(
+  app: SceneApp,
   options: LightPillarOptions = {},
-): EffectHandle {
+): EffectHandle<Material> {
   const config = settings(app, options),
     radius = dimension(options.radius ?? 0.45, "radius"),
     height = dimension(options.height ?? 4, "height"),
@@ -472,7 +518,13 @@ export function attachLightPillar(
   return mount(app, geometry, config, pillarFragment, {});
 }
 /** Local sphere with a view-angle rim, latitude/longitude grid and traveling pulse. */
-export function attachShield(app: AnyThreeApp, options: ShieldOptions = {}): EffectHandle {
+export function attachShield(app: AnyThreeApp, options?: ShieldOptions): EffectHandle;
+export function attachShield(
+  app: SceneApp & { readonly renderer: WebGPUCanvasRenderer },
+  options?: ShieldOptions,
+): EffectHandle<MeshBasicNodeMaterial>;
+export function attachShield(app: SceneApp, options?: ShieldOptions): EffectHandle<Material>;
+export function attachShield(app: SceneApp, options: ShieldOptions = {}): EffectHandle<Material> {
   const config = settings(app, options),
     radius = dimension(options.radius ?? 2, "radius"),
     segments = subdivisions(options.segments ?? 48),
@@ -502,7 +554,19 @@ export function attachShield(app: AnyThreeApp, options: ShieldOptions = {}): Eff
 }
 
 /** GPU particle tail along a sampled native curve; positions stay fixed after construction. */
-export function attachFlyPoints(app: AnyThreeApp, options: FlyPointsOptions): FlyPointsHandle {
+export function attachFlyPoints(app: AnyThreeApp, options: FlyPointsOptions): FlyPointsHandle;
+export function attachFlyPoints(
+  app: SceneApp & { readonly renderer: WebGPUCanvasRenderer },
+  options: FlyPointsOptions,
+): FlyPointsHandle<PointsNodeMaterial>;
+export function attachFlyPoints(
+  app: SceneApp,
+  options: FlyPointsOptions,
+): FlyPointsHandle<Material>;
+export function attachFlyPoints(
+  app: SceneApp,
+  options: FlyPointsOptions,
+): FlyPointsHandle<Material> {
   const config = settings(app, options),
     curve = options.curve,
     count = options.count ?? 256,
@@ -551,12 +615,38 @@ export function attachFlyPoints(app: AnyThreeApp, options: FlyPointsOptions): Fl
       uSize: { value: size },
     },
     "points",
-    (g, m) => new Points(g, m),
+    (g, m) => {
+      if (!isNodeRenderer(app.renderer)) return new Points(g, m);
+      const quad = new PlaneGeometry(1, 1);
+      const instanced = new InstancedBufferGeometry();
+      try {
+        instanced.setIndex(quad.getIndex()!.clone());
+        for (const name of ["position", "normal", "uv"])
+          instanced.setAttribute(name, quad.getAttribute(name).clone());
+        instanced.setAttribute("aCenter", new InstancedBufferAttribute(positions, 3));
+        instanced.setAttribute("aProgress", new InstancedBufferAttribute(progress, 1));
+        instanced.instanceCount = count;
+        const mesh = new Mesh(instanced, m);
+        mesh.frustumCulled = false; // Centers live in an instance attribute, not the quad position buffer.
+        return mesh;
+      } catch (error) {
+        instanced.dispose();
+        throw error;
+      } finally {
+        quad.dispose();
+      }
+    },
     pointsVertex,
   );
 }
 /** Repeating traveling light pulses on a continuous path ribbon. */
-export function attachFlowLine(app: AnyThreeApp, options: FlowLineOptions): EffectHandle {
+export function attachFlowLine(app: AnyThreeApp, options: FlowLineOptions): EffectHandle;
+export function attachFlowLine(
+  app: SceneApp & { readonly renderer: WebGPUCanvasRenderer },
+  options: FlowLineOptions,
+): EffectHandle<MeshBasicNodeMaterial>;
+export function attachFlowLine(app: SceneApp, options: FlowLineOptions): EffectHandle<Material>;
+export function attachFlowLine(app: SceneApp, options: FlowLineOptions): EffectHandle<Material> {
   const config = settings(app, options),
     curve = options.curve,
     length = dimension(curve.getLength(), "curve length"),
@@ -571,4 +661,16 @@ export function attachFlowLine(app: AnyThreeApp, options: FlowLineOptions): Effe
     uPulses: { value: pulses },
     uTail: { value: trail },
   });
+}
+
+function effectKind(fragment: string): EffectKind {
+  if (fragment === flyFragment) return "fly";
+  if (fragment === wallFragment) return "wall";
+  if (fragment === radarFragment) return "radar";
+  if (fragment === rippleFragment) return "ripple";
+  if (fragment === pillarFragment) return "pillar";
+  if (fragment === shieldFragment) return "shield";
+  if (fragment === pointsFragment) return "points";
+  if (fragment === flowFragment) return "flow";
+  throw new TypeError("Unknown effect shader");
 }

@@ -1,21 +1,36 @@
-import { renderWithRetirement } from "./render-retirement.ts";
-import { OrthographicCamera, PerspectiveCamera, Scene, WebGLRenderer } from "three";
+import { OrthographicCamera, PerspectiveCamera, WebGLRenderer } from "three";
 import type { Camera, WebGLRendererParameters } from "three";
-import { FrameLoop } from "./frame-loop.ts";
-import type { FrameInfo } from "./frame-loop.ts";
-import { ResourceScope } from "./resources.ts";
-
-export type ThreeAppState = "ready" | "running" | "stopped" | "disposed";
+import { createPerspectiveCamera } from "./perspective-camera.ts";
+import { SceneHost, positive } from "./scene-host.ts";
+import type { WebGPUCanvasRenderer } from "./scene-host.ts";
+import type { PreparedWebGPUHost } from "./webgpu-host.ts";
+import type {
+  RendererType,
+  WebGLRendererOptions,
+  WebGLCreateOptions,
+  WebGPUCreateOptions,
+  ThreeAppCreateOptions,
+} from "./app-options.ts";
+export type {
+  RendererType,
+  WebGLRendererOptions,
+  WebGPURendererOptions,
+  ThreeAppCreateOptions,
+} from "./app-options.ts";
+export type {
+  ThreeAppState,
+  ViewportSize,
+  RenderPipeline,
+  SceneApp,
+  PerspectiveSceneApp,
+  OrthographicSceneApp,
+} from "./scene-host.ts";
 
 interface HostOptions {
-  /** Only scalar/configuration options. Non-null external canvas/context are rejected at runtime. */
-  renderer?: Omit<WebGLRendererParameters, "canvas" | "context">;
-  /** Positive, finite DPR ceiling. Default 2. */
+  renderer?: WebGLRendererOptions;
   maxPixelRatio?: number;
-  /** Positive, finite per-frame delta ceiling in seconds. Default 0.1. */
   maxDelta?: number;
 }
-
 export interface ThreeAppOptions extends HostOptions {
   camera?: {
     fov?: number;
@@ -24,439 +39,178 @@ export interface ThreeAppOptions extends HostOptions {
     position?: readonly [number, number, number];
   };
 }
-
 export interface OrthographicThreeAppOptions extends HostOptions {
   camera?: {
-    /** Unzoomed vertical span in scene units. Default 10. */
     frustumHeight?: number;
-    /** Nonnegative and finite. Default 0. */
     near?: number;
-    /** Finite and greater than near. Default 1000. */
     far?: number;
-    /** Default [0, 0, 10], looking at the origin. */
     position?: readonly [number, number, number];
   };
 }
 
-export interface ViewportSize {
-  readonly width: number;
-  readonly height: number;
-  readonly pixelRatio: number;
+function creationSnapshot(options: ThreeAppCreateOptions): ThreeAppCreateOptions {
+  if (!options || typeof options !== "object" || Array.isArray(options))
+    throw new TypeError("Creation options must be an object");
+  const snapshot = { ...options };
+  if ("backend" in snapshot || "fallback" in snapshot || "rendererType" in snapshot)
+    throw new TypeError("Use renderer.type and renderer.allowFallback to configure rendering");
+  const { camera, renderer } = snapshot;
+  if (camera !== undefined) {
+    if (!camera || typeof camera !== "object" || Array.isArray(camera))
+      throw new TypeError("Camera options must be an object");
+    snapshot.camera = { ...camera };
+    if (snapshot.camera.position !== undefined)
+      snapshot.camera.position = [...snapshot.camera.position];
+  }
+  if (renderer !== undefined) {
+    if (!renderer || typeof renderer !== "object" || Array.isArray(renderer))
+      throw new TypeError("Renderer options must be an object");
+    snapshot.renderer = { ...renderer };
+  }
+  return snapshot;
 }
-
-/** Borrowed rendering strategy. The caller owns its resources and disposal. */
-export interface RenderPipeline {
-  render(frame: FrameInfo): void;
-  /** CSS dimensions and the capped DPR, including zero-size notifications. */
-  resize(size: ViewportSize): void;
-}
-
-function positive(value: number, name: string): number {
-  if (!Number.isFinite(value) || value <= 0)
-    throw new RangeError(`${name} must be positive and finite`);
-  return value;
-}
-
-function rendererSettings(value: HostOptions["renderer"]): NonNullable<HostOptions["renderer"]> {
+function rendererSettings(
+  value: HostOptions["renderer"],
+): Omit<WebGLRendererParameters, "canvas" | "context"> {
   if (value === undefined) return {};
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new TypeError("Renderer options must be an object");
-  // Omit only restricts object literals: wider native parameter objects can still be passed.
-  const { canvas, context, ...settings } = value as WebGLRendererParameters;
+  const {
+    canvas,
+    context,
+    type = "webgl",
+    ...settings
+  } = value as WebGLRendererParameters & WebGLRendererOptions;
+  if (type !== "webgl") throw new TypeError("Use await ThreeApp.create() to select WebGPU");
+  if ("allowFallback" in settings)
+    throw new TypeError("allowFallback requires renderer.type: webgpu");
   if (canvas != null || context != null)
     throw new TypeError("ThreeApp does not accept an external canvas or context");
   return settings;
 }
 
-/** One browser container, one renderer, one owned frame loop. Construction does not start it. */
-abstract class SceneHost<C extends Camera> {
-  readonly scene: Scene;
-  readonly camera: C;
-  readonly renderer: WebGLRenderer;
-  readonly resources = new ResourceScope();
-  #container: HTMLElement;
-  #view: Window & typeof globalThis;
-  #document: Document;
-  #loop: FrameLoop;
-  #platform = new ResourceScope();
-  #updates = new Set<(frame: FrameInfo) => void>();
-  #afterRender = new Set<(frame: FrameInfo) => void>();
-  #abort = new AbortController();
-  #state: ThreeAppState = "ready";
-  #revision = 0;
-  #size: ViewportSize = { width: 0, height: 0, pixelRatio: 1 };
-  #drawable = false;
-  #maxPixelRatio: number;
-  #media: MediaQueryList | null = null;
-  #pipeline: { value: RenderPipeline; sizeDirty: boolean } | null = null;
-  #bufferDirty = false;
-  #resizing = false;
-  #inFrame = false;
-  #elapsed = 0;
-  #contextLost = false;
-  #projectCamera: (aspect: number) => void;
+export type AnyThreeApp = SceneHost<Camera, WebGLRenderer>;
+type RendererFor<R extends RendererType> = R extends "webgpu"
+  ? WebGPUCanvasRenderer
+  : WebGLRenderer;
+export type ThreeAppInstance = ThreeApp<"webgl"> | ThreeApp<"webgpu">;
 
-  protected constructor(
+/** A ready scene host. create() selects the renderer; synchronous construction supports WebGL. */
+class ThreeAppHost<R extends RendererType = "webgl"> extends SceneHost<
+  PerspectiveCamera,
+  RendererFor<R>
+> {
+  override get rendererType(): R {
+    return super.rendererType as R;
+  }
+
+  static create(container: HTMLElement, options: WebGPUCreateOptions): Promise<ThreeApp<"webgpu">>;
+  static create(container: HTMLElement, options?: WebGLCreateOptions): Promise<ThreeApp<"webgl">>;
+  static create(container: HTMLElement, options: ThreeAppCreateOptions): Promise<ThreeAppInstance>;
+  static async create(
     container: HTMLElement,
-    options: HostOptions,
-    createCamera: () => C,
-    projectCamera: (camera: C, aspect: number) => void,
-  ) {
-    const view = container?.ownerDocument?.defaultView;
-    if (!view || container.nodeType !== 1)
-      throw new TypeError("A browser HTMLElement container is required");
-    if (typeof view.ResizeObserver !== "function") throw new Error("ResizeObserver is required");
-    const maxDelta = positive(options.maxDelta ?? 0.1, "maxDelta");
-    this.#maxPixelRatio = positive(options.maxPixelRatio ?? 2, "maxPixelRatio");
-    const renderer = rendererSettings(options.renderer);
-    this.#container = container;
-    this.#document = container.ownerDocument;
-    this.#view = view;
-    this.scene = new Scene();
-    this.camera = createCamera();
-    this.#projectCamera = (aspect) => projectCamera(this.camera, aspect);
-    const canvas = this.#document.createElement("canvas");
-    canvas.style.cssText = "display:block;width:100%;height:100%";
-    this.renderer = new WebGLRenderer({ antialias: true, ...renderer, canvas });
-    this.#loop = new FrameLoop(
-      {
-        request: (callback) => view.requestAnimationFrame(callback),
-        cancel: (id) => view.cancelAnimationFrame(id),
-      },
-      (frame) => this.#update(frame),
-      maxDelta,
-    );
-    try {
-      canvas.addEventListener("webglcontextlost", this.#handleContextLost);
-      this.#platform.track({
-        dispose: () => canvas.removeEventListener("webglcontextlost", this.#handleContextLost),
-      });
-      container.appendChild(canvas);
-      const observer = new view.ResizeObserver(() => this.resize());
-      this.#platform.track({ dispose: () => observer.disconnect() });
-      observer.observe(container);
-      view.addEventListener("resize", this.#handleResize);
-      this.#platform.track({
-        dispose: () => view.removeEventListener("resize", this.#handleResize),
-      });
-      this.#document.addEventListener("visibilitychange", this.#handleVisibility);
-      this.#platform.track({
-        dispose: () =>
-          this.#document.removeEventListener("visibilitychange", this.#handleVisibility),
-      });
-      this.#platform.track({
-        dispose: () => this.#media?.removeEventListener("change", this.#handleDpr),
-      });
-      this.#watchDpr();
-      this.resize();
-    } catch (error) {
+    options: ThreeAppCreateOptions = {},
+  ): Promise<ThreeAppInstance> {
+    const snapshot = creationSnapshot(options);
+    const signal = snapshot.signal;
+    const aborted = (): DOMException =>
+      new DOMException("Scene creation was cancelled", "AbortError");
+    if (signal?.aborted) throw aborted();
+    const rendererType = snapshot.renderer?.type ?? "webgl";
+    if (rendererType === "webgpu") {
+      const { renderer, ...settings } = snapshot as WebGPUCreateOptions;
+      const { type: _type, allowFallback = true, ...nativeOptions } = renderer;
+      if (typeof allowFallback !== "boolean")
+        throw new TypeError("allowFallback must be a boolean");
+      let cancelImport: (() => void) | undefined;
       try {
-        this.dispose();
-      } catch (cleanupError) {
-        throw new AggregateError(
-          [error, cleanupError],
-          "ThreeApp initialization and rollback failed",
+        const loading = import("./webgpu-host.ts");
+        const module = signal
+          ? await Promise.race([
+              loading,
+              new Promise<never>((_resolve, reject) => {
+                cancelImport = () => reject(aborted());
+                signal.addEventListener("abort", cancelImport, { once: true });
+                if (signal.aborted) cancelImport();
+              }),
+            ])
+          : await loading;
+        return module.initializeWebGPUHost(
+          container,
+          {
+            ...settings,
+            renderer: nativeOptions,
+            backend: allowFallback ? "auto" : "webgpu",
+          },
+          (prepared) => {
+            // Only this initialized path supplies the private implementation's third argument.
+            // The public constructor signature only exposes synchronous WebGL construction.
+            return Reflect.construct(ThreeApp, [
+              container,
+              prepared.options,
+              prepared,
+            ]) as ThreeApp<"webgpu">;
+          },
         );
+      } finally {
+        if (cancelImport) signal?.removeEventListener("abort", cancelImport);
       }
-      throw error;
     }
-  }
-
-  get state(): ThreeAppState {
-    return this.#state;
-  }
-  /** Sticky loss diagnosis. A lost context disposes this host; create a new host to recover. */
-  get contextLost(): boolean {
-    return this.#contextLost;
-  }
-  get size(): ViewportSize {
-    return { ...this.#size };
-  }
-  /** Aborted synchronously on dispose; consumers can guard asynchronous results with it. */
-  get signal(): AbortSignal {
-    return this.#abort.signal;
-  }
-
-  start(): void {
-    this.#assertActive();
-    if (this.#state === "running") return;
-    this.#state = "running";
-    this.#revision++;
-    this.#syncLoop();
-  }
-
-  stop(): void {
-    if (this.#state === "disposed" || this.#state === "stopped") return;
-    this.#state = "stopped";
-    this.#revision++;
-    this.#loop.stop();
-  }
-
-  onUpdate(callback: (frame: FrameInfo) => void): () => void {
-    this.#assertActive();
-    // Each subscription is independent, even for the same callback.
-    const subscription = (frame: FrameInfo): void => callback(frame);
-    this.#updates.add(subscription);
-    return () => {
-      this.#updates.delete(subscription);
-    };
-  }
-
-  /** Runs after all updates and a successful render, within the same owned frame. */
-  onAfterRender(callback: (frame: FrameInfo) => void): () => void {
-    this.#assertActive();
-    const subscription = (frame: FrameInfo): void => callback(frame);
-    this.#afterRender.add(subscription);
-    return () => {
-      this.#afterRender.delete(subscription);
-    };
-  }
-
-  /** Exclusively attach a borrowed pipeline. Detach restores the default renderer. */
-  setRenderPipeline(pipeline: RenderPipeline): () => void {
-    this.#assertActive();
-    if (this.#resizing) throw new Error("Cannot attach a pipeline reentrantly during resize");
-    if (!pipeline) throw new TypeError("A render and resize pipeline is required");
-    // oxlint-disable-next-line typescript/unbound-method -- Snapshot validation only; never invoked unbound.
-    const render = pipeline.render;
-    this.#assertActive();
-    // oxlint-disable-next-line typescript/unbound-method -- Invoked with call(pipeline) after owner checks.
-    const resize = pipeline.resize;
-    this.#assertActive();
-    if (typeof render !== "function" || typeof resize !== "function")
-      throw new TypeError("A render and resize pipeline is required");
-    if (this.#pipeline) throw new Error("A render pipeline is already attached");
-    const lease = { value: pipeline, sizeDirty: false };
-    this.#pipeline = lease;
-    const detach = (): void => {
-      if (this.#pipeline === lease) this.#pipeline = null;
-    };
-    this.#resizing = true;
-    try {
-      resize.call(pipeline, this.size);
-      this.#assertActive();
-      if (this.#pipeline !== lease) throw new Error("Render pipeline attachment was interrupted");
-      return detach;
-    } catch (error) {
-      detach();
-      throw error;
-    } finally {
-      this.#resizing = false;
+    if (rendererType !== "webgl") throw new TypeError("renderer.type must be webgl or webgpu");
+    const app = new ThreeApp(container, snapshot as ThreeAppOptions);
+    if (signal?.aborted) {
+      await app.destroy();
+      throw aborted();
     }
+    return app;
   }
 
-  /** Draw once without updates/time/RAF. True when the renderer/pipeline was invoked, false if skipped. */
-  render(): boolean {
-    this.#assertActive();
-    if (this.#inFrame || this.#resizing)
-      throw new Error("Cannot render reentrantly within a host frame or resize");
-    const revision = this.#revision;
-    const valid = (): boolean =>
-      this.#state !== "disposed" &&
-      revision === this.#revision &&
-      this.#drawable &&
-      !this.#document.hidden;
-    if (!valid()) return false;
-    this.#inFrame = true;
-    try {
-      return this.#draw({ delta: 0, elapsed: this.#elapsed }, valid);
-    } catch (error) {
-      this.stop();
-      throw error;
-    } finally {
-      this.#inFrame = false;
-    }
-  }
-
-  resize(): void {
-    this.#assertActive();
-    if (this.#resizing) throw new Error("Cannot resize reentrantly");
-    this.#resizing = true;
-    try {
-      const width = this.#container.clientWidth;
-      const height = this.#container.clientHeight;
-      const pixelRatio = Math.min(this.#view.devicePixelRatio || 1, this.#maxPixelRatio);
-      const previous = this.#size;
-      this.#size = { width, height, pixelRatio };
-      this.#drawable = width > 0 && height > 0;
-      const changed =
-        width !== previous.width ||
-        height !== previous.height ||
-        pixelRatio !== previous.pixelRatio;
-      if (changed) {
-        this.#bufferDirty = true;
-        // Preserve both operations even when native sizing fails before the pipeline is notified.
-        if (this.#pipeline) this.#pipeline.sizeDirty = true;
-      }
-      if (this.#drawable && this.#bufferDirty) {
-        this.#projectCamera(width / height);
-        this.renderer.setDrawingBufferSize(width, height, pixelRatio);
-        this.#bufferDirty = false;
-      }
-      if (this.#pipeline?.sizeDirty) {
-        const lease = this.#pipeline;
-        // oxlint-disable-next-line typescript/unbound-method -- Preserve the receiver via call after lease checks.
-        const resize = lease.value.resize;
-        if (this.#state === "disposed" || this.#pipeline !== lease) return;
-        resize.call(lease.value, this.size);
-        lease.sizeDirty = false;
-      }
-      this.#syncLoop();
-    } catch (error) {
-      this.stop();
-      throw error;
-    } finally {
-      this.#resizing = false;
-    }
-  }
-
-  dispose(): void {
-    if (this.#state === "disposed") return;
-    this.#state = "disposed";
-    this.#revision++;
-    const errors: unknown[] = [];
-    const attempt = (cleanup: () => void): void => {
-      try {
-        cleanup();
-      } catch (error) {
-        errors.push(error);
-      }
-    };
-    attempt(() => this.#loop.stop());
-    attempt(() => this.#abort.abort());
-    this.#updates.clear();
-    this.#afterRender.clear();
-    this.#pipeline = null;
-    attempt(() => this.#platform.dispose());
-    attempt(() => this.resources.dispose());
-    attempt(() => this.scene.clear());
-    attempt(() => this.renderer.dispose());
-    if (!this.#contextLost) attempt(() => this.renderer.forceContextLoss());
-    attempt(() => this.renderer.domElement.remove());
-    if (errors.length) throw new AggregateError(errors, "ThreeApp cleanup failed");
-  }
-
-  #assertActive(): void {
-    if (this.#state === "disposed") throw new Error("ThreeApp has been disposed");
-  }
-
-  #syncLoop(): void {
-    if (this.#state === "running" && this.#drawable && !this.#document.hidden) this.#loop.start();
-    else this.#loop.stop();
-  }
-
-  #update(frame: FrameInfo): void {
-    if (this.#inFrame) throw new Error("Cannot render reentrantly within a host frame");
-    this.#inFrame = true;
-    this.#elapsed = frame.elapsed;
-    const revision = this.#revision;
-    try {
-      // Snapshot subscriptions so additions during an update start on the next frame.
-      const subscriptions = Array.from(this.#updates);
-      for (const callback of subscriptions) {
-        if (this.#updates.has(callback)) callback(frame);
-        if (!this.#currentFrame(revision)) return;
-      }
-      this.#draw(frame, () => this.#currentFrame(revision));
-    } catch (error) {
-      this.stop();
-      throw error;
-    } finally {
-      this.#inFrame = false;
-    }
-  }
-
-  #draw(frame: FrameInfo, valid: () => boolean): boolean {
-    // Failed native-buffer and pipeline sizing must complete before another draw.
-    if (this.#bufferDirty || this.#pipeline?.sizeDirty) {
-      this.resize();
-      if (!valid()) return false;
-    }
-    const drawn = renderWithRetirement(this.renderer, () => {
-      if (this.#pipeline) {
-        const lease = this.#pipeline;
-        // oxlint-disable-next-line typescript/unbound-method -- Preserve receiver after lease checks.
-        const render = lease.value.render;
-        if (!valid() || this.#pipeline !== lease) return false;
-        render.call(lease.value, frame);
-      } else this.renderer.render(this.scene, this.camera);
-      return true;
-    });
-    if (!drawn) return false;
-    if (!valid()) return true;
-    const afterRender = Array.from(this.#afterRender);
-    for (const callback of afterRender) {
-      if (this.#afterRender.has(callback)) callback(frame);
-      if (!valid()) return true;
-    }
-    return true;
-  }
-
-  #currentFrame(revision: number): boolean {
-    return (
-      this.#state === "running" &&
-      revision === this.#revision &&
-      this.#drawable &&
-      !this.#document.hidden
-    );
-  }
-
-  #handleResize = (): void => {
-    this.resize();
-  };
-  #handleContextLost = (): void => {
-    if (this.#state === "disposed") return;
-    this.#contextLost = true;
-    // Clean native listeners/caches while the context is lost, before a later native restore.
-    this.dispose();
-  };
-  #handleVisibility = (): void => {
-    this.#syncLoop();
-  };
-  #handleDpr = (): void => {
-    this.#watchDpr();
-    this.resize();
-  };
-
-  #watchDpr(): void {
-    this.#media?.removeEventListener("change", this.#handleDpr);
-    this.#media = this.#view.matchMedia(`(resolution: ${this.#view.devicePixelRatio}dppx)`);
-    this.#media.addEventListener("change", this.#handleDpr);
-  }
-}
-
-/** Common host contract accepted by camera-independent optional modules. */
-export type AnyThreeApp = SceneHost<Camera>;
-
-/** Perspective host. Construction is idle; the camera remains precisely typed. */
-export class ThreeApp extends SceneHost<PerspectiveCamera> {
-  constructor(container: HTMLElement, options: ThreeAppOptions = {}) {
+  constructor(
+    container: HTMLElement,
+    options: ThreeAppOptions = {},
+    prepared?: PreparedWebGPUHost,
+  ) {
+    if ("backend" in options || "fallback" in options || "rendererType" in options)
+      throw new TypeError("Use renderer.type and renderer.allowFallback to configure rendering");
+    const renderer = prepared ? undefined : rendererSettings(options.renderer);
     super(
       container,
       options,
-      () => {
-        const { fov = 50, near = 0.1, far = 1000, position = [3, 2, 5] } = options.camera ?? {};
-        positive(fov, "camera.fov");
-        positive(near, "camera.near");
-        positive(far, "camera.far");
-        if (fov >= 180 || far <= near || position.length !== 3 || !position.every(Number.isFinite))
-          throw new RangeError("Invalid camera frustum or position");
-        const camera = new PerspectiveCamera(fov, 1, near, far);
-        camera.position.set(...position);
-        camera.lookAt(0, 0, 0);
-        return camera;
-      },
+      () => (prepared ? prepared.camera : createPerspectiveCamera(options.camera)),
       (camera, aspect) => {
         camera.aspect = aspect;
         camera.updateProjectionMatrix();
       },
+      (document) =>
+        (prepared
+          ? prepared.renderer
+          : new WebGLRenderer({
+              antialias: true,
+              ...renderer,
+              canvas: document.createElement("canvas"),
+            })) as RendererFor<R>,
+      prepared ? undefined : (renderer) => (renderer as WebGLRenderer).forceContextLoss(),
+      prepared?.disposeRenderer,
     );
+    prepared?.setDeviceLossHandler(() => this.loseContext());
   }
 }
 
+export type ThreeApp<R extends RendererType = "webgl"> = ThreeAppHost<R>;
+interface ThreeAppConstructor {
+  new (container: HTMLElement, options?: ThreeAppOptions): ThreeApp<"webgl">;
+  [Symbol.hasInstance](value: unknown): value is ThreeAppInstance;
+  readonly prototype: ThreeApp<RendererType>;
+  readonly name: string;
+  readonly create: typeof ThreeAppHost.create;
+}
+/** Public constructor always produces WebGL; create() returns the requested initialized renderer. */
+export const ThreeApp = ThreeAppHost as ThreeAppConstructor;
+
 /** Orthographic host. Resize preserves vertical span, frustum center and native zoom. */
-export class OrthographicThreeApp extends SceneHost<OrthographicCamera> {
+export class OrthographicThreeApp extends SceneHost<OrthographicCamera, WebGLRenderer> {
   constructor(container: HTMLElement, options: OrthographicThreeAppOptions = {}) {
+    const renderer = rendererSettings(options.renderer);
     super(
       container,
       options,
@@ -497,6 +251,13 @@ export class OrthographicThreeApp extends SceneHost<OrthographicCamera> {
         camera.updateProjectionMatrix();
         validOrthographicProjection(camera);
       },
+      (document) =>
+        new WebGLRenderer({
+          antialias: true,
+          ...renderer,
+          canvas: document.createElement("canvas"),
+        }),
+      (renderer) => renderer.forceContextLoss(),
     );
   }
 }

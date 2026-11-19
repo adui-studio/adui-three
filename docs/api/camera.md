@@ -31,7 +31,7 @@ import { computeOrthographicFrame, fitOrthographicObject } from "@adui/three/cam
 const plan = computeOrthographicFrame(app.camera, object, { padding: 1.2 });
 const frame = fitOrthographicObject(app, object, { controls: orbit.controls });
 console.log(plan.zoom, frame.distance);
-app.render();
+app.renderOnce();
 ```
 
 这里 app 为 OrthographicThreeApp，object 为借用 Object3D，orbit 为可选 OrbitControls 句柄。规划不写相机；应用设置位置/朝向、zoom 和默认推荐裁剪面，不改未缩放视锥、不绘制或启动场景。返回 OrthographicObjectFrame，包含世界边界、包围球、中心、位置、距离、near/far 及 zoom。采用保守包围球以容纳任意朝向，可能比最紧凑取景留白更多。
@@ -87,7 +87,7 @@ import { captureCameraView, restoreCameraView } from "@adui/three/camera";
 const saved = captureCameraView(app, { controls: orbit.controls });
 const json = JSON.stringify(saved); // 消费者自行存储。
 const actual = restoreCameraView(app, JSON.parse(json), { controls: orbit.controls });
-app.render();
+app.renderOnce();
 ```
 
 CameraView 是 version=1 的透视/正交联合快照，含独立 position/quaternion/up 数组、zoom、near/far，可选轨道 target；透视含 fov，正交含 top/bottom/centerX。没有场景、模型、userData 或 GPU 引用，可在原宿主结束后恢复到同类新宿主。恢复按当前 CSS 比例适配，保持垂直构图，不保存旧 aspect、renderer 或深度模式；类型字段只读不表示运行时冻结。

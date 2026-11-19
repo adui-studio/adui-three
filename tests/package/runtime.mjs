@@ -53,6 +53,9 @@ const expected = {
     "createPathTube",
   ],
 };
+assert.throws(() => import.meta.resolve("@adui/three/webgpu"), {
+  code: "ERR_PACKAGE_PATH_NOT_EXPORTED",
+});
 const development = process.argv.includes("--resolve-only");
 for (const [specifier, names] of Object.entries(expected)) {
   const target = import.meta.resolve(specifier);

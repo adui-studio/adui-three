@@ -74,11 +74,7 @@ function mount(id: string, neon: boolean) {
     });
   };
   const grade = (brightness: number, contrast: number, hue: number, saturation: number): void => {
-    const filter = post.colorAdjustment!;
-    filter.brightnessContrast.uniforms.brightness!.value = brightness;
-    filter.brightnessContrast.uniforms.contrast!.value = contrast;
-    filter.hueSaturation.uniforms.hue!.value = hue;
-    filter.hueSaturation.uniforms.saturation!.value = saturation;
+    post.configure({ colorAdjustment: { brightness, contrast, hue, saturation } });
   };
   const rebuild = (): void => {
     app?.dispose();

@@ -1,7 +1,15 @@
 export { ThreeApp, OrthographicThreeApp } from "./core/three-app.ts";
 export type {
   AnyThreeApp,
+  SceneApp,
+  PerspectiveSceneApp,
+  OrthographicSceneApp,
   ThreeAppOptions,
+  ThreeAppCreateOptions,
+  ThreeAppInstance,
+  RendererType,
+  WebGLRendererOptions,
+  WebGPURendererOptions,
   OrthographicThreeAppOptions,
   ThreeAppState,
   ViewportSize,

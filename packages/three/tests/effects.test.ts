@@ -166,7 +166,12 @@ test("new effects build native geometry with the documented local placement", ()
     shield.mesh.geometry.getAttribute("position").count,
   );
 });
-test.each([attachRipple, attachLightPillar, attachShield])(
+test.each([
+  (app: AnyThreeApp, options: { radius?: number; segments?: number }) => attachRipple(app, options),
+  (app: AnyThreeApp, options: { radius?: number; segments?: number }) =>
+    attachLightPillar(app, options),
+  (app: AnyThreeApp, options: { radius?: number; segments?: number }) => attachShield(app, options),
+])(
   "new effects reject non-representable radii and unbounded subdivisions before mounting",
   (create) => {
     const e = fixture();

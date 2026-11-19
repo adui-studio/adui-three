@@ -1,5 +1,7 @@
 # 动态特效
 
+WebGL / WebGPU 共用本页 attach 函数和播放控制。WebGL 返回 ShaderMaterial；WebGPU 使用 MeshBasicNodeMaterial，飞点使用 PointsNodeMaterial 与实例化面片，points 属性对应可变换的绘制对象。时钟只来自宿主 onUpdate，暂停和 renderOnce 不推进 phase。
+
 ## 飞线、光墙和雷达
 
 可选 effects 入口提供 attachFlyLine、attachLightWall、attachRadar；演示 `/?demo=effects` 可逐项开关、暂停、定位并对比阴影/滤镜。
@@ -29,7 +31,7 @@ fly.pause();
 fly.seek(0.4);
 fly.setSpeed(0.5);
 fly.resume();
-// app.start()/app.render() 仍由应用决定；随宿主/scope结束，也可显式 dispose。
+// app.start()/app.renderOnce() 仍由应用决定；随宿主/scope结束，也可显式 dispose。
 ```
 
 共用选项 color 为RGB整数（默认0x55ddff），intensity=2、opacity=1、speed=.25周期/秒、addToScene=true和可选scope。intensity非负且可表示为Float32，opacity在[0,1]，speed非负有限。飞线radius=.035、segments=128、tail=.25（(0,1]且Float32非零）；光墙height=2、segments=128、cornerTrim=0、closed=false，基线必须有水平延伸；雷达radius=2、segments=64（16..256）、tail=.25、rings=4（1..16整数）。路径采样segments为1..4096，几何坐标是Mesh局部空间，位置/旋转由应用控制。

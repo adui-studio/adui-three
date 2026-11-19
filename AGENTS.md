@@ -2,7 +2,7 @@
 
 ## 项目事实与导航
 
-目标：重新封装 Three.js，主 npm 包名为 `@adui/three`。主包核心 MVP、普通/Draco/Meshopt/KTX2 模型加载与动画、拾取、DOM 标签、相机取景、渲染管线、可选泛光、第一/第三人称导航、静态 BVH、路径几何、动态特效、颜色滤镜与实时阴影已实现，examples 为正式示例，website 为双实例回归演示，apps/docs 使用 VitePress 呈现 docs 内容，尚未发布 npm。以代码说明实现，以需求说明目标，不把建议写成已完成。
+目标：重新封装 Three.js，主 npm 包名为 `@adui/three`。主包核心 MVP、普通/Draco/Meshopt/KTX2 模型加载与动画、拾取、DOM 标签、相机取景、渲染管线、可选泛光、第一/第三人称导航、静态 BVH、路径几何、动态特效、颜色滤镜与实时阴影已实现，examples 为正式示例，website 为双实例回归演示，apps/docs 使用 VitePress 呈现 docs 内容，已统一 WebGL/WebGPU 创建与常用渲染扩展，原生 GPU 验收仍受当前适配器环境限制；尚未发布 npm。以代码说明实现，以需求说明目标，不把建议写成已完成。
 
 - [需求与验收](docs/REQUIREMENTS.md)：已确认范围、建议 MVP、待决策事项。
 - [架构](docs/ARCHITECTURE.md) / [详细设计](docs/SDD.md)：当前结构与建议方案。
@@ -66,6 +66,11 @@
 
 - [包、文档与示例](docs/adr/0047-package-docs-examples.md)：公开入口保留、私有实现分组、正式示例与VitePress。
 
+- [渲染扩展统一决策](docs/adr/0051-renderer-feature-parity.md)：跨后端后处理、特效、阴影、环境与截图。
+- [正式 API 决策](docs/adr/0050-public-app-api.md)：统一 renderer 配置、实际类身份、renderOnce/destroy 与迁移规则。
+- [统一创建决策](docs/adr/0049-unified-app-creation.md)：ThreeApp.create 的后端选择、回退、精确类型和按需加载。
+- [WebGPU 基础宿主决策](docs/adr/0048-webgpu-host.md)：可选异步入口、共用生命周期与独立后端验收。
+
 ## 工作流程与约束
 
 1. 读取相关文档与代码，定位需求编号，明确本次实现和验证范围。
@@ -73,7 +78,7 @@
 3. 保留用户未提交变更；最小修改，不擅自迁移模板、升级依赖、提交推送或发布 npm。
    用户明确不做任何 CI：不新增或启用 CI 工作流，不修改 GitHub Actions 组织或仓库设置；仅使用本地验证命令。
 4. examples为正式示例，apps/website为回归playground，apps/docs为VitePress；共享资产在fixtures。库不得反向依赖应用、Store、业务别名或固定DOM选择器。新库代码用TypeScript和显式类型，复用现有Vite+。
-5. 核心使用 Three.js 0.187.0，peer 为 >=0.187.0 <0.188.0，ESM + 声明，WebGL 2；浏览器完整支持矩阵仍待确认。新增/修改 API 先核验对应官方文档，不默认采用 Skill 或旧项目版本。
+5. 核心使用 Three.js 0.187.0，peer 为 >=0.187.0 <0.188.0，ESM + 声明，默认 WebGL 2、可选 WebGPU 基础宿主；浏览器完整支持矩阵仍待确认。新增/修改 API 先核验对应官方文档，不默认采用 Skill 或旧项目版本。
 6. 核心渲染循环、资源所有权、多实例、异步完成与销毁竞争是重点设计项；不可直接整包复制旧实现。具体契约仍以 SDD 状态为准。
 7. 不读取或写入真实密钥；不把模型解密密钥、业务路径、私有模型和第三方未核验源码带入通用库。
 8. 根据 [Harness](docs/HARNESS.md) 运行适用检查；报告真实结果、失败与限制。GPU 行为不能用构建成功代替验收。

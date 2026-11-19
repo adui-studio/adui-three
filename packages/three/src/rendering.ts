@@ -7,7 +7,7 @@ import {
   NoToneMapping,
   ReinhardToneMapping,
 } from "three";
-import type { AnyThreeApp } from "./core/three-app.ts";
+import type { SceneApp } from "./core/three-app.ts";
 import type { ResourceScope } from "./core/resources.ts";
 import { isRendererDrawing, retireAfterRender } from "./core/render-retirement.ts";
 export type ToneMappingMode =
@@ -71,7 +71,7 @@ function snapshot(
   return { toneMapping, exposure };
 }
 export function attachRendererSettings(
-  app: AnyThreeApp,
+  app: SceneApp,
   options: RendererSettingsOptions = {},
 ): RendererSettingsHandle {
   const renderer = app.renderer;

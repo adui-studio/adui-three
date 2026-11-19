@@ -8,8 +8,8 @@ import {
 import { addBox, addGround, button, createScene } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
 import { Vector3 } from "three";
-export function mount(context: ExampleContext) {
-  const app = createScene(context.container, { orbit: false }),
+export async function mount(context: ExampleContext) {
+  const app = await createScene(context.container, { orbit: false }),
     orbit = attachOrbitControls(app);
   addGround(app);
   const left = addBox(app, new Vector3(-2, 0.75, 0)),
@@ -23,7 +23,7 @@ export function mount(context: ExampleContext) {
   });
   button(app, context.tools, "恢复视角", () => {
     restoreCameraView(app, view, { controls: orbit.controls });
-    app.render();
+    app.renderOnce();
   });
   context.status("相机过渡复用宿主时钟；拖动轨道控件会交接控制。");
   app.start();

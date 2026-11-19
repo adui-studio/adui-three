@@ -1,18 +1,19 @@
 import "./style.css";
 import { examples } from "./catalog.ts";
-import type { ThreeApp } from "@adui/three";
+import type { SceneApp } from "@adui/three";
 const docs = import.meta.env.DEV ? "http://127.0.0.1:5174/" : "../";
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 <header><a href="./" class="brand" data-home>adui<span>/</span>three</a><nav><a href="${docs}" target="_blank" rel="noreferrer">文档 ↗</a><a href="https://github.com/adui-studio/adui-three" target="_blank" rel="noreferrer">GitHub ↗</a></nav></header>
 <main><section class="home"><div class="eyebrow">EXAMPLES · 0.0.0</div><h1>从一个场景开始。</h1><p class="lead">小而完整的示例，清楚的资源归属。<br>选择一个主题，在真实画面与源码之间理解 @adui/three。</p><div class="catalog">${examples.map((item, i) => `<a class="example-card" href="?example=${item.id}" data-example="${item.id}"><span class="card-index">0${i + 1} / ${item.tag}</span><h2>${item.title}<span>↗</span></h2><p>${item.description}</p></a>`).join("")}</div></section>
 <section class="detail" hidden><div class="detail-heading"><div><a href="./" class="back" data-home>← 全部示例</a><h1 data-title></h1><p data-description></p></div><span class="live-state" data-state>ready</span></div><div class="viewport" aria-label="示例画布"></div><div class="toolbar"><button data-command="start">运行</button><button data-command="stop">暂停</button><button data-command="render">绘制一帧</button><button data-command="dispose">销毁</button><button data-command="rebuild">重建</button></div><div class="tools" aria-label="示例操作"></div><details class="source"><summary>查看示例源码</summary><p>只使用公开包入口。场景辅助位于 examples/src/shared.ts。</p><pre><code></code></pre></details></section>
-<p class="status" role="status"></p></main><footer><span>@adui/three · 早期开发版本，尚未发布 npm</span><span>Three.js r187 / WebGL 2</span></footer>`;
+<p class="status" role="status"></p></main><footer><span>@adui/three · 早期开发版本，尚未发布 npm</span><span>Three.js r187 / WebGL 2 + 可选 WebGPU</span></footer>`;
 const home = document.querySelector<HTMLElement>(".home")!,
   detail = document.querySelector<HTMLElement>(".detail")!,
   viewport = document.querySelector<HTMLElement>(".viewport")!,
   tools = document.querySelector<HTMLElement>(".tools")!,
   status = document.querySelector<HTMLElement>(".status")!;
-let current: ThreeApp | undefined,
+let pending = new AbortController();
+let current: SceneApp | undefined,
   activeId: string | undefined,
   generation = 0;
 function refresh(): void {
@@ -24,7 +25,10 @@ function refresh(): void {
 }
 async function open(id: string | null, history = false): Promise<void> {
   const request = ++generation;
-  current?.dispose();
+  pending.abort();
+  pending = new AbortController();
+  const signal = pending.signal;
+  void current?.destroy().catch((error) => console.error(error));
   current = undefined;
   tools.replaceChildren();
   viewport.replaceChildren();
@@ -53,7 +57,8 @@ async function open(id: string | null, history = false): Promise<void> {
   try {
     const [module, source] = await Promise.all([item.load(), item.source()]);
     if (request !== generation) return;
-    const app = module.mount({
+    const app = await module.mount({
+      signal,
       container: viewport,
       tools,
       status: (message) => {
@@ -61,7 +66,7 @@ async function open(id: string | null, history = false): Promise<void> {
       },
     });
     if (request !== generation) {
-      app.dispose();
+      await app.destroy();
       return;
     }
     current = app;
@@ -101,8 +106,11 @@ document.addEventListener(
     if (!current) return;
     if (command === "start") current.start();
     else if (command === "stop") current.stop();
-    else if (command === "render") current.render();
-    else if (command === "dispose") current.dispose();
+    else if (command === "render") current.renderOnce();
+    else if (command === "dispose")
+      void current.destroy().catch((error) => {
+        status.textContent = String(error);
+      });
     refresh();
   },
   { signal: listeners.signal },
@@ -118,14 +126,16 @@ window.addEventListener(
   "pagehide",
   () => {
     generation++;
-    current?.dispose();
+    pending.abort();
+    void current?.destroy().catch((error) => console.error(error));
   },
   { signal: listeners.signal },
 );
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
     generation++;
+    pending.abort();
     listeners.abort();
-    current?.dispose();
+    void current?.destroy().catch((error) => console.error(error));
   });
 void open(new URLSearchParams(location.search).get("example"));

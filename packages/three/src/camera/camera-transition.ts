@@ -1,7 +1,7 @@
 import { Matrix4, Quaternion, Vector3 } from "three";
 import type { Object3D, PerspectiveCamera, OrthographicCamera } from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { AnyThreeApp, ThreeApp, OrthographicThreeApp } from "../core/three-app.ts";
+import type { SceneApp, PerspectiveSceneApp, OrthographicSceneApp } from "../core/three-app.ts";
 import { prepareObjectFrame } from "./camera-frame.ts";
 import { prepareOrthographicFrame } from "./camera-orthographic.ts";
 import type { OrthographicObjectFrame } from "./camera-orthographic.ts";
@@ -49,9 +49,9 @@ export interface CameraTransitionHandle<F extends ObjectFrame = ObjectFrame> {
   resume(this: void): void;
 }
 
-/** Snapshot-based transition driven only by ThreeApp.onUpdate, with one motion per camera. */
+/** Snapshot-based transition driven only by PerspectiveSceneApp.onUpdate, with one motion per camera. */
 export function transitionToObject(
-  app: ThreeApp,
+  app: PerspectiveSceneApp,
   object: Object3D,
   options: CameraTransitionOptions = {},
 ): CameraTransitionHandle {
@@ -60,7 +60,7 @@ export function transitionToObject(
 
 /** Orthographic variant: interpolate native zoom alongside the shared camera motion. */
 export function transitionOrthographicToObject(
-  app: OrthographicThreeApp,
+  app: OrthographicSceneApp,
   object: Object3D,
   options: CameraTransitionOptions = {},
 ): CameraTransitionHandle<OrthographicObjectFrame> {
@@ -82,7 +82,7 @@ interface PreparedFrame<F extends ObjectFrame> {
 }
 
 function transitionFrame<F extends ObjectFrame>(
-  app: AnyThreeApp,
+  app: SceneApp,
   options: CameraTransitionOptions,
   prepare: () => PreparedFrame<F>,
   zoomTarget?: (frame: F) => number,
@@ -92,7 +92,7 @@ function transitionFrame<F extends ObjectFrame>(
   if (!Number.isFinite(duration) || duration <= 0)
     throw new RangeError("duration must be positive and finite");
   if (app.state === "disposed" || app.resources.disposed)
-    throw new Error("ThreeApp has been disposed");
+    throw new Error("PerspectiveSceneApp has been disposed");
   const cancelled = (): CameraTransitionHandle<F> => ({
     state: "cancelled",
     progress: 0,

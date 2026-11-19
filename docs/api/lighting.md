@@ -1,5 +1,7 @@
 # 灯光与阴影
 
+WebGL / WebGPU 共用 attachShadowLight 与 basic / pcf / vsm 选项。节点渲染器通过 light.shadow 控制更新，释放 light 时由原生节点清理阴影及 VSM 目标；不写入 WebGL 专属的 renderer.shadowMap.autoUpdate/needsUpdate。
+
 ## 方向光实时阴影
 
 lighting 入口的 attachShadowLight 参考 Editor 的实时渲染路线，复用原生 PCF / VSM、DirectionalLight 与正交阴影相机。效果取决于实体与接收面、场景单位、灯光方向、PBR材质和环境填充；当前不包含 Editor Realistic 路径追踪。

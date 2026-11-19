@@ -2,9 +2,9 @@
 
 ## 组成
 
-catalog.ts登记惰性模块、标题与原始源码。cases模块导出mount(context)，返回自有ThreeApp；shared.ts只包含场景和DOM辅助。
+catalog.ts登记惰性模块、标题与原始源码。cases模块导出mount(context)，返回Promise<SceneApp>，统一使用ThreeApp.create；shared.ts只包含场景和DOM辅助。
 
-画廊先结束旧实例，并以请求版本防止迟到模块覆盖页面；模型和动画继续使用SDK资源生命周期。
+异步示例使用 context.signal 取消尚未完成的初始化；挂载后由宿主 signal 管理任务。画廊先取消旧初始化并结束旧实例，并以请求版本防止迟到模块覆盖页面；模型和动画继续使用SDK资源生命周期。
 
 ## 新增主题
 
@@ -16,6 +16,6 @@ catalog.ts登记惰性模块、标题与原始源码。cases模块导出mount(co
 
 ## 生命周期
 
-不要另建RAF。工具栏只调宿主start/stop/render/dispose；动画暂停与宿主暂停需区分。
+不要另建RAF。工具栏只调宿主start/stop/renderOnce/destroy；动画暂停与宿主暂停需区分。
 
 DOM标签的元素、样式、表单和事件归示例，标签句柄只管理投影与挂载；框架根若加入需自己卸载。

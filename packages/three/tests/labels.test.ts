@@ -3,6 +3,27 @@ import { Group, Object3D, OrthographicCamera, PerspectiveCamera, Scene, Vector3 
 import type { ThreeApp, ThreeAppState } from "../src/index.ts";
 import { ResourceScope } from "../src/core/resources.ts";
 import { attachDOMLabels } from "../src/labels.ts";
+import { WebGPUCoordinateSystem } from "three";
+
+test.each([
+  () => new PerspectiveCamera(50, 2, 1, 10),
+  () => new OrthographicCamera(-2, 2, 1, -1, 1, 10),
+])("WebGPU depth clips anchors before the near plane in both camera projections", (create) => {
+  const camera = create();
+  camera.coordinateSystem = WebGPUCoordinateSystem;
+  camera.updateProjectionMatrix();
+  const env = fixture(camera);
+  env.add();
+  expect(env.wrapper().hidden).toBe(false);
+  // GPU near NDC is zero; this point is negative but would pass WebGL's -1 check.
+  env.target.position.z = 4.25;
+  env.layer.update();
+  expect(env.wrapper().hidden).toBe(true);
+  env.target.position.z = -6;
+  env.layer.update();
+  expect(env.wrapper().hidden).toBe(true);
+  env.layer.dispose();
+});
 
 // A small DOM adapter; actual layout, hit testing and ResizeObserver run in browser tests.
 class ElementStub {

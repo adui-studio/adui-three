@@ -4,6 +4,14 @@
 
 ## 已存在文件
 
+跨后端扩展：私有 [features 注册](../packages/three/src/core/webgpu-features.ts)、[TSL 材质与 PMREM](../packages/three/src/webgpu/features.ts)、[节点后处理](../packages/three/src/webgpu/postprocessing.ts) 和 [共用参数校验](../packages/three/src/postprocessing/options.ts)。回归在 [生命周期单测](../packages/three/tests/webgpu-features.test.ts)、[像素测试](../tests/browser/webgpu-features.spec.ts) 与 [双后端页面](../apps/website/src/webgpu-features.ts)。
+
+正式配置类型位于 [app-options.ts](../packages/three/src/core/app-options.ts)，主工厂与统一类位于 [three-app.ts](../packages/three/src/core/three-app.ts)；[webgpu-host.ts](../packages/three/src/core/webgpu-host.ts) 是私有异步准备实现，不单独导出。
+
+统一创建位于 [three-app.ts](../packages/three/src/core/three-app.ts)：ThreeApp.create 按需导入 WebGPU，保留同步构造。相关取消/快照单测在 [three-app.test.ts](../packages/three/tests/three-app.test.ts)，公开用法见 [后端选择](api/webgpu.md)。
+
+WebGPU私有实现 [webgpu-host.ts](../packages/three/src/core/webgpu-host.ts) 共用 [SceneHost](../packages/three/src/core/scene-host.ts) 和 [透视镜头](../packages/three/src/core/perspective-camera.ts)；[单测](../packages/three/tests/webgpu.test.ts)、[浏览器回归](../tests/browser/webgpu.spec.ts)、[正式示例](../examples/src/cases/webgpu.ts) 与 [回归页面](../apps/website/src/webgpu.ts) 分别覆盖生命周期和实际后端。
+
 工程入口：[目录边界](development/package-layout.md)、[正式示例](../examples/README.md)、[VitePress](../apps/docs/README.md)、[共享资产](../fixtures/README.md)。SDK公开入口保留根级，私有实现按职责分组，以下源码链接已同步。
 
 | 入口                                                                                                                                                                                      | 职责                                                |

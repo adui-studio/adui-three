@@ -1,7 +1,7 @@
 import { MathUtils, Vector3 } from "three";
 import type { Box3, Object3D, PerspectiveCamera } from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { ThreeApp } from "../core/three-app.ts";
+import type { PerspectiveSceneApp } from "../core/three-app.ts";
 import { computeObjectBounds } from "../geometry/object-bounds.ts";
 
 export interface ObjectFrameOptions {
@@ -113,13 +113,13 @@ interface PreparedObjectFrame {
 }
 
 export function prepareObjectFrame(
-  app: ThreeApp,
+  app: PerspectiveSceneApp,
   object: Object3D,
   options: FitObjectOptions = {},
 ): PreparedObjectFrame {
   const active = (): void => {
     if (app.state === "disposed" || app.resources.disposed)
-      throw new Error("ThreeApp has been disposed");
+      throw new Error("PerspectiveSceneApp has been disposed");
     if (app.size.width <= 0 || app.size.height <= 0)
       throw new Error("A nonzero viewport is required");
   };

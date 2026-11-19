@@ -1,5 +1,5 @@
 import { Matrix4, OrthographicCamera, PerspectiveCamera, Quaternion, Vector3 } from "three";
-import type { AnyThreeApp } from "../core/three-app.ts";
+import type { SceneApp } from "../core/three-app.ts";
 import type { CameraView, CameraViewOptions } from "./camera-view.ts";
 import type { CameraTransitionState } from "./camera-transition.ts";
 import { resolveTransitionEasing } from "../shared/easing.ts";
@@ -59,7 +59,7 @@ function nearRotation(a: Quaternion, b: Quaternion): boolean {
 
 /** Smooth same-kind bookmark restoration. Borrows the camera/controls; never starts or draws the host. */
 export function transitionToCameraView(
-  app: AnyThreeApp,
+  app: SceneApp,
   input: CameraView,
   options: CameraViewTransitionOptions = {},
 ): CameraViewTransitionHandle {

@@ -1,3 +1,9 @@
+import type { WebGPUCanvasRenderer } from "./core/scene-host.ts";
+import { retireAfterRender } from "./core/render-retirement.ts";
+import { normalizePostprocessing } from "./postprocessing/options.ts";
+import { getWebGPUFeatures, isNodeRenderer } from "./core/webgpu-features.ts";
+import type BloomNode from "three/addons/tsl/display/BloomNode.js";
+import type OutlineNode from "three/addons/tsl/display/OutlineNode.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { BrightnessContrastShader } from "three/addons/shaders/BrightnessContrastShader.js";
 import { HueSaturationShader } from "three/addons/shaders/HueSaturationShader.js";
@@ -9,7 +15,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { OutlinePass } from "three/addons/postprocessing/OutlinePass.js";
 import type { Pass } from "three/addons/postprocessing/Pass.js";
-import type { AnyThreeApp, ViewportSize } from "./core/three-app.ts";
+import type { AnyThreeApp, SceneApp, ViewportSize } from "./core/three-app.ts";
 import { ResourceScope } from "./core/resources.ts";
 
 export interface BloomOptions {
@@ -26,6 +32,7 @@ export interface BloomOptions {
 export interface BloomHandle {
   /** Native parameters may be adjusted directly; do not dispose the owned pass yourself. */
   readonly pass: UnrealBloomPass;
+  configure(this: void, options: BloomOptions): void;
   readonly disposed: boolean;
   dispose(this: void): void;
 }
@@ -63,7 +70,21 @@ export interface PostprocessingOptions {
   outline?: OutlineOptions;
 }
 
+export interface NodePostprocessingHandle {
+  readonly bloom: BloomNode | undefined;
+  readonly outline: OutlineNode | undefined;
+  readonly disposed: boolean;
+  configure(this: void, options: PostprocessingOptions): void;
+  dispose(this: void): void;
+}
+export interface NodeBloomHandle {
+  readonly pass: BloomNode;
+  readonly disposed: boolean;
+  configure(this: void, options: BloomOptions): void;
+  dispose(this: void): void;
+}
 export interface PostprocessingHandle {
+  configure(this: void, options: PostprocessingOptions): void;
   readonly colorAdjustment: ColorAdjustmentPasses | undefined;
   readonly bloom: UnrealBloomPass | undefined;
   readonly outline: OutlinePass | undefined;
@@ -71,122 +92,56 @@ export interface PostprocessingHandle {
   dispose(this: void): void;
 }
 
-type OutlineConfiguration = Required<
-  Omit<OutlineOptions, "selectedObjects" | "visibleEdgeColor" | "hiddenEdgeColor">
-> & {
-  selectedObjects: Object3D[];
-  visibleEdgeColor: number | undefined;
-  hiddenEdgeColor: number | undefined;
-};
-
-function outlineOptions(options: OutlineOptions): OutlineConfiguration {
-  const {
-    selectedObjects = [],
-    edgeStrength = 3,
-    edgeThickness = 1,
-    edgeGlow = 0,
-    enabled = true,
-    visibleEdgeColor,
-    hiddenEdgeColor,
-  } = options;
-  if (!Array.isArray(selectedObjects) || selectedObjects.some((object) => !object?.isObject3D))
-    throw new TypeError("Outline selection requires Object3D objects");
-  if (
-    ![edgeStrength, edgeThickness, edgeGlow].every(Number.isFinite) ||
-    edgeStrength < 0 ||
-    edgeThickness < 1 ||
-    edgeThickness > 4 ||
-    edgeGlow < 0 ||
-    typeof enabled !== "boolean"
-  )
-    throw new RangeError("Invalid outline options");
-  for (const color of [visibleEdgeColor, hiddenEdgeColor])
-    if (color !== undefined && (!Number.isInteger(color) || color < 0 || color > 0xffffff))
-      throw new RangeError("Outline colors must be RGB hex integers");
-  return {
-    selectedObjects: [...selectedObjects],
-    edgeStrength,
-    edgeThickness,
-    edgeGlow,
-    enabled,
-    visibleEdgeColor,
-    hiddenEdgeColor,
-  };
-}
-
 /** Owned RenderPass → UnrealBloomPass → OutputPass pipeline; no extra scheduler or renderer replacement. */
-export function attachBloom(app: AnyThreeApp, options: BloomOptions = {}): BloomHandle {
+export function attachBloom(app: AnyThreeApp, options?: BloomOptions): BloomHandle;
+export function attachBloom(
+  app: SceneApp & { readonly renderer: WebGPUCanvasRenderer },
+  options?: BloomOptions,
+): NodeBloomHandle;
+export function attachBloom(app: SceneApp, options?: BloomOptions): BloomHandle | NodeBloomHandle;
+export function attachBloom(
+  app: SceneApp,
+  options: BloomOptions = {},
+): BloomHandle | NodeBloomHandle {
   const effects = attachPostprocessing(app, { bloom: options });
   return {
     pass: effects.bloom!,
+    configure: (value: BloomOptions) => effects.configure({ bloom: value }),
     get disposed() {
       return effects.disposed;
     },
     dispose: effects.dispose,
-  };
+  } as BloomHandle | NodeBloomHandle;
 }
 
 /** One owned linear-space effect chain. At least one effect must be requested. */
 export function attachPostprocessing(
   app: AnyThreeApp,
   options: PostprocessingOptions,
-): PostprocessingHandle {
+): PostprocessingHandle;
+export function attachPostprocessing(
+  app: SceneApp & { readonly renderer: WebGPUCanvasRenderer },
+  options: PostprocessingOptions,
+): NodePostprocessingHandle;
+export function attachPostprocessing(
+  app: SceneApp,
+  options: PostprocessingOptions,
+): PostprocessingHandle | NodePostprocessingHandle;
+export function attachPostprocessing(
+  app: SceneApp,
+  options: PostprocessingOptions,
+): PostprocessingHandle | NodePostprocessingHandle {
   if (app.state === "disposed" || app.resources.disposed)
     throw new Error("ThreeApp has been disposed");
-  if (!options || typeof options !== "object")
-    throw new TypeError("Postprocessing options are required");
-  const {
-    bloom: requestedBloom,
-    outline: requestedOutline,
-    colorAdjustment: requestedColor,
-  } = options;
-  if (!options || (!requestedBloom && !requestedOutline && !requestedColor))
-    throw new RangeError("At least one effect is required");
-  for (const value of [requestedBloom, requestedOutline, requestedColor])
-    if (value !== undefined && (typeof value !== "object" || value === null))
-      throw new TypeError("Effect options must be objects");
-  const { strength = 1, radius = 0.4, threshold = 0.85, enabled = true } = requestedBloom ?? {};
-  if (
-    !Number.isFinite(strength) ||
-    strength < 0 ||
-    !Number.isFinite(threshold) ||
-    threshold < 0 ||
-    !Number.isFinite(radius) ||
-    radius < 0 ||
-    radius > 1 ||
-    typeof enabled !== "boolean"
-  )
-    throw new RangeError("Invalid bloom options");
-  const outlineConfig = requestedOutline ? outlineOptions(requestedOutline) : undefined;
-  let grade: Required<ColorAdjustmentOptions> | undefined;
-  if (requestedColor) {
-    const {
-      brightness = 0,
-      contrast = 0,
-      hue = 0,
-      saturation = 0,
-      enabled = true,
-    } = requestedColor;
-    if (
-      ![brightness, contrast, hue, saturation].every(Number.isFinite) ||
-      brightness < -1 ||
-      brightness > 1 ||
-      hue < -1 ||
-      hue > 1 ||
-      contrast < -1 ||
-      Math.fround(contrast) >= 1 ||
-      saturation < -1 ||
-      Math.fround(saturation) >= 1 ||
-      typeof enabled !== "boolean"
-    )
-      throw new RangeError("Invalid color adjustment options");
-    grade = { brightness, contrast, hue, saturation, enabled };
-  }
+  const config = normalizePostprocessing(options);
+  const { requestedBloom, outlineConfig, grade, strength, radius, threshold, enabled } = config;
+  if (isNodeRenderer(app.renderer)) return getWebGPUFeatures().postprocessing(app, config);
+  const glApp = app as AnyThreeApp;
   const owned = new ResourceScope();
   let disposed = false;
   let executing = false;
   let detach = (): void => {};
-  const renderer = app.renderer;
+  const renderer = glApp.renderer;
   let renderPass: RenderPass | undefined;
   let bloom: UnrealBloomPass | undefined;
   let outline: OutlinePass | undefined;
@@ -251,6 +206,46 @@ export function attachPostprocessing(
     passes.push(output);
     for (const pass of passes) composer.addPass(pass);
     handle = {
+      configure(value) {
+        if (disposed || app.state === "disposed")
+          throw new Error("Postprocessing has been disposed");
+        const config = normalizePostprocessing(value);
+        if (
+          (config.requestedBloom && !bloom) ||
+          (config.outlineConfig && !outline) ||
+          (config.grade && !colorAdjustment)
+        )
+          throw new Error("Configure only effects requested at attachment");
+        retireAfterRender(renderer, () => {
+          if (disposed) return;
+          if (config.requestedBloom && bloom) {
+            bloom.strength = config.strength;
+            bloom.radius = config.radius;
+            bloom.threshold = config.threshold;
+            bloom.enabled = config.enabled;
+          }
+          if (config.outlineConfig && outline) {
+            const c = config.outlineConfig;
+            outline.selectedObjects = [...c.selectedObjects];
+            outline.edgeStrength = c.edgeStrength;
+            outline.edgeThickness = c.edgeThickness;
+            outline.edgeGlow = c.edgeGlow;
+            outline.enabled = c.enabled;
+            if (c.visibleEdgeColor !== undefined)
+              outline.visibleEdgeColor.setHex(c.visibleEdgeColor);
+            if (c.hiddenEdgeColor !== undefined) outline.hiddenEdgeColor.setHex(c.hiddenEdgeColor);
+          }
+          if (config.grade && colorAdjustment) {
+            const c = config.grade;
+            colorAdjustment.brightnessContrast.uniforms.brightness!.value = c.brightness;
+            colorAdjustment.brightnessContrast.uniforms.contrast!.value = c.contrast;
+            colorAdjustment.hueSaturation.uniforms.hue!.value = c.hue;
+            colorAdjustment.hueSaturation.uniforms.saturation!.value = c.saturation;
+            colorAdjustment.brightnessContrast.enabled = colorAdjustment.hueSaturation.enabled =
+              c.enabled;
+          }
+        });
+      },
       colorAdjustment,
       bloom,
       outline,

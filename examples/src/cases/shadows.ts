@@ -4,8 +4,8 @@ import type { RoomEnvironmentAsset } from "@adui/three/environment";
 import { Box3, Mesh, MeshStandardMaterial, SphereGeometry, Vector3 } from "three";
 import { addBox, addGround, button, createScene, select } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
-export function mount(context: ExampleContext) {
-  const app = createScene(context.container, { lights: false }),
+export async function mount(context: ExampleContext) {
+  const app = await createScene(context.container, { lights: false }),
     floor = addGround(app),
     box = addBox(app, new Vector3(-1, 0.75, 0), 0xd9894d);
   const sphere = new Mesh(

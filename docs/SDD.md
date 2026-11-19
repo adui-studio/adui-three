@@ -2,9 +2,9 @@
 
 ## 当前实现
 
-核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`OrthographicThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing、environment、textures、capture、geometry 分别提供控制器/变换、模型加载、拾取、DOM 标签、动画/定位、取景、泛光/描边、HDR 环境、独立图片纹理、画布截图和实例化网格。可选 collision、navigation、effects、lighting、rendering 覆盖静态 BVH、角色导航、动态特效、阴影与渲染配置，完整共 17 个公开入口。examples 与 website 使用工作区公开入口，apps/docs 呈现正式文档。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
+核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`OrthographicThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing、environment、textures、capture、geometry 分别提供控制器/变换、模型加载、拾取、DOM 标签、动画/定位、取景、泛光/描边、HDR 环境、独立图片纹理、画布截图和实例化网格。可选 collision、navigation、effects、lighting、rendering 覆盖静态 BVH、角色导航、动态特效、阴影与渲染配置，通过主入口按需选择 WebGPU，保留原始17个公开入口。examples 与 website 使用工作区公开入口，apps/docs 呈现正式文档。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
 
-核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画扩展见 [ADR-0004](adr/0004-animation-lifecycle.md)。完整选项、默认值和示例以 [API 参考](api/index.md) 与导出类型为准；已通过可选泛光模块接入自有 composer；尚无寻路、框架适配或 WebGPU 实现。
+核心决策见 [ADR-0002](adr/0002-core-mvp.md)，模型阶段见 [ADR-0003](adr/0003-gltf-lifecycle.md)，动画扩展见 [ADR-0004](adr/0004-animation-lifecycle.md)。完整选项、默认值和示例以 [API 参考](api/index.md) 与导出类型为准；已通过可选泛光模块接入自有 composer；尚无寻路、框架适配；WebGPU 基础宿主见 ADR-0048，原生 GPU 验收受环境限制。
 
 ## 核心 API
 
@@ -377,6 +377,10 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-061  | 常用特效契约                      | effects.ts、特效合集演示                         | 原生形状/参数单测、双相机像素/泛光/资源基线                |
 | FR-062  | 点云飞线与流光契约                | Points/路径带和共用EffectPlayback                | 采样快照/数量边界、真实点绘制、循环清理和包声明            |
 | FR-063  | 包/文档/示例工程契约              | 分组实现、examples、apps/docs、共享fixtures      | 单测/打包/既有GPU与站点验证                                |
+| FR-064  | 可选 WebGPU 基础宿主契约          | webgpu、共用 SceneHost 与 SceneApp               | 异步单测/打包/节点回退，原生GPU需适配器验收                |
+| FR-065  | ThreeApp统一创建契约              | ThreeApp.create / rendererType / options         | 参数快照、取消、类型收窄、真实浏览器与示例                 |
+| FR-067  | 跨后端扩展契约                    | 共用公开模块、私有TSL/PMREM与configure           | 节点图/时钟/生命周期、像素/裁剪/阴影/回收和类型消费        |
+| FR-066  | 正式宿主API契约                   | app-options、ThreeApp统一类、私有WebGPU准备      | 配置/身份/生命周期、17入口、GPU与正式示例                  |
 | NFR-001 | 需求追踪、验证设计                | 文档校验、Harness、浏览器耗时 reporter           | 静态检查、运行报告与人工审阅                               |
 | NFR-002 | 当前实现、释放与边界              | 主包 exports/peer/打包                           | 构建、Node 导入、包文件检查、浏览器                        |
 
@@ -486,4 +490,40 @@ attachFlowLine(app,FlowLineOptions):EffectHandle含curve、width=.12、segments=
 
 ## 包、文档与示例工程契约
 
-SDK导出与运行时接口不变，内部实现分组。examples的mount(context)返回自有ThreeApp，画廊结束旧宿主后加载候选，以版本隔离迟到模块；仅消费公开包名，共用fixtures。旧apps/website保留回归。apps/docs以docs为内容源，API从包README迁入17个主题，源码包含指向实际examples文件；源码链接转GitHub，Markdown禁原始HTML，保留死链检查。示例通过受控生成目录嵌入/play/，SSR不执行SDK。见[ADR-0047](adr/0047-package-docs-examples.md)。
+既有SDK导出与运行时接口保留，内部实现分组。examples的mount(context)返回自有SceneApp或Promise<SceneApp>，画廊取消旧初始化并结束旧宿主后加载候选，以版本隔离迟到模块；仅消费公开包名，共用fixtures。旧apps/website保留回归。apps/docs以docs为内容源，API主题包含新增WebGPU，源码包含指向实际examples文件；源码链接转GitHub，Markdown禁原始HTML，保留死链检查。示例通过受控生成目录嵌入/play/，SSR不执行SDK。见[ADR-0047](adr/0047-package-docs-examples.md)与[ADR-0048](adr/0048-webgpu-host.md)。
+
+## 可选 WebGPU 基础宿主契约
+
+WebGPU私有初始化位于core/webgpu-host，通过ThreeApp.create选择renderer.type=webgpu后按需加载。仅在renderer.init完成后构造同一ThreeApp宿主并交付，不导出另一创建入口或宿主类。maxDelta/maxPixelRatio和透视镜头默认与WebGL一致，不接收外部canvas/context/device。
+
+初始化完成前不挂载、不调度；signal仅取消创建，立即拒绝并在原生完成后清理迟到结果。成功后解除创建监听。renderer.onDeviceLost/contextlost结束宿主并保留contextLost，调用方显式重建。失败/取消的迟到清理通过onCleanupError报告；r187 init拒绝后的原生dispose仍可能拒绝，不能保证未返回部分分配全部回收。
+
+postprocessing/effects/lighting/rendering/capture/Room已按FR-067接通节点实现；labels按实际WebGPU坐标系使用[0,1]深度。公共模块与回退像素验证不表示原生GPU扩展已验收。资源原则见[ADR-0048](adr/0048-webgpu-host.md)，当前公开契约以[ADR-0050](adr/0050-public-app-api.md)为准。
+
+## ThreeApp 统一创建契约
+
+主入口ThreeApp.create(container,options?:ThreeAppCreateOptions)，renderer.type默认webgl，可选webgpu；GPU renderer.allowFallback默认true，false要求原生WebGPU。字面量返回精确泛型ThreeApp，动态配置返回ThreeAppInstance，并按rendererType收窄；backend报告实际图形API。
+
+配置和position在按需导入前复制；导入期间取消不启动迟到初始化，导入后交接给原生初始化流程。WebGL挂载中同步取消回滚新宿主；成功后signal不控制实例生命周期。低层方案沿革见[ADR-0049](adr/0049-unified-app-creation.md)，正式名称与迁移见[ADR-0050](adr/0050-public-app-api.md)。
+
+## 正式宿主 API 契约
+
+当前正式入口 ThreeApp.create(container,options?:ThreeAppCreateOptions)，renderer.type=webgl/webgpu（默认webgl），WebGPU renderer.allowFallback 默认true；配置复制与取消沿用已有生命周期。输入不接受顶层 backend/fallback/rendererType，阶段性名称迁移见 ADR-0050。
+
+两条路径为同一个实际类，由统一 ThreeAppHost 实现与公开 ThreeApp 构造签名承载；同步构造固定WebGL，异步工厂返回精确 ThreeApp<"webgl"> / ThreeApp<"webgpu">，动态返回 ThreeAppInstance。内部 PreparedWebGPUHost 只移交已初始化 renderer、camera、清理与丢失回调，不公开另一宿主类；instanceof ThreeApp成立。WebGPU内部实现位于core/webgpu-host，原始17个公开入口保持。
+
+renderOnce():boolean 表达单次绘制，复用既有绘制契约；destroy():Promise<void> 调用即同步结束并等待原生清理，复用已验证的disposeAsync执行器。dispose仍服务同步资源协议，render/disposeAsync作为已有低层兼容保留。9个正式示例与主指南统一create/renderOnce/destroy。正式配置类型与迁移对照见 [ADR-0050](adr/0050-public-app-api.md)、[API](api/webgpu.md)，设备验收限制仍按Harness记录。
+
+## 跨后端扩展契约（FR-067）
+
+本节更新前述仅 WebGL 的阶段性边界。postprocessing、effects、lighting、rendering、environment 和 capture 接受 SceneApp；原有 WebGL 精确签名保留，已知 GPU 宿主推断节点句柄和材质，动态宿主返回共同可用协议。17 个公开入口不变，TSL 工厂由私有 WebGPU 初始化安装；不创建第二 renderer 或循环。
+
+attachPostprocessing / attachBloom 的 configure 在两种后端同名同选项。只允许配置最初请求的效果；未列出的效果保留，列出的效果按完整描述及默认值替换（outline 的 selectedObjects 默认空，颜色缺省保留原值）。所有选项先校验和快照，绘制期更新在退休边界应用；销毁跳过待应用项。原生 WebGL pass 与 TSL node 只作后端特定访问，不承诺互换。管线顺序为 scene → outline → bloom → brightness/contrast → hue/saturation → 单次输出变换。
+
+节点 RenderPipeline 只销毁其 quad 材质，宿主扩展显式拥有 scene pass、BloomNode、OutlineNode。dispose 立即解除管线，GPU 释放延迟到原生绘制结束；绘制异常恢复 renderer 设置、scene 名称/背景/override 和可见性。pass 节点每帧读取当前尺寸；无额外 resize 目标或 RAF。
+
+八种特效保留参数、phase/暂停/定位/速度/scope。WebGPU 使用纯 TSL 的 MeshBasicNodeMaterial；飞点用 PointsNodeMaterial 与实例化面片，每点一个中心及进度属性，size 保持物理像素，避免原生 point-list 的尺寸限制。材质和独立 buffer 显式清理；不使用全局 time 驱动第二时钟。
+
+节点 renderer.shadowMap 没有 WebGL 的 autoUpdate/needsUpdate 字段；更新只写 light.shadow。原生 light.dispose 负责节点 Shadow/VSM 全部目标，不重复手动销毁。Room 内部选择对应 PMREMGenerator，恢复 renderer 状态并清理临时生成器；已产生输出遇到清理失败也释放。原生 fromScene 抛出前未返回的内部目标仍无法通过公开 API 回收。
+
+截图共用同任务 drawImage 复制与编码取消；节点路径不检查 WebGL context。WebGPU 宿主在绘制内 destroy 立即失效，但原生 renderer.dispose 退休后才执行，destroy Promise 等待它完成。详见 [ADR-0051](adr/0051-renderer-feature-parity.md)。

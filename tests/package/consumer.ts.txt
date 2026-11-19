@@ -268,3 +268,70 @@ export function consumePointFlight(app: ThreeApp) {
  points.points.position.y = 1;
  for(const handle of playbacks) { handle.pause(); handle.seek(.5); handle.resume(); handle.dispose(); }
 }
+export async function consumeWebGPU(container: HTMLElement, overlay: HTMLElement) {
+  const app: ThreeApp<"webgpu"> = await ThreeApp.create(container, { renderer: { type: "webgpu", allowFallback: true } });
+  const backend: "webgpu" | "webgl2" = app.backend;
+  const renderer: import("three/webgpu").WebGPURenderer = app.renderer;
+  void [backend, renderer];
+  const orbit = attachOrbitControls(app);
+  const model = await loadGLTF(app, "/model.glb");
+  fitObject(app, model.scene, { controls: orbit.controls });
+  const motion = transitionToObject(app, model.scene);
+  motion.cancel();
+  attachGLTFAnimations(app, model);
+  attachPicking(app, { objects: () => [model.scene] });
+  attachDOMLabels(app, overlay);
+  const glow = attachBloom(app);
+  const strength: number = glow.pass.strength.value;
+  glow.configure({strength: 2});
+  glow.dispose();
+  const fx = attachPostprocessing(app, {outline: {selectedObjects: [model.scene]}, colorAdjustment: {}});
+  fx.configure({colorAdjustment: {hue: .2}});
+  fx.dispose();
+  const settings = attachRendererSettings(app); settings.dispose();
+  const environment = createRoomEnvironment(app); environment.dispose();
+  const nodeEffect = attachRipple(app);
+  const native: import("three/webgpu").MeshBasicNodeMaterial = nodeEffect.mesh.material;
+  nodeEffect.dispose(); void [strength,native];
+  await captureFrame(app);
+  await app.destroy();
+}
+
+import type { ThreeAppCreateOptions } from "@adui/three";
+export async function consumeUnifiedFactory(container: HTMLElement, options: ThreeAppCreateOptions) {
+  const gl = await ThreeApp.create(container, { renderer: { type: "webgl" } });
+  const glRenderer: import("three").WebGLRenderer = gl.renderer;
+  const gpu = await ThreeApp.create(container, { renderer: { type: "webgpu", allowFallback: false } });
+  const gpuRenderer: import("three/webgpu").WebGPURenderer = gpu.renderer;
+  if (gpu instanceof ThreeApp) {
+    const preserved: import("three/webgpu").WebGPURenderer = gpu.renderer;
+    void preserved;
+  }
+  const dynamic = await ThreeApp.create(container, options);
+  if (dynamic.rendererType === "webgl") attachBloom(dynamic);
+  // @ts-expect-error WebGPU uses the asynchronous factory.
+  new ThreeApp(container, { renderer: { type: "webgpu" } });
+  // @ts-expect-error A WebGPU renderer is not a WebGL renderer, including after fallback.
+  const wrong: import("three").WebGLRenderer = gpu.renderer;
+  void [glRenderer, gpuRenderer, wrong];
+  await gl.destroy(); await gpu.destroy(); await dynamic.destroy();
+  // @ts-expect-error A GPU instance cannot be constructed before async initialization.
+  new ThreeApp<"webgpu">(container);
+  const drawn: boolean = gl.renderOnce(); void drawn;
+  await gl.destroy();
+}
+
+export function synchronousConstructorKeepsWebGL(container: HTMLElement, orthographic: boolean) {
+  const host: AnyThreeApp = orthographic ? new OrthographicThreeApp(container) : new ThreeApp(container);
+  const native: import("three").WebGLRenderer = host.renderer;
+  void native;
+  host.dispose();
+}
+
+export function inspectUnknownHost(value: unknown) {
+  if (value instanceof ThreeApp) {
+    const kind: "webgl" | "webgpu" = value.rendererType;
+    value.renderOnce();
+    void kind;
+  }
+}

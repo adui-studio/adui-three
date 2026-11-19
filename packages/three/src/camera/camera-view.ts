@@ -1,7 +1,7 @@
 import { Matrix4, OrthographicCamera, PerspectiveCamera, Quaternion, Vector3 } from "three";
 import type { Camera } from "three";
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { AnyThreeApp } from "../core/three-app.ts";
+import type { SceneApp } from "../core/three-app.ts";
 import { beginCameraWrite, cancelCameraMotion } from "./camera-runtime.ts";
 
 type Point = readonly [number, number, number];
@@ -84,7 +84,7 @@ function readView(input: CameraView): CameraView {
     throw new RangeError("Invalid camera view orthographic span");
   return { ...base, kind, top, bottom, centerX };
 }
-function active(app: AnyThreeApp): void {
+function active(app: SceneApp): void {
   if (app.state === "disposed" || app.resources.disposed)
     throw new Error("ThreeApp has been disposed");
 }
@@ -197,7 +197,7 @@ function orbitPose(view: CameraView): void {
 }
 
 /** Copy current configuration into independent JSON-compatible numbers. Does not sample or draw. */
-export function captureCameraView(app: AnyThreeApp, options: CameraViewOptions = {}): CameraView {
+export function captureCameraView(app: SceneApp, options: CameraViewOptions = {}): CameraView {
   active(app);
   const controls = options.controls,
     camera = supported(app.camera);
@@ -249,7 +249,7 @@ export interface PreparedCameraView {
 
 /** Internal common preflight. Call under the camera write lock; no host or control writes. */
 export function prepareCameraView(
-  app: AnyThreeApp,
+  app: SceneApp,
   input: CameraView,
   options: CameraViewOptions = {},
 ): PreparedCameraView {
@@ -313,7 +313,7 @@ export function prepareCameraView(
 
 /** Restore for the current CSS aspect. Native orbit angle limits may adjust the resulting pose. */
 export function restoreCameraView(
-  app: AnyThreeApp,
+  app: SceneApp,
   input: CameraView,
   options: CameraViewOptions = {},
 ): CameraView {
