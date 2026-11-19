@@ -1,4 +1,4 @@
-# @adui/three 示例
+# ADui Three 示例
 
 9 个可独立阅读的场景，直接消费公开 SDK 入口。每个主题同时提供运行画面和实际源码；画廊负责切换、取消旧初始化、销毁与重建。
 
@@ -40,3 +40,7 @@ pnpm run dev
 新增主题时在 src/cases 导出 async mount(context)，返回自有 SceneApp；登记 [catalog](src/catalog.ts)，再在 docs/examples 引用真实源码。控件、效果和事件沿用宿主生命周期，不另建 RAF。修改后运行 ready 和 test:site，涉及 SDK 或渲染行为时按 [Harness](../docs/HARNESS.md) 补充验证。
 
 正式使用说明见 [文档目录](../docs/examples/index.md)，集成竞争与资源诊断见 [website](../apps/website/README.md)。
+
+## 界面与品牌
+
+使用用户提供的 ADui Three 横向标志，技术包名保持 @adui/three。共享基础令牌与原创静态几何预览不进入 SDK，设计和可访问性维护见[界面设计与品牌](../docs/development/visual-design.md)。

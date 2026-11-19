@@ -16,7 +16,7 @@ test("VitePress renders guides and API on the server, navigates and searches loc
   expect(html.ok()).toBe(true);
   expect(await html.text()).toContain("attachFlyPoints");
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /清晰的场景生命周期/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /为三维场景，\s*建立清晰秩序/ })).toBeVisible();
   await page.screenshot({ path: "test-results/docs-home.png", fullPage: true });
   await page.getByRole("link", { name: "开始使用", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^快速开始/, level: 1 })).toBeVisible();

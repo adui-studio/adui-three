@@ -1,7 +1,7 @@
 :root {
   font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
-  color: #e8eeeb;
-  background: #0c1112;
+  color: #eeeaf4;
+  background: #15151b;
   font-synthesis: none;
   color-scheme: dark;
 }
@@ -22,14 +22,14 @@
   flex-wrap: wrap;
   gap: 7px;
   padding: 15px 24px 0;
-  border-top: 1px solid #293830;
+  border-top: 1px solid #34313d;
 }
 .animation-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
   padding: 12px 24px 0;
-  border-top: 1px solid #293830;
+  border-top: 1px solid #34313d;
 }
 .animation-actions button {
   font-size: 10px;
@@ -40,7 +40,7 @@
   align-items: center;
   gap: 8px;
   padding: 0 24px 16px;
-  color: #8fae9c;
+  color: #b0a6bd;
   font-size: 11px;
 }
 
@@ -52,7 +52,7 @@
 
 .animation-feedback {
   margin: 12px 24px 16px;
-  color: #8fae9c;
+  color: #b0a6bd;
   font-size: 10px;
   line-height: 1.7;
 }
@@ -63,7 +63,7 @@
 .model-feedback {
   padding: 0 24px 16px;
   margin: 12px 0 0;
-  color: #8fae9c;
+  color: #b0a6bd;
   font-size: 10px;
   line-height: 1.7;
   overflow-wrap: anywhere;
@@ -100,7 +100,7 @@ a:focus-visible {
   align-items: center;
   gap: 18px;
   min-height: 88px;
-  border-bottom: 1px solid #26302d;
+  border-bottom: 1px solid #34313d;
 }
 .brand {
   font-size: 25px;
@@ -108,29 +108,29 @@ a:focus-visible {
   letter-spacing: -1px;
 }
 .brand span {
-  color: #789087;
+  color: #a99cb8;
   padding: 0 7px;
   font-weight: 400;
 }
 .version {
-  color: #81948c;
+  color: #b0a6bd;
   font-size: 10px;
   letter-spacing: 1.6px;
-  border: 1px solid #34413b;
+  border: 1px solid #494151;
   border-radius: 4px;
   padding: 5px 8px;
 }
 .source {
   margin-left: auto;
   font-size: 12px;
-  color: #a7bab0;
+  color: #c3b9cf;
 }
 .intro {
   padding: 58px 0 42px;
   position: relative;
 }
 .eyebrow {
-  color: #8fbaa8;
+  color: #bba5e2;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -152,13 +152,13 @@ h1 {
   font-weight: 500;
 }
 h1 span {
-  color: #a5b8ae;
+  color: #bfb1d1;
 }
 .intro p {
   position: absolute;
   right: 0;
   bottom: 48px;
-  color: #8c9e95;
+  color: #b0a6bd;
   font-size: 13px;
   line-height: 2;
   margin: 0;
@@ -169,10 +169,10 @@ h1 span {
   gap: 22px;
 }
 .scene-card {
-  border: 1px solid #303e37;
+  border: 1px solid #37343f;
   border-radius: 12px;
   overflow: hidden;
-  background: #121a17;
+  background: #1d1c24;
   min-width: 0;
 }
 .card-heading {
@@ -183,7 +183,7 @@ h1 span {
 }
 .scene-id,
 .note-index {
-  color: #7e9a8c;
+  color: #b0a6bd;
   font-size: 9px;
   letter-spacing: 1.7px;
 }
@@ -195,8 +195,8 @@ h2 {
 .state {
   font-size: 11px;
   font-family: monospace;
-  border: 1px solid #40584a;
-  color: #b2e7c9;
+  border: 1px solid #615173;
+  color: #d2bdf9;
   padding: 5px 9px;
   border-radius: 20px;
 }
@@ -209,8 +209,8 @@ h2 {
   min-height: 340px;
   background: #11191b;
   position: relative;
-  border-top: 1px solid #263530;
-  border-bottom: 1px solid #263530;
+  border-top: 1px solid #34313d;
+  border-bottom: 1px solid #34313d;
   overflow: hidden;
 }
 .viewport {
@@ -242,8 +242,8 @@ button.scene-marker {
   white-space: nowrap;
 }
 .scene-marker[aria-pressed="true"] {
-  background: #b4e8c9;
-  color: #14261c;
+  background: #c6b6fa;
+  color: #251d3c;
 }
 .stage-hint {
   pointer-events: none;
@@ -251,7 +251,7 @@ button.scene-marker {
   bottom: 16px;
   left: 18px;
   font-size: 10px;
-  color: #70857a;
+  color: #b0a6bd;
   letter-spacing: 1px;
 }
 [data-state="disposed"] .stage::before {
@@ -274,7 +274,7 @@ button.scene-marker {
   display: grid;
   grid-template-columns: 1fr 1.5fr 0.7fr 1fr;
   padding: 20px 24px;
-  border-bottom: 1px solid #293830;
+  border-bottom: 1px solid #34313d;
   gap: 10px;
 }
 .metrics span {
@@ -303,9 +303,9 @@ button.scene-marker {
   white-space: nowrap;
 }
 button {
-  border: 1px solid #3b4d41;
+  border: 1px solid #51495e;
   background: transparent;
-  color: #b4c8bb;
+  color: #d3cdda;
   border-radius: 5px;
   padding: 8px 14px;
   font-size: 11px;
@@ -314,13 +314,13 @@ button {
     border-color 0.15s;
 }
 button:hover:not(:disabled) {
-  background: #25372c;
-  border-color: #779c85;
+  background: #312b3e;
+  border-color: #a18bc8;
 }
 button.primary {
-  background: #b4e8c9;
-  border-color: #b4e8c9;
-  color: #14261c;
+  background: #c6b6fa;
+  border-color: #c6b6fa;
+  color: #251d3c;
 }
 button:disabled {
   opacity: 0.35;
@@ -335,7 +335,7 @@ button:disabled {
 .environment-feedback,
 .camera-feedback {
   margin: 0 24px 16px;
-  color: #8fae9c;
+  color: #b0a6bd;
   font-size: 10px;
   line-height: 1.7;
 }
@@ -345,7 +345,7 @@ button:disabled {
   align-items: center;
   gap: 8px;
   margin: 0 24px 16px;
-  color: #8fae9c;
+  color: #b0a6bd;
   font-size: 10px;
 }
 .effect-actions button {
@@ -356,7 +356,7 @@ button:disabled {
   border: 0;
   font-size: 10px;
   padding: 4px 0;
-  color: #82998a;
+  color: #b0a6bd;
 }
 .resize-actions button[aria-pressed="true"] {
   color: #c9e6d4;
@@ -372,10 +372,10 @@ button:disabled {
 .notes h2 {
   margin-top: 13px;
   font-size: 13px;
-  color: #c9d9cf;
+  color: #ddd2ed;
 }
 .notes p {
-  color: #7c9484;
+  color: #aea4bb;
   line-height: 1.9;
   font-size: 11px;
   margin-bottom: 0;
@@ -383,9 +383,9 @@ button:disabled {
 footer {
   display: flex;
   justify-content: space-between;
-  border-top: 1px solid #26302d;
+  border-top: 1px solid #34313d;
   padding: 22px 0;
-  color: #657b6c;
+  color: #a69bb3;
   font-size: 10px;
 }
 @media (max-width: 900px) {
@@ -456,4 +456,72 @@ footer {
   border: 1px solid #36504a;
   border-radius: 4px;
   padding: 4px;
+}
+
+/* Shared studio chrome and accessible control sizing. */
+html[data-workbench] body {
+  background: #15151b;
+  color: #eeeaf4;
+  font-family: var(--ui-font);
+}
+html[data-workbench] .shell {
+  padding-inline: 32px;
+}
+html[data-workbench] .topbar {
+  display: none;
+}
+html[data-workbench] h1 {
+  font-weight: 600;
+  letter-spacing: -1.4px;
+  font-size: clamp(30px, 3.3vw, 46px);
+}
+html[data-workbench] .intro {
+  padding-block: 40px 32px;
+}
+html[data-workbench] .intro p {
+  position: static;
+  margin-top: 18px;
+  font-size: 14px;
+  max-width: 650px;
+}
+html[data-workbench] button,
+html[data-workbench] select {
+  min-height: 44px;
+  font-size: 12px;
+  border-radius: 7px;
+}
+html[data-workbench] .metrics strong {
+  font-family: var(--ui-mono);
+  font-variant-numeric: tabular-nums;
+}
+html[data-workbench] .metrics span {
+  font-size: 10px;
+  color: #b0a6bd;
+}
+html[data-workbench] .scene-id,
+html[data-workbench] .note-index {
+  font: 10px var(--ui-mono);
+  color: #b0a6bd;
+}
+html[data-workbench] .animation-feedback,
+html[data-workbench] .model-feedback,
+html[data-workbench] .environment-feedback,
+html[data-workbench] .camera-feedback {
+  font-size: 12px;
+}
+html[data-workbench] footer {
+  font-size: 12px;
+  line-height: 1.8;
+}
+html[data-workbench] .scene-card {
+  border-radius: 10px;
+}
+html[data-workbench] .card-heading h2 {
+  font-size: 18px;
+}
+html[data-workbench] .notes p {
+  font-size: 13px;
+}
+html[data-workbench] .actions {
+  flex-wrap: wrap;
 }

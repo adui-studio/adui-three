@@ -1,4 +1,7 @@
+import "../../../ui/tokens.css";
 import "./workbench.css";
+import brandLogo from "../../../docs/public/brand/ADui-Three-Logo.svg?url";
+import brandIcon from "../../../docs/public/brand/ADui-Three-Icon.svg?url";
 
 const scenarios = [
   ["core", "场景、模型与资源"],
@@ -16,15 +19,22 @@ const scenarios = [
 ] as const;
 
 export function mountWorkbench(demo: string | null): void {
+  const favicon = document.createElement("link");
+  favicon.rel = "icon";
+  favicon.href = brandIcon;
+  document.head.append(favicon);
+  const active = scenarios.some(([id]) => id === demo) ? demo! : "core";
   const navigation = document.createElement("aside");
   navigation.className = "workbench-nav";
   navigation.setAttribute("aria-label", "回归工作台导航");
-  navigation.innerHTML = `<div class="workbench-row"><a class="workbench-brand" href="?demo=core">adui/three <span>验证工作台</span></a><div class="workbench-links"><a href="https://github.com/adui-studio/adui-three/tree/main/examples" target="_blank" rel="noreferrer">示例源码 ↗</a><a href="https://github.com/adui-studio/adui-three/tree/main/docs" target="_blank" rel="noreferrer">使用文档 ↗</a></div></div><div class="workbench-row"><label>验证场景<select aria-label="验证场景"></select></label><label class="workbench-backend" hidden>运行模式<select aria-label="运行模式"><option value="auto">WebGPU · 允许回退</option><option value="webgl">WebGL</option><option value="webgpu">WebGPU · 严格模式</option></select></label><span class="workbench-meta">SDK v0.0.0 · Three.js r187</span></div>`;
+  navigation.innerHTML = `<a class="skip-link" href="#app">跳到主要内容</a><div class="workbench-row workbench-identity"><a class="workbench-brand" href="?demo=core" translate="no"><img src="${brandLogo}" alt="ADui Three" width="180" height="65"></a><span class="workspace-label">DEVELOPMENT STUDIO</span></div><div class="workbench-row workbench-settings"><label>验证场景<select aria-label="验证场景"></select></label><label class="workbench-backend" hidden>运行模式<select aria-label="运行模式"><option value="auto">WebGPU · 允许回退</option><option value="webgl">WebGL</option><option value="webgpu">WebGPU · 严格模式</option></select></label></div><nav class="scenario-nav" aria-label="场景目录"><span class="nav-caption">WORKSPACE / 12 SCENES</span>${scenarios.map(([id, title], i) => `<a href="?demo=${id}" ${id === active ? 'aria-current="page"' : ""}><span class="nav-number">${String(i + 1).padStart(2, "0")}</span>${title}<span class="nav-arrow" aria-hidden="true">↗</span></a>`).join("")}</nav><div class="workbench-links"><a href="https://github.com/adui-studio/adui-three/tree/main/examples" target="_blank" rel="noreferrer">正式示例 ↗</a><a href="https://github.com/adui-studio/adui-three/tree/main/docs" target="_blank" rel="noreferrer">使用文档 ↗</a><a href="https://github.com/adui-studio/adui-three" target="_blank" rel="noreferrer">GitHub ↗</a></div><span class="workbench-meta">v0.0.0 · THREE.JS r187<br>LOCAL INTEGRATION WORKBENCH</span>`;
   document.body.insertBefore(navigation, document.querySelector("#app"));
+  document.querySelector<HTMLElement>("#app")!.tabIndex = -1;
+  document.documentElement.dataset.workbench = "true";
   const select = navigation.querySelector<HTMLSelectElement>("[aria-label=验证场景]")!;
   for (const [id, title] of scenarios) select.add(new Option(title, id));
   select.value = scenarios.some(([id]) => id === demo) ? demo! : "core";
-  document.title = `@adui/three · ${select.selectedOptions[0]!.text}`;
+  document.title = `ADui Three · ${select.selectedOptions[0]!.text}`;
   select.addEventListener("change", () => {
     location.href = `?demo=${select.value}`;
   });

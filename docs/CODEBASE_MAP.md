@@ -184,3 +184,7 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 ## 常用效果合集
 
 [effects.ts](../packages/three/src/effects.ts) 现含八种效果，共用EffectPlayback与Mesh/Points挂载；[单测](../packages/three/tests/effects.test.ts)覆盖原生采样/几何及共用清理。[合集演示](../apps/website/src/effects-collection.ts)与[浏览器验证](../tests/browser/effects-collection.spec.ts)位于/?demo=effects-collection，提供点云飞线、路径流光、波纹、光柱、护罩，两类相机和可选泛光。
+
+## 应用界面与品牌
+
+`ui/tokens.css` 与 `ui/graphics.ts` 为应用层共用基础令牌和原创静态 SVG；不属于 SDK。`docs/public/brand` 保存用户提供的原始 SVG，VitePress public 与两处 Vite 应用引用同一来源。`apps/docs/.vitepress/theme/HomePage.ts` 为静态首页，默认主题、搜索和路由保持。设计记录见[界面设计与品牌](development/visual-design.md)。

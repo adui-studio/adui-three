@@ -7,6 +7,7 @@ packages/three/   可分发SDK
 examples/         正式示例与源码画廊
 apps/docs/        VitePress配置和主题
 apps/website/     集成工作台、场景导航与GPU能力诊断
+ui/              应用基础令牌与静态几何图，不进入SDK
 fixtures/        共享资产与许可
 docs/            指南、API、开发记录及ADR
 tests/           GPU浏览器、站点和包消费

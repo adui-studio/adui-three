@@ -1,4 +1,6 @@
-# @adui/three
+# ADui Three
+
+<img src="https://raw.githubusercontent.com/adui-studio/adui-three/main/docs/public/brand/ADui-Three-Logo-Preview.png" alt="ADui Three" width="360" height="130">
 
 统一 WebGL / WebGPU 场景创建、生命周期与资源管理，保留原生 scene、camera、renderer，并通过独立入口组合 Three.js 能力。
 

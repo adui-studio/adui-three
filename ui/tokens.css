@@ -1,0 +1,50 @@
+:root {
+  --ui-font: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --ui-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  --ui-bg: #f6f5f2;
+  --ui-panel: #ffffff;
+  --ui-ink: #24232b;
+  --ui-muted: #65636e;
+  --ui-line: #dddae4;
+  --ui-accent: #5b2b82;
+  --ui-soft: #eee7f4;
+  --ui-stage: #17171e;
+}
+:where(a, button, select, input, summary):focus-visible {
+  outline: 3px solid #8b74ed;
+  outline-offset: 4px;
+}
+:where(button, select, summary, a) {
+  touch-action: manipulation;
+}
+:where(h1, h2, h3) {
+  text-wrap: balance;
+}
+:where(button, select, input) {
+  font: inherit;
+}
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  transform: translateY(-180%);
+  z-index: 1000;
+  padding: 12px 20px;
+  background: #fff;
+  color: #24232b;
+  border: 2px solid #6351ce;
+  border-radius: 8px;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

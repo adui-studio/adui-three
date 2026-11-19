@@ -13,7 +13,7 @@ export async function mount(context: ExampleContext) {
     card = document.createElement("section");
   card.className = "device-label";
   card.innerHTML =
-    '<header><span class="device-dot"></span><strong>循环泵 A-01</strong></header><p>运行状态 <b data-status>正常</b></p><dl><div><dt>温度</dt><dd>42.6 ℃</dd></div><div><dt>负载</dt><dd>68%</dd></div></dl><progress max="100" value="68"></progress><label>备注 <input aria-label="设备备注" placeholder="输入备注"></label><button type="button">查看设备</button>';
+    '<header><span class="device-dot" aria-hidden="true"></span><strong>循环泵 A-01</strong></header><p>运行状态 <b data-status>正常</b></p><dl><div><dt>温度</dt><dd>42.6 ℃</dd></div><div><dt>负载</dt><dd>68%</dd></div></dl><progress aria-label="设备负载" max="100" value="68"></progress><label>备注 <input type="text" name="device-note" autocomplete="off" aria-label="设备备注" placeholder="例如：例行巡检…"></label><button type="button">查看设备</button>';
   let count = 0;
   card.querySelector("button")!.addEventListener(
     "click",

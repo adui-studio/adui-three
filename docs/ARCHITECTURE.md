@@ -2,6 +2,8 @@
 
 ## 当前架构
 
+FR-069 的共享 UI 令牌、静态几何和品牌资产仅由三个应用消费，不进入 SDK。文档首页沿用 VitePress1.6.4 默认主题与静态渲染，运行示例仍独立于 SSR。布局与品牌规则见[界面设计与品牌](development/visual-design.md)。
+
 正式 examples 通过 ExampleContext 传入 renderer 与创建 signal，所有主题共用后端选择和实际后端显示；website 保持私有集成工作台，统一导航与浏览器能力诊断不进入 SDK。适配器检测结果属于浏览器运行环境，自动化软件设备与连接的原生 GPU 分别记录。
 
 [ADR-0051](adr/0051-renderer-feature-parity.md)：后处理、动态特效、阴影、色彩、环境及截图共用公开入口。私有 webgpu/features 在 GPU 工厂交付前注册 TSL 实现；普通 WebGL 入口不静态导入节点实现。后处理参数校验共用，原生 pass/node 为后端特有逃生口，正式调整使用 configure。

@@ -25,3 +25,7 @@ prepare-docs仅替换带生成标记的docs/public/play，操作前检查绝对�
 ## 校验
 
 docs:check验证相对文件、锚点、源码包含及需求/ADR追踪；VitePress保留死链接检查。test:site验证导航、搜索、示例和真实WebGL。
+
+## 主题与品牌
+
+默认主题通过插槽扩展首页，阅读页保留 VitePress 导航、本地搜索与目录。共享 UI 令牌、Brand Kit 来源、三处页面结构和无障碍规则见[界面设计与品牌](visual-design.md)。不将 Three.js 或浏览器初始化代码导入服务端渲染的主题组件。

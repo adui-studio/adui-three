@@ -47,15 +47,21 @@ const decisions = readdirSync(resolve(source, "adr"))
   }));
 export default defineConfig({
   lang: "zh-CN",
-  title: "@adui/three",
+  title: "ADui Three",
   description: "Three.js 场景封装：公开 API、可运行示例与开发文档。",
   srcDir: "../../docs",
   outDir: "dist",
   cacheDir: ".vitepress/cache",
   cleanUrls: false,
   lastUpdated: false,
-  head: [["meta", { name: "theme-color", content: "#162a22" }]],
+  head: [
+    ["link", { rel: "icon", type: "image/svg+xml", href: "/brand/ADui-Three-Icon.svg" }],
+    ["meta", { name: "theme-color", content: "#f6f5f2", media: "(prefers-color-scheme: light)" }],
+    ["meta", { name: "theme-color", content: "#18171e", media: "(prefers-color-scheme: dark)" }],
+  ],
   themeConfig: {
+    siteTitle: false,
+    logo: { src: "/brand/ADui-Three-Logo.svg", alt: "ADui Three", width: 180, height: 65 },
     nav: [
       { text: "指南", link: "/guide/getting-started" },
       { text: "API", link: "/api/" },
@@ -98,6 +104,7 @@ export default defineConfig({
           { text: "目录与包边界", link: "/development/package-layout" },
           { text: "维护示例", link: "/development/examples" },
           { text: "维护文档站", link: "/development/docs" },
+          { text: "界面设计与品牌", link: "/development/visual-design" },
           { text: "架构", link: "/ARCHITECTURE" },
           { text: "详细设计", link: "/SDD" },
           { text: "需求与验收", link: "/REQUIREMENTS" },
@@ -135,7 +142,10 @@ export default defineConfig({
       pattern: "https://github.com/adui-studio/adui-three/edit/main/docs/:path",
       text: "在 GitHub 编辑此页",
     },
-    footer: { message: "开发版本 0.0.0 · 尚未发布 npm", copyright: "Three.js r187 · WebGL 2" },
+    footer: {
+      message: "开发版本 0.0.0 · 尚未发布 npm",
+      copyright: "Three.js r187 · WebGL 2 / WebGPU",
+    },
   },
   markdown: {
     html: false,

@@ -1,4 +1,6 @@
-# @adui/three
+# ADui Three
+
+<img src="docs/public/brand/ADui-Three-Logo-Preview.png" alt="ADui Three" width="360" height="130">
 
 面向应用开发的 Three.js 场景库。通过同一个 ThreeApp 创建 WebGL 或 WebGPU 场景，组合模型、动画、相机、交互和视觉效果，并统一管理帧循环、尺寸与资源释放。
 
@@ -7,9 +9,9 @@
 > [!NOTE]
 > 当前版本为 0.0.0，尚未发布 npm。ESM / TypeScript，基于 Three.js 0.187.0；peer 范围为 >=0.187.0 <0.188.0。可通过工作区或本地 tarball 接入。
 
-![原生 WebGPU：点云、路径流光、波纹、光柱与护罩](docs/public/images/native-webgpu.jpg)
+![ADui Three 正式示例：点云、路径流光、波纹、光柱与护罩](docs/public/images/examples-effects.png)
 
-同一套公开 API 在原生 WebGPU 中运行的实际示例画面。
+正式示例的实际运行画面，支持选择 WebGL 或 WebGPU。原生 GPU 验收与设备范围见 [Harness](docs/HARNESS.md)。
 
 ## 快速开始
 
