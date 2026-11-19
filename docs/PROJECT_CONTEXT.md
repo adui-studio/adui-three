@@ -4,6 +4,8 @@
 
 ## 目标与当前阶段
 
+2026-11-19 正式入口整理（FR-068）：README、9主题双后端画廊、集成工作台导航与设备诊断已完成。最终 ready/17入口消费、22站点、142浏览器通过（自动化另2项原生跳过）；连接使用者 Chrome/NVIDIA Ampere 另通过17项原生扩展自检、9主题初始化与双实例生命周期补测。真实设备结果与自动化 SwiftShader 限制分开记录，完整兼容矩阵仍未覆盖。使用入口和实际验收见 README 与 Harness。
+
 2026-11-19 正式API定稿：ThreeApp.create + renderer.type/allowFallback；同一实际类，主要生命周期start/stop/renderOnce/destroy。WebGPU仅为私有按需实现，原17入口保持。此前顶层backend/fallback、独立webgpu入口及创建类型名已按ADR-0050撤回；原生NVIDIA Ampere浏览器专项已补测，自动化软件设备及完整硬件矩阵分开记录。
 
 当前整理阶段：SDK内部实现分组，公开入口不变；正式示例在examples，旧apps/website用于回归；VitePress在apps/docs，内容统一于docs，资产在fixtures。dev默认正式示例，旧场景用dev:playground，文档用docs:dev/build/preview。决定见ADR-0047，验证见Harness。

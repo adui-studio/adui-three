@@ -57,6 +57,22 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 ## 验证记录
 
+2026-11-19 正式项目入口与双后端示例（FR-068）：根/包/examples/website README 重整为接入、统一 API、能力与运行导航；9主题增加 WebGL/WebGPU回退/严格选择，renderer 查询参数与浏览器历史同步，显示实际后端。website 保持私有工作台并增加统一场景导航、core/compatibility 能力诊断、单项操作及17项可见扩展自检。导航声明改为共同 PerspectiveSceneApp，严格包消费补查 GPU 第一/第三人称。原生截图及来源说明位于 docs/public/images，并实际进入 VitePress 静态产物。
+
+最终 ready 通过17项文档测试、776项主包单测（38文件，最终轮复用已通过缓存）、314文件格式、178源文件静态检查和全部生产构建。17入口 tarball、四次 strict/skipLibCheck=false 声明与消费通过。站点22/22通过（约3.4分钟），覆盖9主题节点渲染、实际像素、选择/历史/重建、严格模式显式失败、源码及原有复杂DOM。最终完整浏览器142通过、2原生设备用例在自动化环境跳过（144总数，约8.9分钟），零重试；包括新工作台导航、诊断、17项用户可见自检和390px布局。
+
+整理后首轮完整浏览器曾140通过、2失败、2跳过（约8.2分钟）：新增顶部导航导致操作控件时页面滚动，旧路径测试用视口坐标比较姿态产生6px差异，手柄释放后旧测试从未滚回视口的画布发起拖动。保留小于1px与相机实际变化断言，路径改为画布局部像素姿态比较、拾取仍用当前视口坐标；手柄拖动前显式滚动画布。定向10/10通过（45.9秒），随后上述完整144项复验通过。首次诊断留在忽略的 playwright-report/diagnostics/project-navigation-initial/test-results；未修改库行为或放宽精度。文档首轮补回受检查器约束的“新增示例”章节；后端展示使用span以避免output隐式status与页面提示冲突。
+
+## 原生 WebGPU 补充验收：连接的使用者 Chrome
+
+2026-11-19 用户截图及连接浏览器的能力页确认 NVIDIA Ampere，core/compatibility均取得适配器，isFallbackAdapter=false、22项features、maxTextureDimension2D=16384。严格模式真实输出 rendererType=webgpu/backend=webgpu。17项可见自检全部通过：组合后处理/截图、飞线/流光/飞点/光墙/雷达/波纹/光柱/护罩、Basic/PCF/VSM阴影、Room/HDR/EXR、逐像素区域裁剪和四轮自有资源回预热基线；该页错误日志为空。
+
+9个正式主题均在连接 Chrome 中以renderer=webgpu-strict完成初始化、报告running和实际webgpu后端；基础及特效画面已目视核对并保存截图，各主题错误日志为空。双实例原生页面确认两个webgpu画布、instanceof身份、暂停A后A帧数50不变而B从48增至78、暂停视图真实点击拾取、A销毁时0画布/B仍1画布，重建后恢复各1画布且无错误。补充记录在忽略的 playwright-report/native-gpu：strict-webgpu.jpg、examples-webgpu.jpg、examples-results.json、lifecycle-results.json；公开示例图带来源说明。不把该专项称为完整硬件/浏览器矩阵或在真实浏览器执行了整套Playwright用例。浏览器控制中少量等待/点击/截图调用曾超时，随后以实际DOM、已保存画面及错误日志复核，未把工具超时算作库用例通过。
+
+自动化 CLI Chromium 156.0.8078.4 与上述 Chrome 分开记录：默认启动和软件测试参数均只暴露 ANGLE/SwiftShader 5.0.0，WebGPU状态为unavailable_software，安全localhost页面的core/compatibility请求均返回null。其2项原生跳过不表示用户电脑缺显卡、驱动或npm包；已经连接真实设备补测，不再把这个环境限制写成所有原生GPU都未验证。后续扩大设备矩阵时使用严格模式及ADUI_REQUIRE_WEBGPU=1，禁止用节点WebGL回退代替原生结果。保留已有大chunk和TypeScript7提示，无依赖升级、CI或npm发布。
+
+## 历史验证记录
+
 2026-11-19 渲染扩展统一（FR-067）：17入口保持，postprocessing/effects/lighting/rendering/environment/capture 接受共同宿主；WebGPU 私有 TSL 工厂提供泛光、描边、颜色滤镜、八种特效和原生 Room PMREM，阴影支持 basic/pcf/vsm。后处理统一 configure，保留 WebGL 原生精确签名并推断 GPU 节点类型。新增节点图/参数只读一次/独占管线/原子配置/异常恢复、绘制期销毁、飞点实例 buffer/时钟/作用域、阴影和 Room 清理回归；ready 通过17项文档测试、776项主包单测（38文件）、309文件格式、175源文件静态检查及所有生产构建。17入口 tarball、无DOM导入/私有路径、四次 strict/skipLibCheck=false 声明及消费编译通过，覆盖 GPU 原生节点类型与共用 configure/capture/Room 用法。
 
 全量浏览器首轮141项中137通过、2失败、2项原生WebGPU因无适配器跳过（约10.1分钟），零重试。两处失败同源：暗测试场景未达到独立泛光的0.05阈值；仅把该场景阈值改为0，保留像素增长断言，不改库。修正后扩展专项2项通过、1项原生跳过（53.9秒），包含分别 configure 泛光/描边/滤镜、三种阴影、Room/HDR/EXR、八种特效定位/暂停、PNG逐像素区域裁剪以及四轮后处理/飞点/VSM/Room回到预热资源基线。累计139个非原生用例分批通过，不称单次全量141通过；首轮证据保留在忽略的 playwright-report/diagnostics/feature-parity-initial/test-results。更早专项纠正了默认色调与 Neutral 的混用比较，以及后处理背景输出和直接渲染的差异，旁路现比较同一管线基准。
