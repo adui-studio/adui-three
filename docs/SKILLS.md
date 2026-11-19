@@ -2,7 +2,9 @@
 
 ## 当前状态
 
-2026-11-04 用户已将 23 个第三方 Skills 安装在 `.agents/skills`，包含 36 个 Markdown 文件，无可执行脚本或捆绑程序；未创建项目自研 Skill。来源记录见 [skills-lock.json](../skills-lock.json)，其中 computedHash 为安装器记录，本轮未重新计算或验证上游内容未变。
+2026-11-04 初始安装 23 个第三方 Skills，2026-11-19 用户另安装 ui-ux-pro-max、web-design-guidelines、vitepress。本轮按需读取三项界面技能；ui-ux-pro-max 包含本地 Python 检索与数据文件，执行检索不增加项目依赖；未创建项目自研 Skill。来源记录见 [skills-lock.json](../skills-lock.json)，其中 computedHash 为安装器记录，本轮未重新计算或验证上游内容未变。
+
+2026-11-20 用户明确同意将 ui-ux-pro-max、web-design-guidelines、vitepress 三项技能原目录、安装器锁记录和索引提交推送。保持安装内容原样，包括检索脚本、数据与参考文档，不纳入 SDK 运行时依赖。
 
 以下状态均为“本地已安装”，不等于功能示例已运行。按任务选择相关 Skill，避免全部加载。元数据和文件链接由文档检查器验证。
 
@@ -146,3 +148,13 @@ EXR 阶段使用 threejs-loaders，核验 r187 EXRLoader/DataTextureLoader 和 O
 2026-11-19 统一扩展阶段使用仓库 threejs-postprocessing 和 threejs-shaders；以 r187 RenderPipeline、BloomNode、OutlineNode、PointsNodeMaterial、ShadowNode 和原生 PMREM 源码核验替代旧 GLSL 的节点实现。时钟仍使用宿主 delta，回退像素和原生 GPU 验收分别报告。
 
 2026-11-19 正式入口整理使用仓库 create-readme、git-commit 和 gitmoji（提交格式仍以贡献指南为准）；连接原生 Chrome 验收使用 computer-use。自动化 Chromium 的 SwiftShader 限制与用户 NVIDIA Ampere 原生结果分开记录，不将测试环境限制推断为用户硬件缺失。
+
+## 界面与 VitePress Skills
+
+用户本地安装的 `ui-ux-pro-max/SKILL.md` 用于设计系统与可访问性检索，`web-design-guidelines/SKILL.md` 要求每次审查获取上游最新规则；`vitepress/SKILL.md` 用于默认主题扩展和 SSR。以上路径相对 `.agents/skills`，本轮使用的设计决策见[界面设计与品牌](development/visual-design.md)。VitePress 技能面向2.0 alpha，项目仍锁定1.6.4；仅采用已在本地版本和官方资料核实的接口，不按技能建议自动升级。
+
+| Skill                                                                     | 本轮用途                            |
+| ------------------------------------------------------------------------- | ----------------------------------- |
+| [ui-ux-pro-max](../.agents/skills/ui-ux-pro-max/SKILL.md)                 | 设计系统、布局、可访问性与本地检索  |
+| [web-design-guidelines](../.agents/skills/web-design-guidelines/SKILL.md) | 获取最新 Web 界面规则并审查修改文件 |
+| [vitepress](../.agents/skills/vitepress/SKILL.md)                         | 核对默认主题扩展、SSG、导航与搜索   |
