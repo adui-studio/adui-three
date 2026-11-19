@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="1024" height="1024" viewBox="0 0 1100 900"
+     role="img" aria-labelledby="title desc">
+  <title id="title">ADui Three</title>
+  <desc id="desc">ADui Studio 原始 AD 标志的三维分层挤出版本。</desc>
+  <defs>
+    <linearGradient id="brand-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5B2B82"/>
+      <stop offset="50%" stop-color="#5B2B82"/>
+      <stop offset="100%" stop-color="#6CFF00"/>
+    </linearGradient>
+    <linearGradient id="depth-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#35164D"/>
+      <stop offset="55%" stop-color="#49305D"/>
+      <stop offset="100%" stop-color="#397A12"/>
+    </linearGradient>
+    <!-- 以下路径直接保留自 ADui Studio 原始 Logo，不重新绘制或变形。 -->
+    <path id="adui-original-mark" d="M336.7,680.2l-50.5,120.8H11.5L318,214h188.2l191.4,459.3s22,.7,34.7.7,151.8-4.9,151.8-166.5-155-163-163.3-163-78.2-.8-78.2-.8l-59.3-129.7h174.9c96.2,0,257.4,81.5,257.4,293.5s-141.1,293.5-228.3,293.5h-186.8l-191-452.1-179.9,329.8,107.2,1.5Z"/>
+  </defs>
+
+  <!-- 连续挤出侧面：由原始 AD 路径等距偏移构成。 -->
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(2 1.6)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(4 3.2)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(6 4.8)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(8 6.4)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(10 8)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(12 9.6)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(14 11.2)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(16 12.8)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(18 14.4)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(20 16)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(22 17.6)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(24 19.2)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(26 20.8)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(28 22.4)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(30 24)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(32 25.6)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(34 27.2)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(36 28.8)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(38 30.4)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark" transform="translate(40 32)" fill="url(#depth-gradient)"/>
+  <use xlink:href="#adui-original-mark" href="#adui-original-mark"
+       fill="url(#brand-gradient)"/>
+</svg>
