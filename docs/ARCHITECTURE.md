@@ -2,6 +2,8 @@
 
 ## 当前架构
 
+FR-070 的 GSAP 只为应用编排 UI，独立 ticker 不接管 ThreeApp 时钟；VitePress 客户端按需加载，SSR 继续输出可读静态内容。examples 构建插件用既有版本 Shiki 处理真实源码，浏览器接收已转义 HTML，不分发高亮引擎。两项依赖均不进入 SDK。
+
 FR-069 的共享 UI 令牌、静态几何和品牌资产仅由三个应用消费，不进入 SDK。文档首页沿用 VitePress1.6.4 默认主题与静态渲染，运行示例仍独立于 SSR。布局与品牌规则见[界面设计与品牌](development/visual-design.md)。
 
 正式 examples 通过 ExampleContext 传入 renderer 与创建 signal，所有主题共用后端选择和实际后端显示；website 保持私有集成工作台，统一导航与浏览器能力诊断不进入 SDK。适配器检测结果属于浏览器运行环境，自动化软件设备与连接的原生 GPU 分别记录。

@@ -10,7 +10,7 @@ catalog.ts登记惰性模块、标题与原始源码。cases模块导出mount(co
 
 1. 在examples/src/cases编写模块，只使用公开包入口。
 2. 几何/材质分别登记，额外监听绑定app.signal。
-3. 在catalog登记模块及?raw源码。
+3. 在catalog登记模块及?example-source源码。
 4. 在docs/examples新增说明与源码包含，并添加导航。
 5. 执行ready、站点验证；SDK变更另按Harness检查。
 
@@ -19,3 +19,7 @@ catalog.ts登记惰性模块、标题与原始源码。cases模块导出mount(co
 不要另建RAF。工具栏只调宿主start/stop/renderOnce/destroy；动画暂停与宿主暂停需区分。
 
 DOM标签的元素、样式、表单和事件归示例，标签句柄只管理投影与挂载；框架根若加入需自己卸载。
+
+## 源码阅读
+
+?example-source 由 examples/plugins/source-code.ts 在 Vite 构建和开发服务中生成：源文件、代码文字和 Shiki 高亮来自同一份 cases TypeScript。新增示例不另写 HTML 或手工 token。source-viewer 保留原文字用于复制，行号由 CSS 生成；高亮内容先于 GPU 创建交付，严格模式失败时仍可阅读。

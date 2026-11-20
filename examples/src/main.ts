@@ -1,6 +1,8 @@
 import "../../ui/tokens.css";
 import "./style.css";
 import { spatialGraphic } from "../../ui/graphics.ts";
+import { mountPageMotion } from "../../ui/motion.ts";
+import { createSourceViewer } from "./source-viewer.ts";
 import brandLogo from "../../docs/public/brand/ADui-Three-Logo.svg?url";
 import brandIcon from "../../docs/public/brand/ADui-Three-Icon.svg?url";
 import { examples } from "./catalog.ts";
@@ -15,7 +17,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 <a class="skip-link" href="#main-content">跳到主要内容</a>
 <header class="site-header"><a href="./" class="brand" data-home translate="no"><img src="${brandLogo}" alt="ADui Three" width="180" height="65"><span class="brand-section">Examples</span></a><nav aria-label="主导航"><a href="${docs}" target="_blank" rel="noreferrer">文档 ↗</a><a href="https://github.com/adui-studio/adui-three" target="_blank" rel="noreferrer">GitHub ↗</a></nav></header>
 <main id="main-content" tabindex="-1"><section class="home"><div class="gallery-intro"><div><div class="eyebrow">THE EXAMPLE COLLECTION <span>01 — 09</span></div><h1>让想法，<br>进入三维空间<span>。</span></h1><p class="lead">从第一个场景，到完整的交互体验。<br>探索 9 个可运行主题，用同一套 API 连接 WebGL 与 WebGPU。</p><a class="intro-cta" href="?example=basic">打开第一个场景 <span aria-hidden="true">↗</span></a></div><div class="intro-graphic">${spatialGraphic("basic", "hero")}<span class="graphic-caption">SCENE / CAMERA / RENDERER</span><span class="graphic-corner">FIG. 001</span></div></div><div class="collection-heading"><div><span class="eyebrow">EXPLORE THE TOOLKIT</span><h2>小场景，完整能力。</h2></div><span class="collection-count">9 个示例 · 实时运行 · 完整源码</span></div><div class="catalog">${examples.map((item, i) => `<a class="example-card" href="?example=${item.id}" data-example="${item.id}"><div class="card-art">${spatialGraphic(item.id, item.id)}<span class="art-number">0${i + 1}</span><span class="art-open" aria-hidden="true">↗</span></div><div class="card-copy"><span class="card-index">${item.tag}</span><h2>${item.title}</h2><p>${item.description}</p><span class="card-action">运行示例 <span aria-hidden="true">↗</span></span></div></a>`).join("")}</div></section>
-<section class="detail" hidden><div class="detail-heading"><div><a href="./" class="back" data-home>← 全部示例</a><h1 data-title></h1><p data-description></p></div><span class="live-state" data-state>ready</span></div><div class="scene-layout"><div class="scene-display"><div class="stage-topline"><span>LIVE PREVIEW</span><span>拖动旋转 · 滚轮缩放</span></div><div class="viewport" aria-label="示例画布"></div></div><aside class="scene-inspector" aria-label="场景设置"><div class="inspector-heading">场景控制 <span>CONTROLS</span></div><div class="toolbar"><label class="renderer-choice">渲染器<select aria-label="渲染器"><option value="webgl">WebGL</option><option value="webgpu">WebGPU · 允许回退</option><option value="webgpu-strict">WebGPU · 严格模式</option></select></label><span class="backend-info" aria-label="实际渲染后端">尚未创建</span><button data-command="start">运行</button><button data-command="stop">暂停</button><button data-command="render">绘制一帧</button><button data-command="dispose">销毁</button><button data-command="rebuild">重建</button></div><div class="inspector-heading">主题操作 <span>INTERACTION</span></div><div class="tools" aria-label="示例操作"></div></aside></div><details class="source"><summary>查看示例源码</summary><p>只使用公开包入口。场景辅助位于 examples/src/shared.ts。</p><pre><code></code></pre></details></section>
+<section class="detail" hidden><div class="detail-heading"><div><a href="./" class="back" data-home>← 全部示例</a><h1 data-title></h1><p data-description></p></div><span class="live-state" data-state>ready</span></div><div class="scene-layout"><div class="scene-display"><div class="stage-topline"><span>LIVE PREVIEW</span><span>拖动旋转 · 滚轮缩放</span></div><div class="viewport" aria-label="示例画布"></div></div><aside class="scene-inspector" aria-label="场景设置"><div class="inspector-heading">场景控制 <span>CONTROLS</span></div><div class="toolbar"><label class="renderer-choice">渲染器<select aria-label="渲染器"><option value="webgl">WebGL</option><option value="webgpu">WebGPU · 允许回退</option><option value="webgpu-strict">WebGPU · 严格模式</option></select></label><span class="backend-info" aria-label="实际渲染后端">尚未创建</span><button data-command="start">运行</button><button data-command="stop">暂停</button><button data-command="render">绘制一帧</button><button data-command="dispose">销毁</button><button data-command="rebuild">重建</button></div><div class="inspector-heading">主题操作 <span>INTERACTION</span></div><div class="tools" aria-label="示例操作"></div></aside></div><details class="source"><summary>查看示例源码</summary><div class="source-toolbar"><div><span class="source-filename"></span><span class="source-language">TypeScript</span></div><div><span class="copy-feedback" aria-live="polite"></span><button type="button" class="copy-source" disabled>复制代码</button></div></div><div class="source-code"></div><p class="source-note">只使用公开包入口。场景辅助位于 examples/src/shared.ts。</p></details></section>
 <p class="status" role="status"></p></main><footer><span>@adui/three · v0.0.0 · 尚未发布 npm</span><span>Three.js r187 / WebGL 2 + 可选 WebGPU</span></footer>`;
 const home = document.querySelector<HTMLElement>(".home")!,
   detail = document.querySelector<HTMLElement>(".detail")!,
@@ -23,6 +25,8 @@ const home = document.querySelector<HTMLElement>(".home")!,
   tools = document.querySelector<HTMLElement>(".tools")!,
   status = document.querySelector<HTMLElement>(".status")!;
 const rendererSelect = document.querySelector<HTMLSelectElement>("[aria-label=渲染器]")!;
+const sourceViewer = createSourceViewer(detail.querySelector<HTMLDetailsElement>(".source")!);
+let disposeMotion: (() => void) | undefined;
 const backendInfo = document.querySelector<HTMLSpanElement>(".backend-info")!;
 function selectedRenderer(id: string | null): ExampleRenderer {
   const choice = new URL(location.href).searchParams.get("renderer");
@@ -46,6 +50,8 @@ async function open(id: string | null, history = false): Promise<void> {
   rendererSelect.value = choice;
   backendInfo.textContent = "尚未创建";
   const request = ++generation;
+  disposeMotion?.();
+  disposeMotion = undefined;
   pending.abort();
   pending = new AbortController();
   const signal = pending.signal;
@@ -54,8 +60,7 @@ async function open(id: string | null, history = false): Promise<void> {
   tools.replaceChildren();
   viewport.replaceChildren();
   activeId = id ?? undefined;
-  detail.querySelector("code")!.textContent = "";
-  detail.querySelector<HTMLDetailsElement>(".source")!.open = false;
+  sourceViewer.clear();
   if (history) {
     const url = new URL(location.href);
     if (id) url.searchParams.set("example", id);
@@ -70,6 +75,7 @@ async function open(id: string | null, history = false): Promise<void> {
     : id
       ? "未找到该示例，请从列表选择。"
       : "选择示例后会创建一个独立场景。";
+  disposeMotion = mountPageMotion(item ? detail : home, item ? "detail" : "gallery");
   if (!item) return;
   document.querySelector("[data-title]")!.textContent = item.title;
   document.querySelector("[data-description]")!.textContent = item.description;
@@ -78,6 +84,7 @@ async function open(id: string | null, history = false): Promise<void> {
   try {
     const [module, source] = await Promise.all([item.load(), item.source()]);
     if (request !== generation) return;
+    sourceViewer.set(source);
     const app = await module.mount({
       signal,
       renderer: choice,
@@ -107,7 +114,6 @@ async function open(id: string | null, history = false): Promise<void> {
       refresh();
     });
     app.signal.addEventListener("abort", () => queueMicrotask(refresh), { once: true });
-    detail.querySelector("code")!.textContent = source;
     refresh();
   } catch (error) {
     if (request === generation) {
@@ -179,6 +185,8 @@ window.addEventListener(
   "pagehide",
   () => {
     generation++;
+    disposeMotion?.();
+    sourceViewer.destroy();
     pending.abort();
     void current?.destroy().catch((error) => console.error(error));
   },
@@ -187,6 +195,8 @@ window.addEventListener(
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
     generation++;
+    disposeMotion?.();
+    sourceViewer.destroy();
     pending.abort();
     listeners.abort();
     void current?.destroy().catch((error) => console.error(error));

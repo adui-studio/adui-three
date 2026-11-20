@@ -1,2 +1,7 @@
 import { defineConfig } from "vite-plus";
-export default defineConfig({ base: "/play/", publicDir: "../fixtures" });
+import { exampleSource } from "./plugins/source-code.ts";
+export default defineConfig({
+  base: "/play/",
+  publicDir: "../fixtures",
+  plugins: [exampleSource()],
+});

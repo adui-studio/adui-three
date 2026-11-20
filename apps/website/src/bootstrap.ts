@@ -1,3 +1,4 @@
+import { mountPageMotion } from "../../../ui/motion.ts";
 import { mountWorkbench } from "./workbench.ts";
 const demo = new URLSearchParams(location.search).get("demo");
 mountWorkbench(demo);
@@ -20,3 +21,7 @@ try {
   status.textContent = `场景初始化失败：${String(error)}。请切换运行模式，或打开渲染能力诊断检查当前浏览器。`;
   status.setAttribute("data-error", "true");
 }
+
+const disposeMotion = mountPageMotion(document.body, "studio");
+window.addEventListener("pagehide", disposeMotion, { once: true });
+if (import.meta.hot) import.meta.hot.dispose(disposeMotion);

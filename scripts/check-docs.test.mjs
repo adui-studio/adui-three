@@ -23,6 +23,7 @@ function fixture(t) {
     "scripts",
     "apps",
     "examples",
+    "ui",
     "fixtures",
     "packages",
     "package.json",

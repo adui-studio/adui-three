@@ -158,3 +158,5 @@ EXR 阶段使用 threejs-loaders，核验 r187 EXRLoader/DataTextureLoader 和 O
 | [ui-ux-pro-max](../.agents/skills/ui-ux-pro-max/SKILL.md)                 | 设计系统、布局、可访问性与本地检索  |
 | [web-design-guidelines](../.agents/skills/web-design-guidelines/SKILL.md) | 获取最新 Web 界面规则并审查修改文件 |
 | [vitepress](../.agents/skills/vitepress/SKILL.md)                         | 核对默认主题扩展、SSG、导航与搜索   |
+
+2026-11-20 页面动效与源码阶段继续使用 ui-ux-pro-max 的 GSAP 域检索，选择 Subtle Stagger List / Scroll Reveal，核验 GSAP matchMedia、ScrollTrigger 与 Shiki 官方接口；vitepress 继续按1.6.4核验客户端动态加载与 SSR，web-design-guidelines 用于动效与代码阅读交互审查。

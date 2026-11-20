@@ -23,6 +23,7 @@
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "draco3dgltf": "catalog:",
+    "gsap": "catalog:",
     "meshoptimizer": "catalog:",
     "vite-plus": "catalog:",
     "vue": "catalog:"

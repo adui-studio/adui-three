@@ -27,3 +27,9 @@
 按 [Web Interface Guidelines](https://github.com/vercel-labs/web-interface-guidelines/blob/main/command.md) 检查本轮修改：语义链接/按钮、装饰 SVG 隐藏、异步状态可见、输入带标签、键盘跳转入口与焦点、44px 场景操作目标、减少动态效果、长内容换行、原生 select 明暗配色、375/768/1440px 布局。Ctrl/Cmd 点击示例保留浏览器打开新页语义。
 
 原生图形配色不随外壳更改；浏览器和设备兼容范围仍见 [Harness](../HARNESS.md)。布局检查与截图不能代替渲染效果和资源生命周期测试。
+
+## GSAP 与源码阅读
+
+2026-11-20 FR-070 使用 GSAP3.15.1：首屏采用有限时长错峰入场，卡片/下方内容采用 ScrollTrigger 一次显现，不劫持滚动、不设置循环浮动。只修改 UI 的 opacity/transform，不移动画布及其布局祖先。作用域 matchMedia 自动回滚偏好变化，切页、HMR 和卸载归还内联样式。文档入口通过 MotionLayout 在客户端动态导入，静态 HTML 默认可读。
+
+源码区采用 Shiki2.5.0 的 github-dark-default 主题、文件名、TypeScript 标记和 CSS 行号；构建阶段处理真实文件，浏览器不载入 Shiki/WASM。复制写入原代码，反馈支持读屏；权限失败显示手动复制路径，切换主题后不会显示旧操作反馈。根 GSAP 与示例开发依赖通过 catalog 固定，不升级原文档站或 SDK 依赖。

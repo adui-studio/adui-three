@@ -188,3 +188,7 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 ## 应用界面与品牌
 
 `ui/tokens.css` 与 `ui/graphics.ts` 为应用层共用基础令牌和原创静态 SVG；不属于 SDK。`docs/public/brand` 保存用户提供的原始 SVG，VitePress public 与两处 Vite 应用引用同一来源。`apps/docs/.vitepress/theme/HomePage.ts` 为静态首页，默认主题、搜索和路由保持。设计记录见[界面设计与品牌](development/visual-design.md)。
+
+## 页面动效与源码阅读
+
+[ui/motion.ts](../ui/motion.ts) 管理作用域 GSAP 与减少动态效果；[MotionLayout.ts](../apps/docs/.vitepress/theme/MotionLayout.ts) 管理 VitePress 客户端路由/卸载。[高亮插件](../examples/plugins/source-code.ts) 在构建时生成源码模块，[source-viewer.ts](../examples/src/source-viewer.ts) 管理原代码复制和反馈；[站点测试](../tests/site/motion-source.spec.ts) 验证实际高亮、剪贴板和动效生命周期。
