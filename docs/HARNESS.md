@@ -57,6 +57,18 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 ## 验证记录
 
+2026-11-20 统一渲染统计（FR-074）：rendering 增加 captureRenderStats/attachRenderMonitor，快照正确映射 WebGL render.calls 与节点 drawCalls，复制原生程序/资源计数与可用字节估算；不重置 info、不改 autoReset、不包装 renderer，不新增 RAF、定时器或 SDK 依赖。监视器以画布窗口 performance.now 观测完成间隔，避开 maxDelta 模拟时间，并保留不可变快照。UI 在共用目录，使用原生 details、44px目标、焦点/hover、等宽数字和缓存 Intl 格式器，按默认0.5秒更新；统计没有上传或持久化。
+
+最终 ready 通过17项文档测试、807单测（41文件）、342文件格式与198源文件静态检查及全部构建。新增11项受控计时单测覆盖原生字段差异、快照隔离、节流、粗粒度时间戳、暂停/隐藏/零尺寸、手动读取、双实例、scope 与回调销毁；严格包消费17入口及四次 skipLibCheck=false 编译通过。统计站点专项3/3（34.0秒）与双实例专项1/1（18.6秒）通过；完整站点39/39通过（6.2分钟），包含两个 renderer、真实资源、暂停单帧、重建、375px键盘与既有源码/主题检查。
+
+首次 ready 因 FR-074 只写契约正文、未进入 SDD 追踪表而有3项基线失败，补齐表格后通过，没有放宽检查。共享 UI 初次类型检查无法从根目录解析 SDK，按公开入口消费规则为根私有工作区显式添加本地 SDK 开发依赖；CSS 继续由消费者入口导入。catalogMode:prefer 将该依赖记录为 workspace catalog，锁文件同时重算 Vitest5.0.5 peer 上下文，没有第三方版本升级；未手工回退元数据。诊断保留在忽略的 playwright-report/redesign/stats-ready-initial.log，最终日志为 stats-*。
+
+绘制计数保持原生重置窗口，不视为整帧所有 pass 合计；FPS 为宿主绘制完成的墙钟观测，不是屏幕呈现率或 CPU/GPU 耗时。原生 tracked-resource 字节不是显存占用，计数含预热缓存，不作为泄漏证明。本轮不新增 CI，不发布 npm；原生设备矩阵仍单独保留限制。
+
+完整浏览器143通过、2原生适配器用例在软件环境跳过（145总数，10.4分钟），零自动重试，未调整既有断言或超时。覆盖新增双实例统计及原有动画/相机、压缩加载、资源回收、输入、效果与设备生命周期。本轮采用 Chromium/SwiftShader，未重新执行原生硬件专项。
+
+桌面1440px与手机375px展开面板截图已目视检查，统计、控制和说明完整，手机无水平溢出，页面异常列表为空。两种 renderer 均有真实几何/纹理/程序计数；WebGL 字节显示缺失，节点显示原生估算。WebGPURenderer 此次实际后端为 WebGL2 回退，截图中的 FPS 只是当前软件绘制观测，不用于性能比较。截图及实际后端元数据保留在忽略的 playwright-report/redesign/stats-*。
+
 2026-11-20 资产批次、场景时间线与正交双后端（FR-071/072/073）：既有 loaders/animation/主入口分别新增 loadAssets、attachGSAPTimeline、OrthographicThreeApp.create，不增加 SDK 依赖、包入口、全局缓存或渲染循环。批次按命名任务限流与重试，计数总进度与主请求字节分开，成功句柄转到批次私有 scope；旧尝试/已完成任务的迟到进度不再报告。GSAP3.15.1 真实时间线保持 paused，由宿主 delta 推进，页面 ticker 不变；销毁/回调重入与可选模型 scope 单独验证。正交初始化复用私有准备流程，保留具体相机/渲染器和投影边界。
 
 最终 ready 通过17项文档测试、796项单测（40文件）、335文件格式与193源文件静态检查及全部构建。独立包17运行时入口、17 development 解析和四次 strict/skipLibCheck=false 声明与消费编译通过，新增消费覆盖具体批次字段、GSAP 结构接口及正交 WebGPU 类型，保留透视属性的负向类型检查。新增5项站点专项全部通过（1.3分钟）：一次503后只重试 HDR、取消后不出现迟到模型/动画控件、暂停后稳定像素与定位单帧、两类 renderer 的正交效果/截图像素/重建与投影切换。
