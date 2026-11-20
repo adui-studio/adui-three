@@ -1,8 +1,8 @@
-import { ThreeApp } from "@adui/three";
+import { ThreeApp, OrthographicThreeApp } from "@adui/three";
 import { attachOrbitControls } from "@adui/three/controls";
 import { loadGLTF } from "@adui/three/loaders";
 import { attachGLTFAnimations } from "@adui/three/animation";
-import { fitObject } from "@adui/three/camera";
+import { fitObject, fitOrthographicObject } from "@adui/three/camera";
 import { attachPicking } from "@adui/three/interaction";
 import { attachPostprocessing } from "@adui/three/postprocessing";
 import { attachRendererSettings } from "@adui/three/rendering";
@@ -15,16 +15,30 @@ import { button } from "../shared.ts";
 import type { ExampleContext } from "../shared.ts";
 
 export async function mount(context: ExampleContext) {
-  const app = await ThreeApp.create(
-    context.container,
+  const orthographic = new URLSearchParams(location.search).get("projection") === "orthographic";
+  const creation =
     context.renderer === "webgl"
-      ? { renderer: { type: "webgl" }, signal: context.signal }
+      ? { renderer: { type: "webgl" as const }, signal: context.signal }
       : {
-          renderer: { type: "webgpu", allowFallback: context.renderer !== "webgpu-strict" },
+          renderer: {
+            type: "webgpu" as const,
+            allowFallback: context.renderer !== "webgpu-strict",
+          },
           signal: context.signal,
-        },
-  );
+        };
+  const app = orthographic
+    ? await OrthographicThreeApp.create(context.container, {
+        ...creation,
+        camera: { frustumHeight: 8 },
+      })
+    : await ThreeApp.create(context.container, creation);
   try {
+    button(app, context.tools, orthographic ? "使用透视相机" : "使用正交相机", () => {
+      const url = new URL(location.href);
+      if (orthographic) url.searchParams.delete("projection");
+      else url.searchParams.set("projection", "orthographic");
+      location.assign(url);
+    });
     app.scene.background = new Color(0x0d1920);
     attachRendererSettings(app, { toneMapping: "neutral", exposure: 1 });
     app.scene.add(new HemisphereLight(0xc7dfff, 0x364438, 1.4));
@@ -84,7 +98,9 @@ export async function mount(context: ExampleContext) {
     context.status(`实际后端：${app.backend}；正在加载本地 GLB…`);
     void loadGLTF(app, import.meta.env.BASE_URL + "models/animated.glb")
       .then((model) => {
-        fitObject(app, model.scene, { controls: orbit.controls, padding: 1.7 });
+        if (app instanceof OrthographicThreeApp)
+          fitOrthographicObject(app, model.scene, { controls: orbit.controls, padding: 1.7 });
+        else fitObject(app, model.scene, { controls: orbit.controls, padding: 1.7 });
         const animation = attachGLTFAnimations(app, model);
         animation.play(0);
         attachShadowLight(app, {

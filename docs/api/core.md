@@ -50,6 +50,8 @@ OrthographicThreeApp.camera 精确为 OrthographicCamera；默认 ThreeApp.camer
 
 正交演示还可开启“组合效果”，点击对象后观察描边，并分别旁路泛光/描边或释放整条链；复用既有 postprocessing，不增加库入口。效果在暂停、resize/零尺寸恢复和宿主重建中保持各自所有权。
 
+正交也支持 `await OrthographicThreeApp.create(container, { renderer: { type: "webgpu" }, camera: { frustumHeight: 8 } })`；同步 new 保持 WebGL。创建 signal、allowFallback 与精确类型见[渲染器选择](webgpu.md#正交创建)。
+
 ## 绘制管线与单次绘制
 
 `render(): boolean` 在同步调用当前 renderer/pipeline 并正常返回时为 true；隐藏、零尺寸或准备中断导致未绘制时为 false。已绘制后完成通知中暂停宿主仍为 true；错误继续抛出。结果不保证第三方管线输出、像素变化或 GPU 完成。既有忽略返回值的调用可保持；自定义覆盖/测试替身需返回布尔值。

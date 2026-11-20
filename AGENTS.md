@@ -72,6 +72,7 @@
 - [WebGPU 基础宿主决策](docs/adr/0048-webgpu-host.md)：可选异步入口、共用生命周期与独立后端验收。
 - [统一资产批任务](docs/adr/0052-asset-batches.md)：命名任务、限流/重试、计数进度和迟到清理。
 - [GSAP 场景时间线](docs/adr/0053-gsap-timeline.md)：宿主推进、可选结构适配和作用域销毁。
+- [正交双后端创建](docs/adr/0054-orthographic-webgpu.md)：具体相机类型、共用准备流程和投影边界。
 
 ## 工作流程与约束
 

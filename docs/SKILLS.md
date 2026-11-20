@@ -135,6 +135,8 @@ EXR 阶段使用 threejs-loaders，核验 r187 EXRLoader/DataTextureLoader 和 O
 
 ## 维护
 
+2026-11-20 FR-071/072/073 使用 threejs-loaders、threejs-animation、threejs-fundamentals 辅助设计，核验锁定 r187 及官方 LoadingManager/OrthographicCamera 和 GSAP3.15.1 totalTime。保留宿主单时钟和任务隔离，不采用技能 r186 版本或另建 RAF。GSAP 场景适配只用结构接口，页面动效和第三方动画包仍由应用拥有。
+
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。
 
 2026-11-18 文档整理阶段使用create-readme，收敛根/包README，将详细API迁入VitePress主题页并包含真实示例源码。参考其简洁结构，不复制上游项目内容或引入CI。

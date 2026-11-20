@@ -6,11 +6,31 @@ import { loadHDR, loadEXR, attachEnvironment } from "@adui/three/environment";
 import { ResourceScope, ThreeApp, OrthographicThreeApp } from "@adui/three";
 import type { AnyThreeApp } from "@adui/three";
 import { attachOrbitControls, attachTransformControls } from "@adui/three/controls";
-import { cloneGLTF, loadGLTF } from "@adui/three/loaders";
+import { cloneGLTF, loadGLTF, loadAssets } from "@adui/three/loaders";
 import type { GLTFInstance, GLTFModel, LoadGLTFOptions } from "@adui/three/loaders";
 import { attachPicking } from "@adui/three/interaction";
 import { attachDOMLabels } from "@adui/three/labels";
-import { attachGLTFAnimations, followPath } from "@adui/three/animation";
+import { attachGLTFAnimations, followPath, attachGSAPTimeline } from "@adui/three/animation";
+import type { GSAPTimelineLike } from "@adui/three/animation";
+
+export async function consumeNewFeatures(container: HTMLElement, timeline: GSAPTimelineLike) {
+  const app = await OrthographicThreeApp.create(container, {
+    renderer: {type: "webgpu", allowFallback: false}, camera: {frustumHeight: 6, near: 0},
+  });
+  const renderer: import("three/webgpu").WebGPURenderer = app.renderer;
+  const camera: import("three").OrthographicCamera = app.camera;
+  // @ts-expect-error An orthographic camera has no perspective field of view.
+  app.camera.fov;
+  const batch = await loadAssets(app, {
+    model: ({signal, onProgress}) => loadGLTF(app, "/model.glb", {signal, onProgress, addToScene: false}),
+    environment: ({signal}) => loadHDR(app, "/studio.hdr", {signal}),
+  }, {concurrency: 2, retries: 1});
+  const model: GLTFModel = batch.assets.model;
+  const texture: import("three").DataTexture = batch.assets.environment.texture;
+  const motion = attachGSAPTimeline(app, timeline, {scope: model.resources});
+  motion.seek(0); motion.resume(); motion.setPlaybackRate(0.5); motion.dispose();
+  void [renderer, camera, texture]; batch.dispose(); await app.destroy();
+}
 import type { TransitionEasing as AnimationTransitionEasing } from "@adui/three/animation";
 import { attachBloom, attachPostprocessing } from "@adui/three/postprocessing";
 import { computeObjectFrame, fitObject, transitionToObject, computeOrthographicFrame, fitOrthographicObject, transitionOrthographicToObject, captureCameraView, restoreCameraView } from "@adui/three/camera";

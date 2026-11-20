@@ -2,7 +2,7 @@
 
 ## 当前架构
 
-FR-071：loadAssets 组合现有加载器，以私有 scope 持有整批资源；不创建隐式缓存或另一组加载器。见[资产批次](adr/0052-asset-batches.md)。FR-072：attachGSAPTimeline 使用宿主时钟与结构接口，不新增运行时依赖。见[GSAP 适配](adr/0053-gsap-timeline.md)。
+FR-071/072/073：loadAssets 组合现有加载器，以私有 scope 持有整批资源；attachGSAPTimeline 通过结构接口借用 GSAP 方法并拥有该时间线的清理，不新增运行时依赖；正交异步创建复用 WebGPU 准备流程和共用 SceneHost，不新增包入口或第二循环。决策见[资产批次](adr/0052-asset-batches.md)、[GSAP 适配](adr/0053-gsap-timeline.md)和[正交双后端](adr/0054-orthographic-webgpu.md)。
 
 FR-070 的 GSAP 只为应用编排 UI，独立 ticker 不接管 ThreeApp 时钟；VitePress 客户端按需加载，SSR 继续输出可读静态内容。examples 构建插件用既有版本 Shiki 处理真实源码，浏览器接收已转义 HTML，不分发高亮引擎。两项依赖均不进入 SDK。
 

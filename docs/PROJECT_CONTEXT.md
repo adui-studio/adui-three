@@ -1,8 +1,10 @@
 # 长期上下文
 
-当前扩展支持：FR-067 已实现，同一套 attach/capture/environment API 覆盖 WebGL 与 WebGPU 节点实现；后处理统一 configure。TSL 实现、实例化飞点、阴影/Room 目标清理沿用宿主循环和绘制结束边界。已连接使用者 Chrome/NVIDIA Ampere 通过原生17项扩展专项；自动化 Chromium 仍只暴露软件设备，完整设备矩阵未完成；正交 WebGPU 仍未接入。详见 [ADR-0051](adr/0051-renderer-feature-parity.md)。
+当前扩展支持：FR-067 已实现，同一套 attach/capture/environment API 覆盖 WebGL 与 WebGPU 节点实现；后处理统一 configure。TSL 实现、实例化飞点、阴影/Room 目标清理沿用宿主循环和绘制结束边界。已连接使用者 Chrome/NVIDIA Ampere 通过原生17项扩展专项；自动化 Chromium 仍只暴露软件设备，完整设备矩阵未完成。正交 WebGPU 已按 FR-073 接入，本次专项验收单独记录，不沿用透视原生设备结论。详见 [ADR-0051](adr/0051-renderer-feature-parity.md)和 [ADR-0054](adr/0054-orthographic-webgpu.md)。
 
 ## 目标与当前阶段
+
+2026-11-20 FR-071/072/073 已实现、验收中：loadAssets 统一命名资产任务和批次所有权；attachGSAPTimeline 以宿主 delta 驱动消费者时间线；OrthographicThreeApp.create 支持相同双后端协议。基础/模型/渲染器示例分别展示三项能力，SDK 不新增依赖或包入口。最终结果与限制待写入 Harness。
 
 2026-11-20 FR-070 已完成：GSAP 页面编排覆盖三处应用，动态减少动效及切页/HMR 清理；examples 真实源码在构建时用 Shiki 高亮，提供行号、文件名、键盘访问和复制反馈，GPU 创建失败仍可阅读。ready、17入口包消费、31站点与142浏览器通过（软件环境另2原生用例跳过）；可访问 region 补齐后最终 ready 和4项专项再次通过。SDK 动画和帧循环不改，依赖不进入主包；首次失败与最终证据见 Harness。
 

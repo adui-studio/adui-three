@@ -3,7 +3,7 @@ import { webGPUFeatures } from "../webgpu/features.ts";
 import { installWebGPUFeatures } from "./webgpu-features.ts";
 import { WebGPURenderer } from "three/webgpu";
 import { WebGPUCoordinateSystem, WebGLCoordinateSystem } from "three";
-import type { PerspectiveCamera } from "three";
+import type { Camera, PerspectiveCamera, OrthographicCamera } from "three";
 import type { WebGPURendererParameters } from "three/webgpu";
 import { positive } from "./scene-host.ts";
 import type { SceneHost } from "./scene-host.ts";
@@ -33,8 +33,8 @@ export interface WebGPUHostOptions extends SceneHostOptions {
   onCleanupError?: (error: unknown) => void;
 }
 
-export interface PreparedWebGPUHost {
-  readonly camera: PerspectiveCamera;
+export interface PreparedWebGPUHost<C extends Camera = PerspectiveCamera> {
+  readonly camera: C;
   readonly renderer: WebGPUCanvasRenderer;
   readonly options: SceneHostOptions;
   readonly disposeRenderer: () => Promise<void>;
@@ -71,11 +71,13 @@ function rendererSettings(
 
 /** Initialize off-DOM, then mount an idle host using the same owned RAF as ThreeApp. */
 export async function initializeWebGPUHost<
-  T extends SceneHost<PerspectiveCamera, WebGPUCanvasRenderer>,
+  T extends SceneHost<Camera, WebGPUCanvasRenderer>,
+  C extends PerspectiveCamera | OrthographicCamera = PerspectiveCamera,
 >(
   container: HTMLElement,
   options: WebGPUHostOptions,
-  createHost: (prepared: PreparedWebGPUHost) => T,
+  createHost: (prepared: PreparedWebGPUHost<C>) => T,
+  createCamera?: () => C,
 ): Promise<T> {
   const view = container?.ownerDocument?.defaultView;
   if (!view || container.nodeType !== 1)
@@ -89,7 +91,9 @@ export async function initializeWebGPUHost<
   if (!["auto", "webgpu", "webgl2"].includes(backend))
     throw new TypeError("Invalid WebGPU backend");
   const settings = rendererSettings(options.renderer);
-  const camera = createPerspectiveCamera(options.camera);
+  const camera = createCamera
+    ? createCamera()
+    : (createPerspectiveCamera(options.camera) as unknown as C);
   const aborted = (): DOMException =>
     new DOMException("WebGPU creation was cancelled", "AbortError");
   if (signal?.aborted) throw aborted();

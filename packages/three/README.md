@@ -42,6 +42,8 @@ geometry、material、texture 分别登记；宿主不会递归接管借用资�
 
 ## 扩展组合
 
+loaders 的 loadAssets 可组合命名资产任务并推导结果，提供并发、计数进度、重试、取消及整批资源释放。animation 的 attachGSAPTimeline 接受应用创建的暂停时间线，复用宿主时钟和 scope；GSAP 由应用安装，SDK 没有该运行时依赖。
+
 ```ts
 import { attachPostprocessing } from "@adui/three/postprocessing";
 
@@ -54,7 +56,7 @@ effects.configure({ bloom: { strength: 2, threshold: 0.85 } });
 // effects.dispose();
 ```
 
-WebGL / WebGPU 共用这些函数与配置。原生 pass、node、material 仍保留各后端的具体类型，不直接互换；正式参数调整使用 configure。WebGPU 默认允许原生 WebGL 2 回退，严格设备验证使用 allowFallback:false。rendererType 表示渲染器族，backend 表示实际图形 API。正交宿主目前只支持 WebGL。
+WebGL / WebGPU 共用这些函数与配置。原生 pass、node、material 仍保留各后端的具体类型，不直接互换；正式参数调整使用 configure。WebGPU 默认允许原生 WebGL 2 回退，严格设备验证使用 allowFallback:false。rendererType 表示渲染器族，backend 表示实际图形 API。正交宿主通过 OrthographicThreeApp.create 使用相同选择协议。
 
 ## 公开入口
 

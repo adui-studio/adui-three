@@ -74,9 +74,25 @@ signal 仅取消创建，覆盖按需导入与设备初始化；成功后模型�
 
 完整可复制场景见 [快速开始](../guide/getting-started.md)，真实渲染器示例见 [示例源码](../examples/webgpu.md)。此前未发布的顶层 backend/fallback 已改为 renderer.type/renderer.allowFallback；配置类型 CreateThreeAppOptions 改为 ThreeAppCreateOptions；独立 @adui/three/webgpu 入口已撤回，使用主入口统一创建。旧写法会在类型和运行时拒绝，详细对照见 [迁移指南](../MIGRATION.md#正式宿主-api)。
 
+## 正交创建
+
+```ts
+import { OrthographicThreeApp } from "@adui/three";
+const app = await OrthographicThreeApp.create(container, {
+  renderer: { type: "webgpu", allowFallback: true },
+  camera: { frustumHeight: 8, near: 0 },
+  signal: controller.signal,
+});
+app.camera.zoom = 2; // 精确 OrthographicCamera；renderer 精确为节点 renderer。
+app.camera.updateProjectionMatrix();
+app.start();
+```
+
+同步 new OrthographicThreeApp 继续创建 WebGL。OrthographicThreeAppCreateOptions 和 OrthographicThreeAppInstance 对应异步配置及联合实例；明确 renderer.type 时返回精确渲染器类型。取消、回退、设备丢失和资源销毁沿用透视协议；尺寸保留竖向视锥与 zoom。见 [ADR-0054](../adr/0054-orthographic-webgpu.md)。正式示例可用 `/play/?example=webgpu&projection=orthographic&renderer=webgpu`，或点击“使用正交相机”。
+
 ## 能力与验收范围
 
-模型/动画、控件、CPU 拾取、DOM 标签、相机、纹理及几何复用既有模块。泛光/描边/颜色滤镜、八种动态特效、实时阴影、色调与曝光、Room/HDR/EXR 环境和截图共用现有入口，内部按 renderer 选择原生实现；后处理统一用 configure 更新参数。原生 pass / node / material 仍按实际渲染器保留不同类型，不能直接互换。正交宿主仍通过 OrthographicThreeApp 创建，目前只支持 WebGL。
+模型/动画、控件、CPU 拾取、DOM 标签、相机、纹理及几何复用既有模块。泛光/描边/颜色滤镜、八种动态特效、实时阴影、色调与曝光、Room/HDR/EXR 环境和截图共用现有入口，内部按 renderer 选择原生实现；后处理统一用 configure 更新参数。原生 pass / node / material 仍按实际渲染器保留不同类型，不能直接互换。正交通过 OrthographicThreeApp.create 选择后端，各组合的实际验收范围以 Harness 为准。
 
 正式 API 契约不代表 npm 已发布或所有设备已验收。自动化 Chromium 环境仅暴露 SwiftShader，core/compatibility 适配器均返回 null；这不是使用者电脑缺显卡或 npm 依赖。已连接用户 Chrome/NVIDIA Ampere，在严格模式下确认 backend=webgpu，并通过17项原生扩展专项；完整浏览器/设备矩阵仍待扩展，详见验收记录。资源限制见 [ADR-0048](../adr/0048-webgpu-host.md)，正式决策见 [ADR-0050](../adr/0050-public-app-api.md)，扩展决策见 [ADR-0051](../adr/0051-renderer-feature-parity.md)，实际验证见 [Harness](../HARNESS.md)。
 

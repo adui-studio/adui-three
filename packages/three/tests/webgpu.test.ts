@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { WebGLCoordinateSystem, WebGPUCoordinateSystem } from "three";
-import { ThreeApp } from "../src/index.ts";
+import { ThreeApp, OrthographicThreeApp } from "../src/index.ts";
 import { initializeWebGPUHost } from "../src/core/webgpu-host.ts";
 import type { WebGPUHostOptions as WebGPUAppOptions } from "../src/core/webgpu-host.ts";
 type WebGPUThreeApp = ThreeApp<"webgpu">;
@@ -51,7 +51,7 @@ function deferred() {
   });
   return { promise, resolve, reject };
 }
-const hosts: WebGPUThreeApp[] = [];
+const hosts: Array<WebGPUThreeApp | OrthographicThreeApp<"webgpu">> = [];
 afterEach(async () => {
   for (const host of hosts.splice(0)) await host.destroy().catch(() => {});
   mock.Renderer.instances.length = 0;
@@ -117,6 +117,88 @@ function fixture() {
     },
   };
 }
+
+test("orthographic public creation preserves concrete class, coordinate system, frustum and zoom", async () => {
+  const env = fixture();
+  const app = await OrthographicThreeApp.create(env.container as unknown as HTMLElement, {
+    renderer: { type: "webgpu", allowFallback: false },
+    camera: { frustumHeight: 6, near: 0 },
+  });
+  hosts.push(app);
+  expect(app).toBeInstanceOf(OrthographicThreeApp);
+  expect(app).not.toBeInstanceOf(ThreeApp);
+  expect(app.camera.isOrthographicCamera).toBe(true);
+  expect(app.camera.coordinateSystem).toBe(WebGPUCoordinateSystem);
+  expect(app.camera.top - app.camera.bottom).toBe(6);
+  expect(app.camera.right - app.camera.left).toBeCloseTo((6 * 640) / 360);
+  app.camera.zoom = 2;
+  env.container.clientHeight = 640;
+  app.resize();
+  expect(app.camera.zoom).toBe(2);
+  expect(app.camera.right - app.camera.left).toBe(6);
+  app.start();
+  env.step(0);
+  expect(env.frames.size).toBe(1);
+  mock.Renderer.instances[0]!.onDeviceLost({ reason: "unknown" });
+  expect(app.state).toBe("disposed");
+  expect(env.frames.size).toBe(0);
+});
+
+test("orthographic options are snapshotted and cancellation releases a late native renderer", async () => {
+  const env = fixture(),
+    gate = deferred(),
+    controller = new AbortController();
+  mock.Renderer.initialize = () => gate.promise;
+  const options = {
+    renderer: { type: "webgpu" as const },
+    camera: { frustumHeight: 8, position: [0, 0, 12] as [number, number, number] },
+    signal: controller.signal,
+  };
+  const pending = OrthographicThreeApp.create(env.container as unknown as HTMLElement, options);
+  await vi.waitFor(() => expect(mock.Renderer.instances).toHaveLength(1));
+  options.camera.frustumHeight = 20;
+  options.camera.position[2] = 99;
+  gate.resolve();
+  const app = await pending;
+  hosts.push(app);
+  expect(app.camera.top - app.camera.bottom).toBe(8);
+  expect(app.camera.position.z).toBe(12);
+  const other = fixture(),
+    nextGate = deferred();
+  mock.Renderer.initialize = () => nextGate.promise;
+  const abort = new AbortController();
+  const late = OrthographicThreeApp.create(other.container as unknown as HTMLElement, {
+    renderer: { type: "webgpu" },
+    signal: abort.signal,
+  });
+  await vi.waitFor(() => expect(mock.Renderer.instances).toHaveLength(2));
+  abort.abort();
+  await expect(late).rejects.toMatchObject({ name: "AbortError" });
+  nextGate.resolve();
+  await vi.waitFor(() => expect(mock.Renderer.instances[1]!.dispose).toHaveBeenCalledOnce());
+  expect(other.container.appendChild).not.toHaveBeenCalled();
+});
+
+test("orthographic strict fallback and invalid frustum fail without mounting", async () => {
+  const env = fixture();
+  await expect(
+    OrthographicThreeApp.create(env.container as unknown as HTMLElement, {
+      renderer: { type: "webgpu" },
+      camera: { frustumHeight: -1 },
+    }),
+  ).rejects.toThrow(RangeError);
+  expect(mock.Renderer.instances).toHaveLength(0);
+  mock.Renderer.initialize = async () => {
+    mock.Renderer.instances[0]!.coordinateSystem = WebGLCoordinateSystem;
+  };
+  await expect(
+    OrthographicThreeApp.create(env.container as unknown as HTMLElement, {
+      renderer: { type: "webgpu", allowFallback: false },
+    }),
+  ).rejects.toThrow("required");
+  await vi.waitFor(() => expect(mock.Renderer.instances[0]!.dispose).toHaveBeenCalledOnce());
+  expect(env.container.appendChild).not.toHaveBeenCalled();
+});
 
 test("initialization stays off-DOM and idle, then shares sizing, update and render lifecycle", async () => {
   const env = fixture(),

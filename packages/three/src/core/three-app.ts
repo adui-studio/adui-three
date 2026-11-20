@@ -1,4 +1,7 @@
-import { OrthographicCamera, PerspectiveCamera, WebGLRenderer } from "three";
+import { PerspectiveCamera, WebGLRenderer } from "three";
+import type { OrthographicCamera } from "three";
+import { createOrthographicCamera, validOrthographicProjection } from "./orthographic-camera.ts";
+import type { OrthographicCameraOptions } from "./orthographic-camera.ts";
 import type { Camera, WebGLRendererParameters } from "three";
 import { createPerspectiveCamera } from "./perspective-camera.ts";
 import { SceneHost, positive } from "./scene-host.ts";
@@ -10,12 +13,16 @@ import type {
   WebGLCreateOptions,
   WebGPUCreateOptions,
   ThreeAppCreateOptions,
+  OrthographicThreeAppCreateOptions,
+  OrthographicWebGLCreateOptions,
+  OrthographicWebGPUCreateOptions,
 } from "./app-options.ts";
 export type {
   RendererType,
   WebGLRendererOptions,
   WebGPURendererOptions,
   ThreeAppCreateOptions,
+  OrthographicThreeAppCreateOptions,
 } from "./app-options.ts";
 export type {
   ThreeAppState,
@@ -40,15 +47,12 @@ export interface ThreeAppOptions extends HostOptions {
   };
 }
 export interface OrthographicThreeAppOptions extends HostOptions {
-  camera?: {
-    frustumHeight?: number;
-    near?: number;
-    far?: number;
-    position?: readonly [number, number, number];
-  };
+  camera?: OrthographicCameraOptions;
 }
 
-function creationSnapshot(options: ThreeAppCreateOptions): ThreeAppCreateOptions {
+function creationSnapshot<T extends ThreeAppCreateOptions | OrthographicThreeAppCreateOptions>(
+  options: T,
+): T {
   if (!options || typeof options !== "object" || Array.isArray(options))
     throw new TypeError("Creation options must be an object");
   const snapshot = { ...options };
@@ -208,36 +212,90 @@ interface ThreeAppConstructor {
 export const ThreeApp = ThreeAppHost as ThreeAppConstructor;
 
 /** Orthographic host. Resize preserves vertical span, frustum center and native zoom. */
-export class OrthographicThreeApp extends SceneHost<OrthographicCamera, WebGLRenderer> {
-  constructor(container: HTMLElement, options: OrthographicThreeAppOptions = {}) {
-    const renderer = rendererSettings(options.renderer);
+class OrthographicThreeAppHost<R extends RendererType = "webgl"> extends SceneHost<
+  OrthographicCamera,
+  RendererFor<R>
+> {
+  override get rendererType(): R {
+    return super.rendererType as R;
+  }
+
+  static create(
+    container: HTMLElement,
+    options: OrthographicWebGPUCreateOptions,
+  ): Promise<OrthographicThreeApp<"webgpu">>;
+  static create(
+    container: HTMLElement,
+    options?: OrthographicWebGLCreateOptions,
+  ): Promise<OrthographicThreeApp<"webgl">>;
+  static create(
+    container: HTMLElement,
+    options: OrthographicThreeAppCreateOptions,
+  ): Promise<OrthographicThreeAppInstance>;
+  static async create(
+    container: HTMLElement,
+    options: OrthographicThreeAppCreateOptions = {},
+  ): Promise<OrthographicThreeAppInstance> {
+    const snapshot = creationSnapshot(options),
+      signal = snapshot.signal;
+    const aborted = (): DOMException =>
+      new DOMException("Scene creation was cancelled", "AbortError");
+    if (signal?.aborted) throw aborted();
+    const type = snapshot.renderer?.type ?? "webgl";
+    if (type === "webgpu") {
+      const { camera, renderer, ...settings } = snapshot as OrthographicWebGPUCreateOptions;
+      const { type: _type, allowFallback = true, ...nativeOptions } = renderer;
+      if (typeof allowFallback !== "boolean")
+        throw new TypeError("allowFallback must be a boolean");
+      let cancelImport: (() => void) | undefined;
+      try {
+        const loading = import("./webgpu-host.ts");
+        const module = signal
+          ? await Promise.race([
+              loading,
+              new Promise<never>((_resolve, reject) => {
+                cancelImport = () => reject(aborted());
+                signal.addEventListener("abort", cancelImport, { once: true });
+                if (signal.aborted) cancelImport();
+              }),
+            ])
+          : await loading;
+        return module.initializeWebGPUHost(
+          container,
+          { ...settings, renderer: nativeOptions, backend: allowFallback ? "auto" : "webgpu" },
+          (prepared) =>
+            Reflect.construct(OrthographicThreeApp, [
+              container,
+              prepared.options,
+              prepared,
+            ]) as OrthographicThreeApp<"webgpu">,
+          () => createOrthographicCamera(camera),
+        );
+      } finally {
+        if (cancelImport) signal?.removeEventListener("abort", cancelImport);
+      }
+    }
+    if (type !== "webgl") throw new TypeError("renderer.type must be webgl or webgpu");
+    const app = new OrthographicThreeApp(container, snapshot as OrthographicThreeAppOptions);
+    if (signal?.aborted) {
+      await app.destroy();
+      throw aborted();
+    }
+    return app;
+  }
+
+  constructor(
+    container: HTMLElement,
+    options: OrthographicThreeAppOptions = {},
+    prepared?: PreparedWebGPUHost<OrthographicCamera>,
+  ) {
+    if ("backend" in options || "fallback" in options || "rendererType" in options)
+      throw new TypeError("Use renderer.type and renderer.allowFallback to configure rendering");
+    const renderer = prepared ? undefined : rendererSettings(options.renderer);
     super(
       container,
       options,
-      () => {
-        const {
-          frustumHeight = 10,
-          near = 0,
-          far = 1000,
-          position = [0, 0, 10],
-        } = options.camera ?? {};
-        positive(frustumHeight, "camera.frustumHeight");
-        if (
-          !Number.isFinite(near) ||
-          near < 0 ||
-          !Number.isFinite(far) ||
-          far <= near ||
-          position.length !== 3 ||
-          !position.every(Number.isFinite)
-        )
-          throw new RangeError("Invalid orthographic frustum or position");
-        const half = frustumHeight / 2;
-        const camera = new OrthographicCamera(-half, half, half, -half, near, far);
-        validOrthographicProjection(camera);
-        camera.position.set(...position);
-        camera.lookAt(0, 0, 0);
-        return camera;
-      },
+      () => (prepared ? prepared.camera : createOrthographicCamera(options.camera)),
       (camera, aspect) => {
         const height = positive(camera.top - camera.bottom, "camera vertical span");
         const center = camera.left / 2 + camera.right / 2;
@@ -252,21 +310,32 @@ export class OrthographicThreeApp extends SceneHost<OrthographicCamera, WebGLRen
         validOrthographicProjection(camera);
       },
       (document) =>
-        new WebGLRenderer({
-          antialias: true,
-          ...renderer,
-          canvas: document.createElement("canvas"),
-        }),
-      (renderer) => renderer.forceContextLoss(),
+        (prepared
+          ? prepared.renderer
+          : new WebGLRenderer({
+              antialias: true,
+              ...renderer,
+              canvas: document.createElement("canvas"),
+            })) as RendererFor<R>,
+      prepared ? undefined : (renderer) => (renderer as WebGLRenderer).forceContextLoss(),
+      prepared?.disposeRenderer,
     );
+    prepared?.setDeviceLossHandler(() => this.loseContext());
   }
 }
 
-function validOrthographicProjection(camera: OrthographicCamera): void {
-  if (
-    !camera.projectionMatrix.elements.every(Number.isFinite) ||
-    !camera.projectionMatrixInverse.elements.every(Number.isFinite) ||
-    camera.projectionMatrixInverse.elements.every((value) => value === 0)
-  )
-    throw new RangeError("Orthographic projection must be finite and invertible");
+export type OrthographicThreeApp<R extends RendererType = "webgl"> = OrthographicThreeAppHost<R>;
+export type OrthographicThreeAppInstance =
+  | OrthographicThreeApp<"webgl">
+  | OrthographicThreeApp<"webgpu">;
+interface OrthographicThreeAppConstructor {
+  new (
+    container: HTMLElement,
+    options?: OrthographicThreeAppOptions,
+  ): OrthographicThreeApp<"webgl">;
+  [Symbol.hasInstance](value: unknown): value is OrthographicThreeAppInstance;
+  readonly prototype: OrthographicThreeApp<RendererType>;
+  readonly name: string;
+  readonly create: typeof OrthographicThreeAppHost.create;
 }
+export const OrthographicThreeApp = OrthographicThreeAppHost as OrthographicThreeAppConstructor;

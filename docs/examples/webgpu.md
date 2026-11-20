@@ -6,4 +6,6 @@
 
 ## 示例源码
 
+点击“使用正交相机”，或访问 `/play/?example=webgpu&projection=orthographic&renderer=webgpu`，使用 OrthographicThreeApp.create 重建同一套场景。正交使用 fitOrthographicObject，透视继续 fitObject；渲染器、组合效果和截图的公开接口保持一致。本次正交的原生设备范围以 Harness 为准。
+
 <<< ../../examples/src/cases/webgpu.ts

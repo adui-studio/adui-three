@@ -65,9 +65,11 @@ const app = await ThreeApp.create(container, {
 
 allowFallback 默认 true，允许 WebGPURenderer 使用其原生 WebGL 2 回退；false 要求原生 WebGPU，初始化不满足要求时拒绝 Promise。app.rendererType 表示渲染器族，app.backend 表示实际 webgl2 / webgpu。泛光、描边、滤镜、动态特效、阴影、环境、导航与截图沿用同一组函数；后处理统一通过 configure 调整。
 
-透视宿主支持两种渲染器，正交宿主目前只支持 WebGL。GPUAdapter 由浏览器选择，不是额外 npm 包；自动化环境没有适配器，不代表使用者电脑缺显卡。完整契约、设备验证及原生对象差异见 [渲染器配置](docs/api/webgpu.md)。
+透视与正交宿主均支持两种渲染器；正交使用 `OrthographicThreeApp.create`，配置同样为 renderer.type/allowFallback。GPUAdapter 由浏览器选择，不是额外 npm 包；自动化环境没有适配器，不代表使用者电脑缺显卡。完整契约、设备验证及原生对象差异见 [渲染器配置](docs/api/webgpu.md)。
 
 ## 能力与入口
+
+资产批次使用 [loadAssets](docs/api/loaders.md#批量准备资产) 统一限流、进度、重试和取消；场景编排使用 [attachGSAPTimeline](docs/api/animation.md#gsap-场景时间线)，由宿主推进应用提供的 GSAP 时间线。两者沿用原有 loaders/animation 子入口。
 
 | 领域       | 公开模块与文档                                                                                                                                     |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |

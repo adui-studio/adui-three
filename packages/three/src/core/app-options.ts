@@ -2,6 +2,7 @@ import type { WebGLRendererParameters } from "three";
 import type { WebGPURendererParameters } from "three/webgpu";
 import type { SceneHostOptions } from "./scene-host.ts";
 import type { PerspectiveCameraOptions } from "./perspective-camera.ts";
+import type { OrthographicCameraOptions } from "./orthographic-camera.ts";
 
 export type RendererType = "webgl" | "webgpu";
 
@@ -43,3 +44,13 @@ export interface WebGPUCreateOptions extends CreateOptions {
 }
 
 export type ThreeAppCreateOptions = WebGLCreateOptions | WebGPUCreateOptions;
+
+export interface OrthographicWebGLCreateOptions extends Omit<WebGLCreateOptions, "camera"> {
+  camera?: OrthographicCameraOptions;
+}
+export interface OrthographicWebGPUCreateOptions extends Omit<WebGPUCreateOptions, "camera"> {
+  camera?: OrthographicCameraOptions;
+}
+export type OrthographicThreeAppCreateOptions =
+  | OrthographicWebGLCreateOptions
+  | OrthographicWebGPUCreateOptions;

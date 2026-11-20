@@ -11,6 +11,8 @@ export type {
   WebGLRendererOptions,
   WebGPURendererOptions,
   OrthographicThreeAppOptions,
+  OrthographicThreeAppCreateOptions,
+  OrthographicThreeAppInstance,
   ThreeAppState,
   ViewportSize,
   RenderPipeline,
