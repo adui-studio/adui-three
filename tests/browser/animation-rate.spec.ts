@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 import type { Locator } from "@playwright/test";
 
-async function pixels(panel: Locator) {
-  return panel.evaluate((element) => {
+async function pixels(panel: Locator, pauseIfDifferent?: number) {
+  return panel.evaluate((element, frozenHash) => {
     element.querySelector<HTMLButtonElement>('[data-action="render"]')!.click();
     const gl = element.querySelector("canvas")!.getContext("webgl2")!;
     const bytes = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
@@ -17,8 +17,10 @@ async function pixels(panel: Locator) {
     );
     let hash = 2166136261;
     for (const byte of bytes) hash = Math.imul(hash ^ byte, 16777619);
+    if (frozenHash !== undefined && hash !== frozenHash)
+      element.querySelector<HTMLButtonElement>('[data-action="stop"]')!.click();
     return { hash, error: gl.getError() };
-  });
+  }, pauseIfDifferent);
 }
 
 async function load(panel: Locator) {
@@ -56,7 +58,9 @@ test("zero model rate freezes native GPU pose while host frames and a peer anima
   await expect(b).toHaveAttribute("data-animation-rate", "1.000");
   await a.getByRole("slider", { name: "动画倍速" }).fill("2");
   await expect(a.getByTestId("animation-time")).not.toHaveText("0.500");
-  await a.getByRole("button", { name: "暂停", exact: true }).click();
+  // Lift is symmetric at 0.5s and 1.5s. Freeze the first changed GPU pose in the
+  // same browser task instead of racing another round trip back to an equal pose.
+  await expect.poll(async () => (await pixels(a, frozen.hash)).hash).not.toBe(frozen.hash);
   expect((await pixels(a)).hash).not.toBe(frozen.hash);
   await expect(a).toHaveAttribute("data-animation-rate", "2.000");
   expect(errors).toEqual([]);
