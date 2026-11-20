@@ -11,7 +11,10 @@ export async function mount(context: ExampleContext) {
   addGround(app);
   context.status("正在加载本地原创 GLB…");
   const controller = new AbortController();
-  button(app, context.tools, "取消加载", () => controller.abort());
+  const cancel = button(app, context.tools, "取消加载", () => {
+    controller.abort();
+    cancel.disabled = true;
+  });
   void loadAssets(
     app,
     {
@@ -32,6 +35,7 @@ export async function mount(context: ExampleContext) {
     },
   )
     .then((batch) => {
+      cancel.disabled = true;
       const { model, environment } = batch.assets;
       app.scene.add(model.scene);
       fitObject(app, model.scene, { controls: orbit.controls, padding: 1.7 });
@@ -40,12 +44,17 @@ export async function mount(context: ExampleContext) {
       button(app, context.tools, "暂停动画", () => animation.pause());
       button(app, context.tools, "继续动画", () => animation.resume());
       button(app, context.tools, "半速动画", () => animation.setPlaybackRate(0.5));
-      button(app, context.tools, "启用预加载环境", () => attachEnvironment(app, environment));
+      const enable = button(app, context.tools, "启用预加载环境", () => {
+        attachEnvironment(app, environment);
+        enable.disabled = true;
+        context.status("预加载 HDR 环境已启用，随本批资产自动清理。");
+      });
       context.status(
         "资产准备 2/2，模型已挂载；HDR 已预加载，可按需启用。切换示例会清理整批资产。",
       );
     })
     .catch((error) => {
+      cancel.disabled = true;
       if (!app.signal.aborted) context.status(String(error));
     });
   app.start();

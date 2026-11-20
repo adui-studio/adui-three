@@ -20,10 +20,13 @@ test("asset batch retries only failed HDR while preserving the prepared model", 
   expect(hdr).toBe(2);
   expect(model).toBe(1);
   await page.getByRole("button", { name: "启用预加载环境", exact: true }).click();
+  await expect(page.getByRole("button", { name: "启用预加载环境", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "取消加载", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "销毁", exact: true }).click();
   await expect(page.locator("canvas")).toHaveCount(0);
   await page.getByRole("button", { name: "重建", exact: true }).click();
   await expect(page.getByRole("button", { name: "暂停动画", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "启用预加载环境", exact: true })).toBeEnabled();
 });
 
 test("cancelled asset batches never expose a late model or animation controls", async ({
