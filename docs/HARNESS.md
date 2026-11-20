@@ -57,6 +57,14 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 ## 验证记录
 
+2026-11-20 页面动效与源码阅读（FR-070）：新增固定 GSAP3.15.1 应用开发依赖，examples 复用 VitePress 已锁定的 Shiki2.5.0；没有升级既有依赖。pnpm 同步规范化了 Vitest5.0.5 的 peer snapshot 上下文，版本保持不变。三处界面使用有限入场和一次滚动显现，作用域 matchMedia 处理实时减少动效及切页/HMR 清理；VitePress 仅在客户端动态导入。GSAP 不接管 ThreeApp/Mixer 时钟，不移动实时画布及其布局祖先。真实 TypeScript 在构建时生成转义高亮，提供文件名、行号、键盘滚动、原文复制与权限失败反馈；严格 WebGPU 创建失败后仍可阅读源码。
+
+ready 通过17项文档测试、776项主包单测（38文件）、326文件格式与187源文件静态检查及全部生产构建；test:package 的17运行时入口、无 DOM 导入和四次 strict/skipLibCheck=false 声明与消费编译通过。完整站点31/31通过（5.9分钟），覆盖实际 token 颜色、转义、原文复制及失败反馈、动态减少动效、滚动显现、两轮 VitePress 路由和画廊切换清理。完整浏览器142通过、2原生 WebGPU 用例在软件环境跳过（144总数，9.8分钟），零自动重试。本轮使用 Chromium/SwiftShader，未重新执行历史 NVIDIA Ampere 原生专项。
+
+首轮 ready 因文档检查器临时工程未复制新链接指向的 ui 目录，出现2项基线失败；补齐测试 fixture，不放宽链接检查。首次完整站点30通过、1失败（5.6分钟），节点渲染 basic 的可选宿主 chunk 尚在请求中，5秒状态断言到期；trace 未见应用异常，网络记录该请求未完成。节点渲染组补齐与既有 WebGL 组一致的 networkidle 就绪等待后，单次全量31通过；没有增加超时、重试或放宽像素断言。首次诊断保留在忽略的 playwright-report/redesign/gsap-ready-initial.log、gsap-site-initial.log 与 gsap-site-initial/。
+
+SDK 产物扫描没有 GSAP/ScrollTrigger/Shiki；examples 浏览器产物没有高亮引擎 createHighlighter/vscode-textmate/onig.wasm，原有模型解码资产保持。源码区补齐可访问 region 后，最终 ready 再次通过，4项专项全部通过（1.1分钟），核验 region 名称与 tabindex。1440px/375px 最终截图已目视检查，页面错误为空；手机页面无横向溢出，代码区333px视窗内单独滚动522px内容。截图及最终检查结果见同目录 gsap-* 产物。新增依赖仅用于应用构建，不新增 CI，不发布 npm。
+
 2026-11-19 品牌与三处界面重设计（FR-069）：使用用户提供的 ADui Three Brand Kit，两个 SVG 和横向预览 PNG 与原始文件 SHA256 一致；产品名与技术包名分离。VitePress1.6.4 通过默认主题插槽呈现静态首页和明暗阅读面，examples 使用几何目录及画布/控制面板，website 使用 Studio 侧栏与窄屏选择器。共同 ui 基础令牌和 SVG 不进入 SDK，不引入字体请求、额外渲染循环或新依赖。
 
 本轮 ready 通过17项文档测试、776项单测（38文件）、320文件格式与181源文件静态检查及全部生产构建。最终站点27/27通过（3.8分钟），新增375/768/1440px、键盘跳转、44px场景按钮、Ctrl/Cmd打开新页与真实主题开关检查；定向视觉5/5通过（40.0秒）。最终完整浏览器142通过、2原生适配器用例在软件环境跳过（144总数，8.7分钟），零自动重试。原生 NVIDIA Ampere 验收沿用下述独立历史记录，本轮不称重新执行了原生硬件矩阵。
