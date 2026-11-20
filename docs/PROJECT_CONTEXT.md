@@ -4,7 +4,7 @@
 
 ## 目标与当前阶段
 
-2026-11-20 FR-071/072/073 已实现、验收中：loadAssets 统一命名资产任务和批次所有权；attachGSAPTimeline 以宿主 delta 驱动消费者时间线；OrthographicThreeApp.create 支持相同双后端协议。基础/模型/渲染器示例分别展示三项能力，SDK 不新增依赖或包入口。最终结果与限制待写入 Harness。
+2026-11-20 FR-071/072/073 已完成：loadAssets 统一命名资产任务和批次所有权；attachGSAPTimeline 以宿主 delta 驱动消费者时间线；OrthographicThreeApp.create 支持相同双后端协议。基础/模型/渲染器示例分别展示三项能力，SDK 不新增依赖或包入口。最终 ready 796单测/17文档测试、17入口严格消费、36站点和142浏览器通过（另2原生跳过）；示例单次启用保护后 ready 与5项专项再次通过。首次失败和实际设备范围见 Harness。
 
 2026-11-20 FR-070 已完成：GSAP 页面编排覆盖三处应用，动态减少动效及切页/HMR 清理；examples 真实源码在构建时用 Shiki 高亮，提供行号、文件名、键盘访问和复制反馈，GPU 创建失败仍可阅读。ready、17入口包消费、31站点与142浏览器通过（软件环境另2原生用例跳过）；可访问 region 补齐后最终 ready 和4项专项再次通过。SDK 动画和帧循环不改，依赖不进入主包；首次失败与最终证据见 Harness。
 
@@ -16,7 +16,7 @@
 
 当前整理阶段：SDK内部实现分组，公开入口不变；正式示例在examples，旧apps/website用于回归；VitePress在apps/docs，内容统一于docs，资产在fixtures。dev默认正式示例，旧场景用dev:playground，文档用docs:dev/build/preview。决定见ADR-0047，验证见Harness。
 
-更新日期：2026-11-19。主 npm 包 @adui/three，版本0.0.0，尚未发布。最近已交付第一/第三人称与 BVH、独立路径几何、飞线/光墙/雷达、实时阴影和颜色滤镜；已按用户指定的 Three.js Editor 干净配置实现 Neutral/1 预设、七种色调与曝光、Basic 阴影和原生 Room PMREM；当前新增点云飞线、路径流光、扩散波纹、光柱和能量护罩。普通宿主默认保持兼容。/?demo=editor 提供 SDK 与直接原生颜色/环境对照；代码和 [SDD](SDD.md) 描述实现，[需求](REQUIREMENTS.md) 描述目标。本地归档见 [迁移指南](MIGRATION.md)，旧业务兼容仍待实测。
+更新日期：2026-11-20。主 npm 包 @adui/three，版本0.0.0，尚未发布。最近已交付第一/第三人称与 BVH、独立路径几何、飞线/光墙/雷达、实时阴影和颜色滤镜；已按用户指定的 Three.js Editor 干净配置实现 Neutral/1 预设、七种色调与曝光、Basic 阴影和原生 Room PMREM；当前新增点云飞线、路径流光、扩散波纹、光柱和能量护罩。普通宿主默认保持兼容。/?demo=editor 提供 SDK 与直接原生颜色/环境对照；代码和 [SDD](SDD.md) 描述实现，[需求](REQUIREMENTS.md) 描述目标。本地归档见 [迁移指南](MIGRATION.md)，旧业务兼容仍待实测。
 
 用户授权持续封装、分步提交推送；提交描述和正文使用中文，格式 type(scope): emoji 中文描述。不得改写已有提交或擅自发布 npm。用户明确“不做任何 CI”：不新增/启用工作流，不调整组织或仓库 Actions 设置。历史工作流已由 e6ea2c2 移除，保留当时的本地输入回归修复。
 
@@ -55,7 +55,7 @@ ready通过710单测与16文档测试、全部静态检查/构建；十六入口
 
 ## 验证状态
 
-当前 ready 通过710单测、16文档测试、格式/Lint/类型及全部构建；十六入口 tarball 和四次严格消费通过。完整浏览器127/127（约9.5分钟）通过，零重试、零跳过；新演示布局调整后专项3/3通过。证据见 [Harness](HARNESS.md)。浏览器与数值测试不代表全部格式、硬件或长期性能已验证。
+当前 ready 通过796单测、17文档测试、格式/Lint/类型及全部构建；17入口 tarball 和四次严格消费通过。站点36/36，完整浏览器142通过、2原生适配器用例在软件环境跳过（10.7分钟），零自动重试；最终示例补查5/5通过。证据见 [Harness](HARNESS.md)。浏览器与数值测试不代表全部格式、硬件或长期性能已验证。
 
 浏览器环境是 Chromium/SwiftShader，单 worker、零自动重试；完整设备/格式/浏览器矩阵、长期 GPU 泄漏和性能基准尚未完成。保留 TypeScript 7 API 实验性和演示大 chunk 构建提示，不将本地通过称为远端 CI 通过。失败诊断、历史统计和阶段未提交记录统一保留在 Harness，不在接手入口复制过期状态。
 
@@ -83,7 +83,7 @@ WebGL 上下文丢失会将 contextLost 设 true 并完整结束该宿主，业�
 
 先读 [AGENTS](../AGENTS.md)、需求、SDD、[架构](ARCHITECTURE.md)、[代码地图](CODEBASE_MAP.md) 和 [Harness](HARNESS.md)。修改范围对应需求编号；API/所有权边界见 ADR-0002 至 ADR-0040，ADR-0001 保留历史 Proposed 提案。Skills 按 [索引](SKILLS.md) 加载，不自动安装或扩大远程授权。
 
-下一步按实际需求补充更多真实模型/硬件场景或更高层动画能力；不预建空包。正交取景采用独立命名函数，既有透视接口类型不扩大；拾取/标签/取景/组合效果已专项验证，不能外推全部模块和设备。共享解码器服务、浏览器范围、更多 Three.js minor、WebGPU/WebXR、框架适配和 npm 发布权限仍待专门评估。后续代码检查 ready，影响宿主/渲染/演示执行 test:browser，导出/打包变化执行 test:package，文档执行 docs:test/docs:check。
+下一步按实际业务评估性能诊断、模型查看工具及框架适配，不预建空包或将建议写成实现。资产批次与 GSAP 场景编排已接入，正交取景继续独立命名；全部模块/设备不能由专项外推。共享解码器服务、浏览器范围、更多 Three.js minor、原生设备矩阵、WebXR、框架适配和 npm 发布权限仍待专门评估。后续代码检查 ready，影响宿主/渲染/演示执行 test:browser，导出/打包变化执行 test:package，文档执行 docs:test/docs:check。
 
 ## 维护
 

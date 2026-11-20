@@ -57,6 +57,20 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 ## 验证记录
 
+2026-11-20 资产批次、场景时间线与正交双后端（FR-071/072/073）：既有 loaders/animation/主入口分别新增 loadAssets、attachGSAPTimeline、OrthographicThreeApp.create，不增加 SDK 依赖、包入口、全局缓存或渲染循环。批次按命名任务限流与重试，计数总进度与主请求字节分开，成功句柄转到批次私有 scope；旧尝试/已完成任务的迟到进度不再报告。GSAP3.15.1 真实时间线保持 paused，由宿主 delta 推进，页面 ticker 不变；销毁/回调重入与可选模型 scope 单独验证。正交初始化复用私有准备流程，保留具体相机/渲染器和投影边界。
+
+最终 ready 通过17项文档测试、796项单测（40文件）、335文件格式与193源文件静态检查及全部构建。独立包17运行时入口、17 development 解析和四次 strict/skipLibCheck=false 声明与消费编译通过，新增消费覆盖具体批次字段、GSAP 结构接口及正交 WebGPU 类型，保留透视属性的负向类型检查。新增5项站点专项全部通过（1.3分钟）：一次503后只重试 HDR、取消后不出现迟到模型/动画控件、暂停后稳定像素与定位单帧、两类 renderer 的正交效果/截图像素/重建与投影切换。
+
+首次 ready 因三项新 ADR 缺少架构导航而有2项基线失败，补齐真实链接后通过，未放宽检查。初次独立包检查的精确导出白名单未包含 loadAssets，保留失败临时目录并同步两项正式导出后通过，未改为宽松包含检查。首次专项启动被上一轮4174预览占用阻止，关闭旧预览后执行，测试内部不重试。日志保留在忽略的 playwright-report/redesign/features-ready-initial.log、features-package-initial.log、features-targeted-port.log，最终日志使用 features-*；原有 TypeScript7 实验性和大 chunk 提示保留。
+
+完整站点36/36通过（7.3分钟）。首轮完整浏览器141通过、2原生跳过、1项既有倍速用例失败（12.8分钟）：恢复倍速后跨任务暂停落在1.500秒，原始 Lift 在0/1/2秒高度为0/.6/0，因此与冻结的.500秒姿态完全相同，像素哈希相等。trace 的实际时间/姿态与 fixture 一致，未发现宿主时钟或资源异常。用例改为实时读取变化像素后在同一浏览器任务立即暂停，再保留原来的暂停像素断言；未增加超时、重试、误差或修改生产时钟。首次 trace、DOM 和 timing 报告保留在 playwright-report/redesign/features-browser-initial/，原日志为 features-browser-initial.log。
+
+修正取样后的倍速专项3/3通过（1.0分钟），再次 ready 通过上述796单测与全部静态/构建检查，随后单次全量142通过、2原生适配器用例在软件环境跳过（10.7分钟），零自动重试。其后仅补齐正式模型示例的环境单次启用和加载结束禁用取消按钮；最终 ready 再次通过，5项场景专项5/5通过（1.1分钟），包括启用后禁用、重建后重新可用。此补查未改 SDK、website 或渲染时钟，未重复已通过的全量套件。
+
+本轮 CLI 为 Chromium/SwiftShader。尝试连接用户 Chrome 补验原生正交时，新页及现有绑定接口均报告浏览器连接不可用，未执行原生硬件验收；不将历史 NVIDIA Ampere 透视专项外推到本次正交组合，完整设备矩阵仍待补齐。SDK 产物无 GSAP 运行时导入；本轮不新增 CI，不发布 npm。
+
+最终截图审查另发现主题操作的默认 flex stretch 会将截图旁按钮拉到图片高度，改为顶部对齐；ready 再次通过，既有375/768/1440px、键盘和明暗专项5/5通过（40.4秒）。末轮需求表格格式提示修正后复验，原日志保留 features-ready-format.log。三主题桌面及375px正交截图位于同目录 features-*.png，页面错误为空，手机页面无横向溢出；首次 resize 截图出现空白，随后通过公开截图读回非空像素并重新捕获正常画面，未交付首图。正交截图实际为 WebGPURenderer / WebGL 2 回退，不能作为原生 WebGPU 证明。
+
 2026-11-20 页面动效与源码阅读（FR-070）：新增固定 GSAP3.15.1 应用开发依赖，examples 复用 VitePress 已锁定的 Shiki2.5.0；没有升级既有依赖。pnpm 同步规范化了 Vitest5.0.5 的 peer snapshot 上下文，版本保持不变。三处界面使用有限入场和一次滚动显现，作用域 matchMedia 处理实时减少动效及切页/HMR 清理；VitePress 仅在客户端动态导入。GSAP 不接管 ThreeApp/Mixer 时钟，不移动实时画布及其布局祖先。真实 TypeScript 在构建时生成转义高亮，提供文件名、行号、键盘滚动、原文复制与权限失败反馈；严格 WebGPU 创建失败后仍可阅读源码。
 
 ready 通过17项文档测试、776项主包单测（38文件）、326文件格式与187源文件静态检查及全部生产构建；test:package 的17运行时入口、无 DOM 导入和四次 strict/skipLibCheck=false 声明与消费编译通过。完整站点31/31通过（5.9分钟），覆盖实际 token 颜色、转义、原文复制及失败反馈、动态减少动效、滚动显现、两轮 VitePress 路由和画廊切换清理。完整浏览器142通过、2原生 WebGPU 用例在软件环境跳过（144总数，9.8分钟），零自动重试。本轮使用 Chromium/SwiftShader，未重新执行历史 NVIDIA Ampere 原生专项。
