@@ -11,6 +11,12 @@ import type { SceneApp } from "./core/three-app.ts";
 import { resolveTransitionEasing } from "./shared/easing.ts";
 import type { TransitionEasing } from "./shared/easing.ts";
 export type { TransitionEasing } from "./shared/easing.ts";
+export { attachGSAPTimeline } from "./animation/gsap-timeline.ts";
+export type {
+  GSAPTimelineLike,
+  GSAPTimelineHandle,
+  AttachGSAPTimelineOptions,
+} from "./animation/gsap-timeline.ts";
 
 export { followPath } from "./animation/path-animation.ts";
 export type {

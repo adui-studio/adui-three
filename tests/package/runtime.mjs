@@ -29,7 +29,7 @@ const expected = {
   "@adui/three/loaders": ["loadGLTF", "cloneGLTF", "loadAssets"],
   "@adui/three/interaction": ["attachPicking"],
   "@adui/three/labels": ["attachDOMLabels"],
-  "@adui/three/animation": ["attachGLTFAnimations", "followPath"],
+  "@adui/three/animation": ["attachGLTFAnimations", "followPath", "attachGSAPTimeline"],
   "@adui/three/camera": [
     "computeObjectFrame",
     "fitObject",

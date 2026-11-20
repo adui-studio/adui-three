@@ -1,5 +1,29 @@
 # 动画与路径运动
 
+## GSAP 场景时间线
+
+```ts
+import { gsap } from "gsap"; // 应用自行安装；SDK 不依赖 GSAP。
+import { attachGSAPTimeline } from "@adui/three/animation";
+
+const timeline = gsap
+  .timeline({ paused: true, repeat: 1, yoyo: true })
+  .to(mesh.position, { x: 3, duration: 2, ease: "power2.inOut" });
+const motion = attachGSAPTimeline(app, timeline, { scope: model.resources });
+motion.pause();
+motion.seek(1); // 秒；静默采样并暂停，不触发 GSAP 回调、不自动绘制。
+app.renderOnce();
+motion.setPlaybackRate(0.5);
+motion.resume();
+// motion.restart() 从0重播；motion.dispose() kill 自己的时间线。
+```
+
+传入已填充、暂停的根时间线，并交给句柄清理；绑定后禁止直接 play/reverse/seek、改结构、加入其他父时间线或接 ScrollTrigger。支持有限 repeat/yoyo，不接受无限根 repeat 或初始反向状态。SDK 通过结构接口调用 totalTime，不导入 GSAP，不修改全局 ticker，页面动画独立运行。
+
+句柄提供 timeline、state、time、duration、playbackRate、disposed；autoPlay 默认 true，playbackRate 默认快照原生 timeScale，随后通过句柄调整（非负有限，0冻结）。宿主停止/隐藏/零尺寸时不推进；到达 totalDuration 后 finished，使用 restart 重播。原生回调里的控制排队到采样后；回调中销毁立即撤销更新，kill 延后至采样结束。dispose 保留最后姿态，随宿主或额外 scope 执行。
+
+避免与 Mixer、路径或相机控件同时写同一属性。原生回调报错沿用宿主异常策略。见[基础示例](../examples/basic.md)和 [ADR-0053](../adr/0053-gsap-timeline.md)。
+
 ## 模型动画
 
 ```ts

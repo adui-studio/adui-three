@@ -380,6 +380,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-064  | 可选 WebGPU 基础宿主契约          | webgpu、共用 SceneHost 与 SceneApp               | 异步单测/打包/节点回退，原生GPU需适配器验收                |
 | FR-065  | ThreeApp统一创建契约              | ThreeApp.create / rendererType / options         | 参数快照、取消、类型收窄、真实浏览器与示例                 |
 | FR-071  | 统一资产任务                      | loaders/loadAssets、asset-batch                  | 限流、重试、取消、迟到清理与严格类型消费                   |
+| FR-072  | GSAP 场景适配                     | animation/attachGSAPTimeline                     | 真实 GSAP、回调重入、多宿主、scope 与暂停绘制              |
 | FR-070  | 页面动效与示例源码阅读            | ui/motion、MotionLayout、构建高亮与source-viewer | 真实颜色/复制、减少动效/路由清理、SSG与包边界              |
 | FR-069  | 品牌与三处界面重设计              | 共享ui、原始Brand Kit、首页主题与运行面板        | 品牌一致性、响应式/键盘/明暗、站点与浏览器回归             |
 | FR-068  | 正式项目入口与双后端示例契约      | README、renderer选择、工作台导航与能力诊断       | 构建/文档/严格消费、站点/导航/移动布局及原生浏览器专项     |
@@ -545,6 +546,8 @@ UI 是应用层：ui 基础令牌与静态 SVG 不进入 SDK 依赖；Brand Kit 
 ## 资产与场景扩展契约
 
 FR-071：loadAssets<T>(app,tasks,options?) 从命名 AssetLoader 推导 AssetBatch.assets 的字段类型。任务上下文为 signal/attempt/onProgress，选项为 concurrency/retries/signal/onProgress/onCleanupError。成功句柄从宿主直属资源转到批次私有 scope；失败/取消立即拒绝并清理，迟到资源单独释放。进度为任务计数，主请求 bytes 独立；自定义任务负责失败尝试，结果须独占且幂等。见 [ADR-0052](adr/0052-asset-batches.md)和[用法](api/loaders.md#批量准备资产)。
+
+FR-072：attachGSAPTimeline(app,timeline,{scope?,autoPlay?,playbackRate?}) 返回 GSAPTimelineHandle。time/duration 为总秒数，state 为 playing/paused/finished/disposed；pause/resume/restart/seek/setPlaybackRate/dispose 只管理该时间线。原生始终 paused，宿主推进 totalTime；回调命令排队，采样内销毁延后 kill。不包含 GSAP 运行时依赖，见 [ADR-0053](adr/0053-gsap-timeline.md)。
 
 ## 页面动效与源码阅读契约（FR-070）
 

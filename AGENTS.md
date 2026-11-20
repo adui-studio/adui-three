@@ -71,6 +71,7 @@
 - [统一创建决策](docs/adr/0049-unified-app-creation.md)：ThreeApp.create 的后端选择、回退、精确类型和按需加载。
 - [WebGPU 基础宿主决策](docs/adr/0048-webgpu-host.md)：可选异步入口、共用生命周期与独立后端验收。
 - [统一资产批任务](docs/adr/0052-asset-batches.md)：命名任务、限流/重试、计数进度和迟到清理。
+- [GSAP 场景时间线](docs/adr/0053-gsap-timeline.md)：宿主推进、可选结构适配和作用域销毁。
 
 ## 工作流程与约束
 
