@@ -70,6 +70,7 @@
 - [正式 API 决策](docs/adr/0050-public-app-api.md)：统一 renderer 配置、实际类身份、renderOnce/destroy 与迁移规则。
 - [统一创建决策](docs/adr/0049-unified-app-creation.md)：ThreeApp.create 的后端选择、回退、精确类型和按需加载。
 - [WebGPU 基础宿主决策](docs/adr/0048-webgpu-host.md)：可选异步入口、共用生命周期与独立后端验收。
+- [统一资产批任务](docs/adr/0052-asset-batches.md)：命名任务、限流/重试、计数进度和迟到清理。
 
 ## 工作流程与约束
 

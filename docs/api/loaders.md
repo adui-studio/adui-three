@@ -1,5 +1,39 @@
 # 模型加载
 
+## 批量准备资产
+
+```ts
+import { loadAssets, loadGLTF } from "@adui/three/loaders";
+import { loadHDR } from "@adui/three/environment";
+
+const batch = await loadAssets(
+  app,
+  {
+    robot: ({ signal, onProgress }) =>
+      loadGLTF(app, "/robot.glb", {
+        signal,
+        onProgress,
+        addToScene: false,
+      }),
+    studio: ({ signal }) => loadHDR(app, "/studio.hdr", { signal }),
+  },
+  {
+    concurrency: 2,
+    retries: 1,
+    onProgress: ({ completed, total }) => console.log(`${completed}/${total}`),
+  },
+);
+app.scene.add(batch.assets.robot.scene); // 准备与展示分离，结果保留具体类型。
+// studio 可随后交给 attachEnvironment；不自动绑定或启动绘制。
+batch.dispose(); // 也会随 app.destroy() 清理。
+```
+
+loadAssets 接收命名 AssetLoader 函数，快照任务及配置。默认并发4（1–32），额外重试0（0–10），可传 signal；只重试失败任务，AbortError 不重试。自定义任务须可安全重试，自行清理失败尝试的未交付资源。预加载使用既有加载器的 detached/不绑定行为，没有额外全局缓存。
+
+AssetBatch.assets 是保留字段类型的冻结对象，独占句柄交给批次，dispose 按完成逆序释放；句柄须幂等，同批不得返回同一对象。批次整体属于宿主资源。失败取消同批、释放已接受句柄；忽略 signal 的任务迟到成功仍 dispose，迟到清理错误由 onCleanupError 报告。取消是逻辑取消，不保证停止共享网络；成功后 signal 不再控制寿命。
+
+AssetBatchProgress 提供 total/completed/active/queued/ratio/key/attempt/bytes；ratio 仅是完成任务数比例，空批次为1。bytes 是任务转发的主请求字节，不代表整批大小或解码进度。回调异常拒绝并清理批次。见[正式示例](../examples/model.md)和 [ADR-0052](../adr/0052-asset-batches.md)。
+
 ## GLTF / GLB 加载
 
 ```ts

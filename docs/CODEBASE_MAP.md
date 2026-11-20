@@ -1,5 +1,7 @@
 # 代码地图
 
+新增资产批任务位于 `packages/three/src/loaders/asset-batch.ts`，专项为 asset-batch.test.ts。
+
 消费和迁移从 [旧封装迁移指南](MIGRATION.md) 进入，包括模块对照、本地 tarball 及生命周期顺序；已运行消费者在 apps/website。
 
 ## 已存在文件

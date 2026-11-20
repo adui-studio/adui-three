@@ -13,6 +13,15 @@ import type { TranscoderPath } from "./loaders/ktx2-task.ts";
 
 export { cloneGLTF } from "./loaders/gltf-clone.ts";
 export type { CloneGLTFOptions, GLTFInstance } from "./loaders/gltf-clone.ts";
+export { loadAssets } from "./loaders/asset-batch.ts";
+export type {
+  AssetLoader,
+  AssetLoadContext,
+  AssetByteProgress,
+  AssetBatchProgress,
+  AssetBatch,
+  LoadAssetsOptions,
+} from "./loaders/asset-batch.ts";
 
 export interface ModelProgress {
   /** Bytes of the primary GLTF/GLB request, not total dependency/decode progress. */

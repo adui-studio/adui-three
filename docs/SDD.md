@@ -379,6 +379,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-063  | 包/文档/示例工程契约              | 分组实现、examples、apps/docs、共享fixtures      | 单测/打包/既有GPU与站点验证                                |
 | FR-064  | 可选 WebGPU 基础宿主契约          | webgpu、共用 SceneHost 与 SceneApp               | 异步单测/打包/节点回退，原生GPU需适配器验收                |
 | FR-065  | ThreeApp统一创建契约              | ThreeApp.create / rendererType / options         | 参数快照、取消、类型收窄、真实浏览器与示例                 |
+| FR-071  | 统一资产任务                      | loaders/loadAssets、asset-batch                  | 限流、重试、取消、迟到清理与严格类型消费                   |
 | FR-070  | 页面动效与示例源码阅读            | ui/motion、MotionLayout、构建高亮与source-viewer | 真实颜色/复制、减少动效/路由清理、SSG与包边界              |
 | FR-069  | 品牌与三处界面重设计              | 共享ui、原始Brand Kit、首页主题与运行面板        | 品牌一致性、响应式/键盘/明暗、站点与浏览器回归             |
 | FR-068  | 正式项目入口与双后端示例契约      | README、renderer选择、工作台导航与能力诊断       | 构建/文档/严格消费、站点/导航/移动布局及原生浏览器专项     |
@@ -540,6 +541,10 @@ website 仍为私有集成工作台，原路径和选择器保持。bootstrap �
 ## 品牌与界面契约（FR-069）
 
 UI 是应用层：ui 基础令牌与静态 SVG 不进入 SDK 依赖；Brand Kit 从 docs/public/brand 单一来源引用，产品名 ADui Three 与包名 @adui/three 分离。VitePress1.6.4 继续使用默认主题，home-hero-before 注入确定性静态首页，不在 SSR 初始化 SDK。examples 保留 FR-068 的取消/版本守卫、URL 和后端协议，修改链接拦截使 Ctrl/Cmd 点击遵循浏览器默认行为。website 桌面侧栏独立滚动，1100px 以下使用原生选择器，main 不被侧栏覆盖。设计与维护规则见[界面设计与品牌](development/visual-design.md)。
+
+## 资产与场景扩展契约
+
+FR-071：loadAssets<T>(app,tasks,options?) 从命名 AssetLoader 推导 AssetBatch.assets 的字段类型。任务上下文为 signal/attempt/onProgress，选项为 concurrency/retries/signal/onProgress/onCleanupError。成功句柄从宿主直属资源转到批次私有 scope；失败/取消立即拒绝并清理，迟到资源单独释放。进度为任务计数，主请求 bytes 独立；自定义任务负责失败尝试，结果须独占且幂等。见 [ADR-0052](adr/0052-asset-batches.md)和[用法](api/loaders.md#批量准备资产)。
 
 ## 页面动效与源码阅读契约（FR-070）
 

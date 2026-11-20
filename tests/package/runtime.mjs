@@ -26,7 +26,7 @@ const expected = {
   "@adui/three/controls": ["attachOrbitControls", "attachTransformControls"],
   "@adui/three/collision": ["createCollisionWorld"],
   "@adui/three/navigation": ["attachFirstPersonControls", "attachThirdPersonControls"],
-  "@adui/three/loaders": ["loadGLTF", "cloneGLTF"],
+  "@adui/three/loaders": ["loadGLTF", "cloneGLTF", "loadAssets"],
   "@adui/three/interaction": ["attachPicking"],
   "@adui/three/labels": ["attachDOMLabels"],
   "@adui/three/animation": ["attachGLTFAnimations", "followPath"],
