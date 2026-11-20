@@ -69,6 +69,8 @@ allowFallback 默认 true，允许 WebGPURenderer 使用其原生 WebGL 2 回退
 
 ## 能力与入口
 
+[渲染统计](docs/api/rendering.md#渲染统计与监视)通过 captureRenderStats 和 attachRenderMonitor 提供原生数值快照与宿主观测帧率；正式示例和工作台有可折叠面板，不额外创建渲染循环。
+
 资产批次使用 [loadAssets](docs/api/loaders.md#批量准备资产) 统一限流、进度、重试和取消；场景编排使用 [attachGSAPTimeline](docs/api/animation.md#gsap-场景时间线)，由宿主推进应用提供的 GSAP 时间线。两者沿用原有 loaders/animation 子入口。
 
 | 领域       | 公开模块与文档                                                                                                                                     |

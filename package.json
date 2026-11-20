@@ -21,6 +21,7 @@
     "test:site": "playwright test --config playwright.site.config.ts"
   },
   "devDependencies": {
+    "@adui/three": "catalog:",
     "@playwright/test": "1.64.1",
     "draco3dgltf": "catalog:",
     "gsap": "catalog:",

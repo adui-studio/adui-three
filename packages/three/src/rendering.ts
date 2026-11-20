@@ -10,6 +10,13 @@ import {
 import type { SceneApp } from "./core/three-app.ts";
 import type { ResourceScope } from "./core/resources.ts";
 import { isRendererDrawing, retireAfterRender } from "./core/render-retirement.ts";
+export { captureRenderStats, attachRenderMonitor } from "./rendering/render-stats.ts";
+export type {
+  RenderStats,
+  RenderMonitorSample,
+  RenderMonitorOptions,
+  RenderMonitorHandle,
+} from "./rendering/render-stats.ts";
 export type ToneMappingMode =
   | "none"
   | "linear"

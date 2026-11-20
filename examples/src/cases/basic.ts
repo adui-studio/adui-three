@@ -1,6 +1,7 @@
 import { addBox, addGround, button, createScene } from "../shared.ts";
 import { gsap } from "gsap";
 import { attachGSAPTimeline } from "@adui/three/animation";
+import { captureRenderStats } from "@adui/three/rendering";
 import type { ExampleContext } from "../shared.ts";
 export async function mount(context: ExampleContext) {
   const app = await createScene(context);
@@ -11,6 +12,12 @@ export async function mount(context: ExampleContext) {
     .to(cube.rotation, { y: Math.PI * 2, duration: 6, ease: "none" })
     .to(cube.position, { y: 2, duration: 1.5, ease: "power2.inOut" }, 0);
   const motion = attachGSAPTimeline(app, timeline);
+  button(app, context.tools, "读取统计快照", () => {
+    const stats = captureRenderStats(app);
+    context.status(
+      `原生统计：${stats.drawCalls ?? "—"} 次绘制、${stats.triangles ?? "—"} 个三角形、${stats.geometries ?? "—"} 个几何体。`,
+    );
+  });
   button(app, context.tools, "暂停时间线", () => motion.pause());
   button(app, context.tools, "继续时间线", () => motion.resume());
   button(app, context.tools, "重播时间线", () => motion.restart());

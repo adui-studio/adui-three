@@ -1,4 +1,8 @@
 import "./style.css";
+import "../../../ui/render-stats-panel.css";
+import { mountRenderStatsPanel } from "../../../ui/render-stats-panel.ts";
+import type { RenderStatsPanel } from "../../../ui/render-stats-panel.ts";
+import { captureRenderStats } from "@adui/three/rendering";
 import { ThreeApp } from "@adui/three";
 import { captureFrame } from "@adui/three/capture";
 import { computeObjectBounds } from "@adui/three/geometry";
@@ -88,6 +92,7 @@ function mountPanel(id: string, color: number): void {
   const button = (action: string): HTMLButtonElement =>
     card.querySelector<HTMLButtonElement>(`[data-action="${action}"]`)!;
   let app: ThreeApp | undefined;
+  let statsPanel: RenderStatsPanel | undefined;
   let frames = 0;
   let draws = 0;
   let narrow = false;
@@ -164,6 +169,7 @@ function mountPanel(id: string, color: number): void {
   }
 
   function refresh(): void {
+    statsPanel?.refresh();
     const state = app?.state ?? "unavailable";
     card.dataset.state = state;
     card.dataset.contextLost = String(app?.contextLost ?? false);
@@ -183,7 +189,9 @@ function mountPanel(id: string, color: number): void {
       ? size.pixelRatio.toFixed(2)
       : "—";
     card.querySelector('[data-testid="draw-calls"]')!.textContent = String(
-      app?.renderer.info.render.calls ?? 0,
+      app && app.state !== "disposed" && !app.resources.disposed
+        ? (captureRenderStats(app).drawCalls ?? 0)
+        : 0,
     );
     button("start").disabled = !app || state === "running" || state === "disposed";
     button("stop").disabled = !app || state !== "running";
@@ -728,6 +736,7 @@ function mountPanel(id: string, color: number): void {
       clearModel();
       errorOutput.hidden = true;
       app = new ThreeApp(viewport, { camera: { position: [4, 3, 5] }, maxPixelRatio: 2 });
+      statsPanel = mountRenderStatsPanel(app, card);
       app.resources.track({ dispose: clearCapture });
       const owner = app;
       owner.signal.addEventListener(

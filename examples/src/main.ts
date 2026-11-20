@@ -1,8 +1,11 @@
 import "../../ui/tokens.css";
 import "./style.css";
+import "../../ui/render-stats-panel.css";
 import { spatialGraphic } from "../../ui/graphics.ts";
 import { mountPageMotion } from "../../ui/motion.ts";
 import { createSourceViewer } from "./source-viewer.ts";
+import { mountRenderStatsPanel } from "../../ui/render-stats-panel.ts";
+import type { RenderStatsPanel } from "../../ui/render-stats-panel.ts";
 import brandLogo from "../../docs/public/brand/ADui-Three-Logo.svg?url";
 import brandIcon from "../../docs/public/brand/ADui-Three-Icon.svg?url";
 import { examples } from "./catalog.ts";
@@ -37,7 +40,9 @@ let pending = new AbortController();
 let current: SceneApp | undefined,
   activeId: string | undefined,
   generation = 0;
+let statsPanel: RenderStatsPanel | undefined;
 function refresh(): void {
+  statsPanel?.refresh();
   const state = current?.state ?? "ready";
   detail.dataset.state = state;
   detail.setAttribute("aria-busy", String(!current && !!activeId));
@@ -50,6 +55,8 @@ async function open(id: string | null, history = false): Promise<void> {
   rendererSelect.value = choice;
   backendInfo.textContent = "尚未创建";
   const request = ++generation;
+  statsPanel?.dispose();
+  statsPanel = undefined;
   disposeMotion?.();
   disposeMotion = undefined;
   pending.abort();
@@ -99,6 +106,7 @@ async function open(id: string | null, history = false): Promise<void> {
       return;
     }
     current = app;
+    statsPanel = mountRenderStatsPanel(app, detail.querySelector<HTMLElement>(".scene-inspector")!);
     if (!tools.hasChildNodes()) {
       const hint = document.createElement("p");
       hint.className = "tools-empty";

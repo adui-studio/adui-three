@@ -1,4 +1,32 @@
-# Editor 渲染基准
+# 渲染配置与统计
+
+## 渲染统计与监视
+
+```ts
+import { captureRenderStats, attachRenderMonitor } from "@adui/three/rendering";
+
+const stats = captureRenderStats(app); // 不绘制、不重置原生计数。
+console.log(stats.drawCalls, stats.geometries, stats.estimatedBytes);
+const monitor = attachRenderMonitor(app, {
+  sampleInterval: 0.5, // 秒；0表示每次成功完成绘制都通知。
+  onSample: ({ fps, frameIntervalMs, stats }) => {
+    // 同步通知；只按需更新界面，避免逐帧日志。
+    console.log({ fps, frameIntervalMs, drawCalls: stats.drawCalls });
+  },
+});
+app.start();
+// 暂停后需要当前值时：monitor.read()；不会触发绘制或 onSample。
+// monitor.dispose()；也会随宿主或 options.scope 结束。
+// 销毁后 monitor.snapshot 仍保留最后一份纯数据，read() 拒绝。
+```
+
+RenderStats 为冻结快照，包含 rendererType/backend/state、独立 CSS viewport、原生 autoReset，以及 drawCalls、triangles、lines、points、geometries、textures、programs、estimatedBytes。缺失或无效指标为 null，不伪造为0。节点 drawCalls 与 WebGL render.calls 映射为同一字段；节点 render.calls 是累计 render 次数，不能当作 draw calls。
+
+原生计数遵循当前 renderer 的重置窗口；多 pass 可能只保留最后一次调用，节点还有自身统计节奏，不能把这些数值当整帧 pass 汇总。API 不调用 info.reset、不改 autoReset、不包裹 renderer.render。资源字节仅复制原生 tracked-resource 估算，WebGL 未提供时为 null，不等于显卡占用或泄漏证明。
+
+RenderMonitorSample 提供 draws（含 renderOnce 的宿主完成次数）、capturedAt（画布窗口 performance 时间原点的毫秒）、fps、frameIntervalMs 和 stats。FPS 使用墙钟观测窗口，不用被 maxDelta 截断的模拟步长；不是屏幕呈现帧率或 CPU/GPU 执行耗时。首帧、暂停、手动绘制、隐藏/零尺寸显式读取重建窗口，未形成窗口时为 null。
+
+snapshot 在每次成功完成绘制后更新，onSample 默认0.5秒通知一次；暂停时不会新增 RAF 或定时器，snapshot 保留最近观测，需要当前状态可调用 read。同步回调异常沿宿主完成回调策略传播，回调中可安全 dispose；销毁仅解除自己的订阅，保留最后快照。设计见 [ADR-0055](../adr/0055-render-statistics.md)，正式示例及 website 双实例可展开“渲染统计”。
 
 ## Editor 效果配置基准
 

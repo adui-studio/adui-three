@@ -379,6 +379,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-063  | 包/文档/示例工程契约              | 分组实现、examples、apps/docs、共享fixtures      | 单测/打包/既有GPU与站点验证                                |
 | FR-064  | 可选 WebGPU 基础宿主契约          | webgpu、共用 SceneHost 与 SceneApp               | 异步单测/打包/节点回退，原生GPU需适配器验收                |
 | FR-065  | ThreeApp统一创建契约              | ThreeApp.create / rendererType / options         | 参数快照、取消、类型收窄、真实浏览器与示例                 |
+| FR-074  | 统一渲染统计与监视                | rendering/render-stats、共享 UI 面板             | 原生映射、墙钟窗口、节流、双实例和重建                     |
 | FR-071  | 统一资产任务                      | loaders/loadAssets、asset-batch                  | 限流、重试、取消、迟到清理与严格类型消费                   |
 | FR-072  | GSAP 场景适配                     | animation/attachGSAPTimeline                     | 真实 GSAP、回调重入、多宿主、scope 与暂停绘制              |
 | FR-073  | 正交双后端                        | OrthographicThreeApp.create、相机工厂            | 投影、取消/丢失、回退像素、效果及截图                      |
@@ -545,6 +546,8 @@ website 仍为私有集成工作台，原路径和选择器保持。bootstrap �
 UI 是应用层：ui 基础令牌与静态 SVG 不进入 SDK 依赖；Brand Kit 从 docs/public/brand 单一来源引用，产品名 ADui Three 与包名 @adui/three 分离。VitePress1.6.4 继续使用默认主题，home-hero-before 注入确定性静态首页，不在 SSR 初始化 SDK。examples 保留 FR-068 的取消/版本守卫、URL 和后端协议，修改链接拦截使 Ctrl/Cmd 点击遵循浏览器默认行为。website 桌面侧栏独立滚动，1100px 以下使用原生选择器，main 不被侧栏覆盖。设计与维护规则见[界面设计与品牌](development/visual-design.md)。
 
 ## 资产与场景扩展契约
+
+FR-074：rendering 的 captureRenderStats(app) 返回只读 RenderStats：rendererType/backend/state/viewport、autoReset、drawCalls/triangles/lines/points、geometries/textures/programs、estimatedBytes。节点 drawCalls 不混用累计 render.calls；程序与字节按原生字段映射，缺失为 null。attachRenderMonitor(app,{sampleInterval?,onSample?,scope?}) 返回 disposed/snapshot/read/dispose，快照含 draws/capturedAt/fps/frameIntervalMs/stats；sampleInterval 秒默认0.5，capturedAt 与间隔为毫秒。只借用完成订阅，不改变 renderer.info/reset/autoReset、管线或调度。见 [ADR-0055](adr/0055-render-statistics.md)。
 
 FR-071：loadAssets<T>(app,tasks,options?) 从命名 AssetLoader 推导 AssetBatch.assets 的字段类型。任务上下文为 signal/attempt/onProgress，选项为 concurrency/retries/signal/onProgress/onCleanupError。成功句柄从宿主直属资源转到批次私有 scope；失败/取消立即拒绝并清理，迟到资源单独释放。进度为任务计数，主请求 bytes 独立；自定义任务负责失败尝试，结果须独占且幂等。见 [ADR-0052](adr/0052-asset-batches.md)和[用法](api/loaders.md#批量准备资产)。
 

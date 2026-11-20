@@ -6,4 +6,6 @@
 
 ## 示例源码
 
+“读取统计快照”展示 captureRenderStats；所有正式主题还可在控制面板展开“渲染统计”，由[共用面板](../../ui/render-stats-panel.ts)消费公开 rendering API，场景代码不依赖面板。详细计数窗口和单位见[统计用法](../api/rendering.md#渲染统计与监视)。
+
 <<< ../../examples/src/cases/basic.ts

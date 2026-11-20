@@ -42,6 +42,8 @@ geometry、material、texture 分别登记；宿主不会递归接管借用资�
 
 ## 扩展组合
 
+rendering 的 captureRenderStats/attachRenderMonitor 提供跨后端原生计数和宿主观测帧率；只读统计，不重置计数、包装 renderer 或新增调度。字段缺失为 null，字节为原生资源估算，完整语义见 rendering API 文档。
+
 loaders 的 loadAssets 可组合命名资产任务并推导结果，提供并发、计数进度、重试、取消及整批资源释放。animation 的 attachGSAPTimeline 接受应用创建的暂停时间线，复用宿主时钟和 scope；GSAP 由应用安装，SDK 没有该运行时依赖。
 
 ```ts

@@ -21,7 +21,12 @@ const expected = {
     "attachFlowLine",
   ],
   "@adui/three/lighting": ["attachShadowLight"],
-  "@adui/three/rendering": ["attachRendererSettings", "createEditorRenderPreset"],
+  "@adui/three/rendering": [
+    "attachRendererSettings",
+    "createEditorRenderPreset",
+    "captureRenderStats",
+    "attachRenderMonitor",
+  ],
   "@adui/three": ["ResourceScope", "ThreeApp", "OrthographicThreeApp"],
   "@adui/three/controls": ["attachOrbitControls", "attachTransformControls"],
   "@adui/three/collision": ["createCollisionWorld"],

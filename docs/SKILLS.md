@@ -135,6 +135,8 @@ EXR 阶段使用 threejs-loaders，核验 r187 EXRLoader/DataTextureLoader 和 O
 
 ## 维护
 
+2026-11-20 FR-074 使用 threejs-performance，核验 r187 WebGLInfo/Info/Animation 的字段与重置节奏，使用 canvas window performance.now 观测完成间隔；不照搬 r186 的渲染循环、计数 reset 或 GPU 显存推算。统计面板沿用 ui-ux-pro-max 的渐进展示、44px目标、原生键盘焦点及现有设计令牌。
+
 2026-11-20 FR-071/072/073 使用 threejs-loaders、threejs-animation、threejs-fundamentals 辅助设计，核验锁定 r187 及官方 LoadingManager/OrthographicCamera 和 GSAP3.15.1 totalTime。保留宿主单时钟和任务隔离，不采用技能 r186 版本或另建 RAF。GSAP 场景适配只用结构接口，页面动效和第三方动画包仍由应用拥有。
 
 新增、替换或改变重要工作流时同步本索引与相应定义；不宣称静态元数据校验已经证明技能行为正确。

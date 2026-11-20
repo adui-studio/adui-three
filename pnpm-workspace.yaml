@@ -6,6 +6,7 @@ packages:
 catalogMode: prefer
 
 catalog:
+  "@adui/three": workspace:*
   "@types/node": ^24
   draco3dgltf: 1.5.7
   gsap: 3.15.1

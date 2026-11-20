@@ -73,6 +73,7 @@
 - [统一资产批任务](docs/adr/0052-asset-batches.md)：命名任务、限流/重试、计数进度和迟到清理。
 - [GSAP 场景时间线](docs/adr/0053-gsap-timeline.md)：宿主推进、可选结构适配和作用域销毁。
 - [正交双后端创建](docs/adr/0054-orthographic-webgpu.md)：具体相机类型、共用准备流程和投影边界。
+- [渲染统计与监视](docs/adr/0055-render-statistics.md)：原生字段映射、墙钟观测和应用面板边界。
 
 ## 工作流程与约束
 

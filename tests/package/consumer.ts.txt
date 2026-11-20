@@ -1,5 +1,6 @@
 import { loadTexture, loadKTX2 } from "@adui/three/textures";
 import { captureFrame } from "@adui/three/capture";
+import { captureRenderStats, attachRenderMonitor } from "@adui/three/rendering";
 import type { CaptureRegion } from "@adui/three/capture";
 import { createInstancedMesh, computeObjectBounds } from "@adui/three/geometry";
 import { loadHDR, loadEXR, attachEnvironment } from "@adui/three/environment";
@@ -42,6 +43,12 @@ import { Box3, BoxGeometry, Color, LineCurve3, Matrix4, Mesh, MeshBasicMaterial,
 // Compile only: all library values come from the installed archive, without workspace paths.
 export async function consume(container: HTMLElement, overlay: HTMLElement, model: GLTFModel) {
   const app = new ThreeApp(container, { maxPixelRatio: 2 });
+  const statistics = captureRenderStats(app);
+  const bytes: number | null = statistics.estimatedBytes;
+  const monitor = attachRenderMonitor(app, {sampleInterval: 0.5, onSample(sample) {
+    const fps: number | null = sample.fps; void fps;
+  }});
+  monitor.read(); monitor.dispose(); void [bytes, monitor.snapshot.stats.drawCalls];
   const bounds: Box3 = computeObjectBounds(model.scene);
   const measuredSize: Vector3 = bounds.getSize(new Vector3());
   void measuredSize;

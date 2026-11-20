@@ -21,6 +21,8 @@ pnpm run dev
 
 ## 示例目录
 
+每个主题可展开“渲染统计”，查看原生绘制/资源计数、宿主观测FPS与帧间隔；基础主题另提供“读取统计快照”。计数与估算的解释见[API](../docs/api/rendering.md#渲染统计与监视)，不代表整帧 pass 合计或设备显存占用。
+
 基础主题提供宿主驱动的 GSAP 时间线；模型主题提供模型/HDR 批任务、取消和预加载；渲染器主题提供正交/透视重建，可分享 `/play/?example=webgpu&projection=orthographic&renderer=webgpu`。
 
 | 主题           | 源码                                     | 内容                           |

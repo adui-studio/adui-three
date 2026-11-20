@@ -2,6 +2,8 @@
 
 ## 当前架构
 
+FR-074 统计函数位于 rendering，仅复制原生数值，监视器只订阅宿主完成阶段；不改变计数重置策略、renderer 方法或调度器。可选 DOM 面板在 ui/render-stats-panel，由 examples 与 website 消费公开包入口，根开发依赖显式链接本地 SDK；SDK 不依赖 UI。见[统计决策](adr/0055-render-statistics.md)。
+
 FR-071/072/073：loadAssets 组合现有加载器，以私有 scope 持有整批资源；attachGSAPTimeline 通过结构接口借用 GSAP 方法并拥有该时间线的清理，不新增运行时依赖；正交异步创建复用 WebGPU 准备流程和共用 SceneHost，不新增包入口或第二循环。决策见[资产批次](adr/0052-asset-batches.md)、[GSAP 适配](adr/0053-gsap-timeline.md)和[正交双后端](adr/0054-orthographic-webgpu.md)。
 
 FR-070 的 GSAP 只为应用编排 UI，独立 ticker 不接管 ThreeApp 时钟；VitePress 客户端按需加载，SSR 继续输出可读静态内容。examples 构建插件用既有版本 Shiki 处理真实源码，浏览器接收已转义 HTML，不分发高亮引擎。两项依赖均不进入 SDK。
