@@ -1,6 +1,6 @@
 import DefaultTheme from "vitepress/theme-without-fonts";
 import { defineComponent, h, nextTick, onBeforeUnmount, onMounted, watch } from "vue";
-import { useRoute } from "vitepress";
+import { useRoute, withBase } from "vitepress";
 import HomePage from "./HomePage.ts";
 
 export default defineComponent({
@@ -41,6 +41,14 @@ export default defineComponent({
       window.removeEventListener("pagehide", stop);
       window.removeEventListener("pageshow", resume);
     });
-    return () => h(DefaultTheme.Layout, null, { "home-hero-before": () => h(HomePage) });
+    return () =>
+      h(DefaultTheme.Layout, null, {
+        "home-hero-before": () => h(HomePage),
+        "doc-before": () =>
+          h("div", { class: "doc-masthead" }, [
+            h("a", { href: withBase("/guide/getting-started.html") }, "ADUI THREE / DOCS"),
+            h("span", "v0.0.0 · r187"),
+          ]),
+      });
   },
 });

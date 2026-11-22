@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@adui/three": "workspace:*",
-    "three": "0.187.0"
+    "three": "0.187.0",
+    "vue": "catalog:"
   },
   "devDependencies": {
     "@expressive-code/plugin-line-numbers": "catalog:",

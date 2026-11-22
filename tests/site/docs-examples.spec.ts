@@ -108,7 +108,7 @@ test("complex DOM labels retain form input, buttons work, and rebuild/history ke
   await expect(note).toHaveValue("");
   await page.getByRole("link", { name: "← 全部示例", exact: true }).click();
   await expect(page.locator("canvas")).toHaveCount(0);
-  await page.locator('a[data-example="effects"]').click();
+  await page.locator('a.example-card[data-example="effects"]').click();
   await expect(page.locator("canvas")).toHaveCount(1);
   await page.goBack();
   await expect(page.locator("canvas")).toHaveCount(0);
@@ -130,7 +130,7 @@ test("leaving a loading model cannot replace the new example or revive its old c
   await page.goto("/play/?example=model");
   await requested;
   await page.getByRole("link", { name: "← 全部示例", exact: true }).click();
-  await page.locator('a[data-example="effects"]').click();
+  await page.locator('a.example-card[data-example="effects"]').click();
   const response = page.waitForResponse("**/models/animated.glb");
   release();
   await response;
@@ -164,7 +164,7 @@ test("WebGPU example initializes asynchronously, exposes its actual backend and 
   await expect(page.locator(".detail")).toHaveAttribute("data-state", "running");
   await page.getByRole("link", { name: "← 全部示例", exact: true }).click();
   await expect(page.locator("canvas")).toHaveCount(0);
-  await page.locator('a[data-example="basic"]').click();
+  await page.locator('a.example-card[data-example="basic"]').click();
   await expect(page.locator(".detail")).toHaveAttribute("data-state", "running");
   await expect(page.locator("canvas")).toHaveCount(1);
 });

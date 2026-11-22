@@ -76,6 +76,7 @@
 - [渲染统计与监视](docs/adr/0055-render-statistics.md)：原生字段映射、墙钟观测和应用面板边界。
 - [示例源码阅读器](docs/adr/0056-example-source-reader.md)：构建期展示引擎、文件白名单和阅读交互。
 - [独立 TS/JS 用法](docs/adr/0057-copyable-examples.md)：独立入口、语言生成、完整工程和外部消费验证。
+- [Vue Bits 网站设计](docs/adr/0058-vue-bits-site-design.md)：应用组件来源、目录筛选、静态文档与动效边界。
 
 ## 工作流程与约束
 

@@ -92,7 +92,7 @@
   border: 1px solid var(--source-line);
   border-radius: 8px;
 }
-.source-languages button[aria-pressed="true"] {
+.source-workspace .source-languages button[aria-pressed="true"] {
   background: var(--source-active);
   color: var(--source-bg);
 }

@@ -1,5 +1,7 @@
 # 代码地图
 
+[目录组件](../examples/src/Gallery.ts)管理搜索/分类和 URL；[Vue Bits 适配](../ui/vue-bits/SpotlightCard.ts)、[来源与许可](../ui/vue-bits/README.md)由两处网站使用。[原创场景示意](../ui/scene-diagram.ts)是无渲染循环的静态 SVG。VitePress 的 HomePage/MotionLayout/custom.css 负责首页、文档插槽和响应式阅读，SDK 与下载 recipes 不依赖这些 UI。
+
 独立用法在 examples/recipes（9 TS、对应JS及HTML），scripts/example-recipes.mjs 定义完整工程清单，generate-example-recipes.mjs 更新/检查生成文件，prepare-example-projects.mjs 打包18 ZIP，check-example-projects.mjs 验证外部安装、构建和真实像素。源码插件由catalog指定recipe读取，原cases只负责交互演示。
 
 [源码构建插件](../examples/plugins/source-code.ts)使用 Expressive Code，虚拟 CSS 与独立用法的 TS/JS variants 分别交付；[阅读器](../examples/src/source-viewer.ts)及[样式](../examples/src/source-viewer.css)负责文件标签、主题/换行、复制和 dialog。专项为 tests/site/source-reader.spec.ts，原高亮/转义回归保留在 motion-source.spec.ts。

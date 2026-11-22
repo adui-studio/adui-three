@@ -1,9 +1,11 @@
 import "../../ui/tokens.css";
+import "../../ui/vue-bits/spotlight-card.css";
 import "./style.css";
 import "virtual:example-source.css";
 import "./source-viewer.css";
 import "../../ui/render-stats-panel.css";
-import { spatialGraphic } from "../../ui/graphics.ts";
+import { createApp } from "vue";
+import Gallery from "./Gallery.ts";
 import { mountPageMotion } from "../../ui/motion.ts";
 import { createSourceViewer } from "./source-viewer.ts";
 import { mountRenderStatsPanel } from "../../ui/render-stats-panel.ts";
@@ -20,9 +22,9 @@ document.head.append(favicon);
 const docs = import.meta.env.DEV ? "http://127.0.0.1:5174/" : "../";
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 <a class="skip-link" href="#main-content">跳到主要内容</a>
-<header class="site-header"><a href="./" class="brand" data-home translate="no"><img src="${brandLogo}" alt="ADui Three" width="180" height="65"><span class="brand-section">Examples</span></a><nav aria-label="主导航"><a href="${docs}" target="_blank" rel="noreferrer">文档 ↗</a><a href="https://github.com/adui-studio/adui-three" target="_blank" rel="noreferrer">GitHub ↗</a></nav></header>
-<main id="main-content" tabindex="-1"><section class="home"><div class="gallery-intro"><div><div class="eyebrow">THE EXAMPLE COLLECTION <span>01 — 09</span></div><h1>让想法，<br>进入三维空间<span>。</span></h1><p class="lead">从第一个场景，到完整的交互体验。<br>探索 9 个可运行主题，用同一套 API 连接 WebGL 与 WebGPU。</p><a class="intro-cta" href="?example=basic">打开第一个场景 <span aria-hidden="true">↗</span></a></div><div class="intro-graphic">${spatialGraphic("basic", "hero")}<span class="graphic-caption">SCENE / CAMERA / RENDERER</span><span class="graphic-corner">FIG. 001</span></div></div><div class="collection-heading"><div><span class="eyebrow">EXPLORE THE TOOLKIT</span><h2>小场景，完整能力。</h2></div><span class="collection-count">9 个示例 · 实时运行 · 完整源码</span></div><div class="catalog">${examples.map((item, i) => `<a class="example-card" href="?example=${item.id}" data-example="${item.id}"><div class="card-art">${spatialGraphic(item.id, item.id)}<span class="art-number">0${i + 1}</span><span class="art-open" aria-hidden="true">↗</span></div><div class="card-copy"><span class="card-index">${item.tag}</span><h2>${item.title}</h2><p>${item.description}</p><span class="card-action">运行示例 <span aria-hidden="true">↗</span></span></div></a>`).join("")}</div></section>
-<section class="detail" hidden><div class="detail-heading"><div><a href="./" class="back" data-home>← 全部示例</a><h1 data-title></h1><p data-description></p></div><span class="live-state" data-state>ready</span></div><div class="scene-layout"><div class="scene-display"><div class="stage-topline"><span>LIVE PREVIEW</span><span>拖动旋转 · 滚轮缩放</span></div><div class="viewport" aria-label="示例画布"></div></div><aside class="scene-inspector" aria-label="场景设置"><div class="inspector-heading">场景控制 <span>CONTROLS</span></div><div class="toolbar"><label class="renderer-choice">渲染器<select aria-label="渲染器"><option value="webgl">WebGL</option><option value="webgpu">WebGPU · 允许回退</option><option value="webgpu-strict">WebGPU · 严格模式</option></select></label><span class="backend-info" aria-label="实际渲染后端">尚未创建</span><button data-command="start">运行</button><button data-command="stop">暂停</button><button data-command="render">绘制一帧</button><button data-command="dispose">销毁</button><button data-command="rebuild">重建</button></div><div class="inspector-heading">主题操作 <span>INTERACTION</span></div><div class="tools" aria-label="示例操作"></div></aside></div><details class="source"><summary>查看示例源码</summary>
+<header class="site-header"><a href="./" class="brand" data-home translate="no"><img src="${brandLogo}" alt="ADui Three" width="180" height="65"><span class="brand-section">Examples</span></a><nav aria-label="主导航"><a href="./" data-home>示例集</a><a href="${docs}" target="_blank" rel="noreferrer">文档 ↗</a><a href="https://github.com/adui-studio/adui-three" target="_blank" rel="noreferrer">GitHub ↗</a></nav></header>
+<main id="main-content" tabindex="-1"><section class="home"><div data-gallery-root></div></section>
+<section class="detail" hidden><nav class="example-switcher" aria-label="切换示例">${examples.map((item, i) => `<a href="?example=${item.id}" data-example="${item.id}"><span>0${i + 1}</span>${item.title}</a>`).join("")}</nav><div class="detail-heading"><div><a href="./" class="back" data-home>← 全部示例</a><h1 data-title></h1><p data-description></p></div><span class="live-state" data-state>ready</span></div><div class="scene-layout"><div class="scene-display"><div class="stage-topline"><span>LIVE PREVIEW</span><span>拖动旋转 · 滚轮缩放</span></div><div class="viewport" aria-label="示例画布"></div></div><aside class="scene-inspector" aria-label="场景设置"><div class="inspector-heading">场景控制 <span>CONTROLS</span></div><div class="toolbar"><label class="renderer-choice">渲染器<select aria-label="渲染器"><option value="webgl">WebGL</option><option value="webgpu">WebGPU · 允许回退</option><option value="webgpu-strict">WebGPU · 严格模式</option></select></label><span class="backend-info" aria-label="实际渲染后端">尚未创建</span><button data-command="start">运行</button><button data-command="stop">暂停</button><button data-command="render">绘制一帧</button><button data-command="dispose">销毁</button><button data-command="rebuild">重建</button></div><div class="inspector-heading">主题操作 <span>INTERACTION</span></div><div class="tools" aria-label="示例操作"></div></aside></div><details class="source"><summary>查看示例源码</summary>
 <div class="source-workspace" data-code-theme="dark" data-wrap="false">
 <div class="source-heading"><div><span class="source-eyebrow">SOURCE EXPLORER</span><span class="source-filename" translate="no"></span></div><div class="source-reading-options"><div class="source-languages" role="group" aria-label="示例语言"><button type="button" data-source-language="ts" aria-pressed="true">TypeScript</button><button type="button" data-source-language="js" aria-pressed="false">JavaScript</button></div><span class="source-meta"></span></div></div>
 <div class="source-setup"><p>独立用法示例：复制入口与 HTML 到已安装 SDK 的 Vite 项目，或下载含本地 SDK 和所需资产的完整工程。</p><div><code>pnpm install &amp;&amp; pnpm run dev</code><a class="source-download">下载完整工程</a></div></div>
@@ -31,6 +33,8 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 <div class="source-footer"><span>独立用法 · 仅使用公开 API · 主包尚未发布 npm</span><span class="copy-feedback" aria-live="polite"></span></div>
 </div></details></section>
 <p class="status" role="status"></p></main><footer><span>@adui/three · v0.0.0 · 尚未发布 npm</span><span>Three.js r187 / WebGL 2 + 可选 WebGPU</span></footer>`;
+const galleryApp = createApp(Gallery);
+galleryApp.mount(document.querySelector<HTMLElement>("[data-gallery-root]")!);
 const home = document.querySelector<HTMLElement>(".home")!,
   detail = document.querySelector<HTMLElement>(".detail")!,
   viewport = document.querySelector<HTMLElement>(".viewport")!,
@@ -84,8 +88,21 @@ async function open(id: string | null, history = false): Promise<void> {
     window.history.pushState(null, "", url);
   }
   const item = examples.find((value) => value.id === id);
+  for (const link of document.querySelectorAll<HTMLAnchorElement>(
+    ".example-switcher [data-example]",
+  ))
+    if (link.dataset.example === item?.id) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
   home.hidden = !!item;
   detail.hidden = !item;
+  const activeLink = detail.querySelector<HTMLAnchorElement>(
+    '.example-switcher [aria-current="page"]',
+  );
+  if (activeLink) {
+    const switcher = activeLink.parentElement!;
+    switcher.scrollLeft =
+      activeLink.offsetLeft - (switcher.clientWidth - activeLink.offsetWidth) / 2;
+  }
   status.textContent = item
     ? "正在准备场景…"
     : id
@@ -207,7 +224,8 @@ window.addEventListener(
 );
 window.addEventListener(
   "pagehide",
-  () => {
+  (event) => {
+    if (!event.persisted) galleryApp.unmount();
     generation++;
     disposeMotion?.();
     sourceViewer.destroy();
@@ -218,6 +236,7 @@ window.addEventListener(
 );
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
+    galleryApp.unmount();
     generation++;
     disposeMotion?.();
     sourceViewer.destroy();

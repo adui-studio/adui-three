@@ -1,6 +1,7 @@
 import { defineComponent, h } from "vue";
 import { withBase } from "vitepress";
-import { spatialGraphic } from "../../../../ui/graphics.ts";
+import { sceneDiagram } from "../../../../ui/scene-diagram.ts";
+import SpotlightCard from "../../../../ui/vue-bits/SpotlightCard.ts";
 
 export default defineComponent({
   name: "HomePage",
@@ -11,12 +12,15 @@ export default defineComponent({
       h("div", { class: "product-home" }, [
         h("section", { class: "product-hero" }, [
           h("div", { class: "hero-copy" }, [
-            h("div", { class: "product-eyebrow" }, "THREE.JS, THOUGHTFULLY COMPOSED"),
+            h("div", { class: "product-eyebrow hero-badge" }, [
+              h("i", { "aria-hidden": "true" }),
+              "THREE.JS, THOUGHTFULLY COMPOSED",
+            ]),
             h("h1", ["为三维场景，", h("br"), "建立", h("span", "清晰秩序。")]),
             h(
               "p",
               { class: "hero-description" },
-              "从第一次绘制，到最后一次释放。用统一的 WebGL / WebGPU API，组合模型、交互与视觉效果，让创作回到场景本身。",
+              "让创作回到场景本身。统一 WebGL 与 WebGPU，按需组合模型、交互与视觉效果，从第一次绘制到最后一次释放。",
             ),
             h("div", { class: "hero-actions" }, [
               link("/guide/getting-started.html", "开始使用", "product-button primary"),
@@ -30,14 +34,22 @@ export default defineComponent({
             ]),
           ]),
           h("div", { class: "hero-study" }, [
-            h("div", { class: "study-top" }, [h("span", "SCENE ANATOMY"), h("span", "FIG. 001")]),
-            h("div", { class: "study-graphic", innerHTML: spatialGraphic("basic", "docs") }),
-            h("div", { class: "study-label label-scene" }, [h("i"), "scene"]),
-            h("div", { class: "study-label label-camera" }, [h("i"), "camera"]),
-            h("div", { class: "study-label label-renderer" }, [h("i"), "renderer"]),
+            h("div", { class: "study-top" }, [
+              h("span", "A SPACE FOR YOUR IDEAS"),
+              h("span", "001"),
+            ]),
+            h("div", { class: "study-graphic", innerHTML: sceneDiagram("docs-orbit") }),
+            h("div", { class: "study-label label-scene", "aria-hidden": "true" }, [
+              h("i"),
+              "原生 Three.js 对象",
+            ]),
+            h("div", { class: "study-label label-renderer", "aria-hidden": "true" }, [
+              h("i"),
+              "一套 API / 两种后端",
+            ]),
             h("div", { class: "study-bottom" }, [
-              h("span", "ONE SCENE. TWO BACKENDS."),
-              h("span", "WebGL 2 / WebGPU"),
+              h("span", "GEOMETRY STUDY"),
+              h("span", "WebGL 2 + WebGPU"),
             ]),
           ]),
         ]),
@@ -50,6 +62,21 @@ export default defineComponent({
             ["09", "可运行示例", "实时画面与完整源码同行"],
           ].map(([number, title, text]) =>
             h("div", [h("strong", number), h("div", [h("h2", title), h("p", text)])]),
+          ),
+        ),
+        h(
+          "nav",
+          { class: "home-pathways", "aria-label": "文档入口" },
+          [
+            ["01", "快速上手", "建立你的第一个场景", "/guide/getting-started.html"],
+            ["02", "探索 API", "从原生对象到模块组合", "/api/"],
+            ["03", "打开示例", "运行、阅读，带走代码", "/play/"],
+          ].map(([number, title, description, href]) =>
+            h("a", { href: withBase(href!) }, [
+              h("span", { class: "pathway-number" }, number),
+              h("span", [h("strong", title), h("small", description)]),
+              h("span", { class: "pathway-arrow", "aria-hidden": "true" }, "↗"),
+            ]),
           ),
         ),
         h("section", { class: "home-principles" }, [
@@ -85,10 +112,18 @@ export default defineComponent({
               ],
             ].map(([index, title, body, href, text]) =>
               h("article", [
-                h("span", { class: "principle-index" }, index),
-                h("h3", title),
-                h("p", body),
-                link(href!, `${text} ↗`),
+                h(
+                  SpotlightCard,
+                  { class: "principle-card" },
+                  {
+                    default: () => [
+                      h("span", { class: "principle-index" }, index),
+                      h("h3", title),
+                      h("p", body),
+                      link(href!, `${text} ↗`),
+                    ],
+                  },
+                ),
               ]),
             ),
           ),

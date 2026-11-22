@@ -11,6 +11,7 @@
   "devDependencies": {
     "@adui/three-examples": "workspace:*",
     "@types/node": "catalog:",
-    "vitepress": "1.6.4"
+    "vitepress": "1.6.4",
+    "vue": "catalog:"
   }
 }

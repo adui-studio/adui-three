@@ -2,6 +2,8 @@
 
 ## 当前状态
 
+2026-11-22 FR-077 继续使用 ui-ux-pro-max、web-design-guidelines、vitepress。Python系列命令不可用，直接核对本地 Minimalism & Swiss Style / Micro-interactions 数据，未声称运行设计系统生成器；核验官方 Vue Bits registry 与许可后集成网站，当前会话无 shadcn MCP，采用手动方式，不修改全局配置。VitePress 接口核对当前1.6.4实现，未升级依赖。
+
 2026-11-04 初始安装 23 个第三方 Skills，2026-11-19 用户另安装 ui-ux-pro-max、web-design-guidelines、vitepress。本轮按需读取三项界面技能；ui-ux-pro-max 包含本地 Python 检索与数据文件，执行检索不增加项目依赖；未创建项目自研 Skill。来源记录见 [skills-lock.json](../skills-lock.json)，其中 computedHash 为安装器记录，本轮未重新计算或验证上游内容未变。
 
 2026-11-20 用户明确同意将 ui-ux-pro-max、web-design-guidelines、vitepress 三项技能原目录、安装器锁记录和索引提交推送。保持安装内容原样，包括检索脚本、数据与参考文档，不纳入 SDK 运行时依赖。

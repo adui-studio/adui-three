@@ -1,5 +1,7 @@
 # 架构
 
+FR-077 的 Vue Bits 适配位于 ui/vue-bits，仅用于 examples 目录与 VitePress 网站；同层 scene-diagram 提供原创静态 SVG。examples 用独立 Vue 组件管理目录筛选，SceneApp/源码继续沿用原生生命周期；网站组件、许可和样式不进入 SDK 或独立工程。VitePress 保留 1.6.4 与默认主题插槽，详见[网站设计决策](adr/0058-vue-bits-site-design.md)。
+
 ## 当前架构
 
 FR-076 将使用者源码与画廊交互分开：独立 recipes 为TS/JS与文档的共同来源，生成器及 ZIP 打包属于开发工具。Vite插件只展示独立工程文件并托管下载；完整包包含本地 SDK，SDK不包含这些工具或资产。边界及外部消费见[独立用法决策](adr/0057-copyable-examples.md)。
