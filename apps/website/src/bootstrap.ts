@@ -1,7 +1,7 @@
 import { mountPageMotion } from "../../../ui/motion.ts";
 import { mountWorkbench } from "./workbench.ts";
 const demo = new URLSearchParams(location.search).get("demo");
-mountWorkbench(demo);
+const disposeWorkbench = mountWorkbench(demo);
 try {
   if (demo === "capabilities") await import("./capabilities.ts");
   else if (demo === "webgpu-features") await import("./webgpu-features.ts");
@@ -23,5 +23,14 @@ try {
 }
 
 const disposeMotion = mountPageMotion(document.body, "studio");
-window.addEventListener("pagehide", disposeMotion, { once: true });
-if (import.meta.hot) import.meta.hot.dispose(disposeMotion);
+const cleanup = (): void => {
+  disposeMotion();
+  disposeWorkbench();
+  window.removeEventListener("pagehide", pageHide);
+};
+const pageHide = (event: PageTransitionEvent): void => {
+  disposeMotion();
+  if (!event.persisted) cleanup();
+};
+window.addEventListener("pagehide", pageHide);
+if (import.meta.hot) import.meta.hot.dispose(cleanup);

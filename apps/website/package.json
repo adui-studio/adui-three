@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "vp dev",
     "build": "tsc && vp build",
-    "preview": "vp preview"
+    "preview": "node ../../scripts/preview-site.mjs website"
   },
   "dependencies": {
     "@adui/three": "workspace:*",
-    "three": "0.187.0"
+    "three": "0.187.0",
+    "vue": "catalog:"
   },
   "devDependencies": {
     "@types/three": "0.187.0",

@@ -1,5 +1,7 @@
 # 架构
 
+FR-078扩展ui/vue-bits为三处网站共享的标题、渐变、显现与分层菜单；Vue只管理website顶栏，12原场景与宿主仍由原模块拥有。DocDirectory复用VitePress目录配置与路由，原生分组/链接在无JS时可用；preview-docs只读取最新静态产物。边界见[技术界面决策](adr/0059-tech-interface-navigation.md)。
+
 FR-077 的 Vue Bits 适配位于 ui/vue-bits，仅用于 examples 目录与 VitePress 网站；同层 scene-diagram 提供原创静态 SVG。examples 用独立 Vue 组件管理目录筛选，SceneApp/源码继续沿用原生生命周期；网站组件、许可和样式不进入 SDK 或独立工程。VitePress 保留 1.6.4 与默认主题插槽，详见[网站设计决策](adr/0058-vue-bits-site-design.md)。
 
 ## 当前架构

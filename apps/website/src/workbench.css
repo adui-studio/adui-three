@@ -390,3 +390,217 @@ html[data-workbench] .gpu-panels button {
     height: 60px;
   }
 }
+
+/* Shared technical studio chrome. Scene nodes and regression controls stay native. */
+html[data-workbench],
+html[data-workbench] body {
+  background: #0b0f18;
+  color: #e9eef9;
+}
+.workbench-nav {
+  width: 244px;
+  background: #0e1420;
+  border-color: #293244;
+  padding: 24px 18px;
+}
+.workbench-nav select {
+  border-color: #3c455b;
+  border-radius: 4px;
+  background: #131c2b;
+}
+.workspace-label {
+  color: #a5b1c6;
+}
+.scenario-nav a {
+  border-radius: 2px;
+  border-left: 1px solid transparent;
+}
+.scenario-nav a[aria-current="page"] {
+  background: #211c33;
+  border-left-color: #c5a2ff;
+  color: #dfceff;
+}
+.workbench-commandbar {
+  margin-left: 244px;
+  border-bottom: 1px solid #293244;
+  color: #e9eef9;
+  background: #0e142080;
+}
+.workbench-commandbar > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 96px;
+  padding: 20px 32px;
+}
+.commandbar-title {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.commandbar-index {
+  display: grid;
+  place-items: center;
+  height: 42px;
+  width: 42px;
+  border: 1px solid #57456d;
+  color: #c5a2ff;
+  font: 12px var(--ui-mono);
+}
+.commandbar-title small {
+  display: block;
+  color: #a5b1c6;
+  font: 9px/1.8 var(--ui-mono);
+  letter-spacing: 1px;
+}
+.commandbar-title strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+.commandbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.studio-build {
+  color: #a5b1c6;
+  font: 9px var(--ui-mono);
+  letter-spacing: 1px;
+}
+html[data-workbench] .shell {
+  background: transparent;
+}
+html[data-workbench] .topbar {
+  display: none;
+}
+html[data-workbench] .intro {
+  position: relative;
+  padding-block: 28px 40px;
+  border-bottom: 1px solid #293244;
+  margin-bottom: 32px;
+  background-image:
+    linear-gradient(#96a5c008 1px, transparent 1px),
+    linear-gradient(90deg, #96a5c008 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+html[data-workbench] .intro h1 {
+  font-weight: 500;
+  font-size: clamp(32px, 3.7vw, 52px);
+  letter-spacing: -1.5px;
+}
+html[data-workbench] .intro h1 span {
+  color: #c5a2ff;
+}
+html[data-workbench] .scene-card {
+  border-color: #293244;
+  border-radius: 5px;
+  background: #101722;
+}
+html[data-workbench] .card-heading {
+  border-bottom: 1px solid #293244;
+}
+html[data-workbench] .card-heading h2 {
+  font-size: 18px;
+  font-weight: 500;
+}
+html[data-workbench] .actions button,
+html[data-workbench] .effect-actions button,
+html[data-workbench] .resize-actions button,
+html[data-workbench] .model-actions button,
+html[data-workbench] .animation-actions button {
+  border-radius: 3px;
+  min-height: 44px;
+  font-size: 11px;
+}
+html[data-workbench] .actions .primary {
+  background: #c5a2ff;
+  color: #171122;
+  border-color: #c5a2ff;
+}
+html[data-workbench] .metrics {
+  background: #0e1522;
+}
+html[data-workbench] .notes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+html[data-workbench] .notes > div {
+  display: grid;
+  grid-template-columns: 150px 180px 1fr;
+  align-items: center;
+  gap: 24px;
+  border-top: 1px solid #293244;
+  padding-block: 24px;
+}
+html[data-workbench] .notes h2,
+html[data-workbench] .notes p {
+  margin: 0;
+}
+html[data-workbench] .notes h2 {
+  font-size: 15px;
+  font-weight: 500;
+}
+html[data-workbench] .capabilities article {
+  border-radius: 3px;
+  border-color: #293244;
+  background: #101722;
+}
+@media (max-width: 1100px) {
+  .workbench-nav {
+    width: 100%;
+  }
+  .workbench-commandbar {
+    margin-left: 0;
+  }
+  .studio-build {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .workbench-nav {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+  }
+  .workbench-settings {
+    min-width: 0;
+  }
+  .workbench-links {
+    display: none;
+  }
+  .workbench-commandbar > header {
+    padding: 18px 20px;
+    gap: 12px;
+  }
+  .commandbar-title {
+    gap: 10px;
+  }
+  .commandbar-title strong {
+    font-size: 13px;
+  }
+  .commandbar-index {
+    width: 30px;
+    height: 36px;
+  }
+  .commandbar-title small {
+    font-size: 8px;
+  }
+  .commandbar-actions {
+    gap: 0;
+  }
+  .commandbar-actions .bits-menu-toggle {
+    font-size: 11px;
+    padding-inline: 10px;
+    gap: 10px;
+  }
+  html[data-workbench] .notes > div {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}

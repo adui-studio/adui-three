@@ -260,6 +260,9 @@ importers:
       three:
         specifier: 0.187.0
         version: 0.187.0
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.45(typescript@7.0.2)
     devDependencies:
       '@types/three':
         specifier: 0.187.0

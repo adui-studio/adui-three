@@ -1,11 +1,14 @@
 import "../../ui/tokens.css";
 import "../../ui/vue-bits/spotlight-card.css";
+import "../../ui/vue-bits/motion-components.css";
+import "../../ui/tech.css";
 import "./style.css";
 import "virtual:example-source.css";
 import "./source-viewer.css";
 import "../../ui/render-stats-panel.css";
 import { createApp } from "vue";
 import Gallery from "./Gallery.ts";
+import StaggeredMenu from "../../ui/vue-bits/StaggeredMenu.ts";
 import { mountPageMotion } from "../../ui/motion.ts";
 import { createSourceViewer } from "./source-viewer.ts";
 import { mountRenderStatsPanel } from "../../ui/render-stats-panel.ts";
@@ -22,7 +25,7 @@ document.head.append(favicon);
 const docs = import.meta.env.DEV ? "http://127.0.0.1:5174/" : "../";
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 <a class="skip-link" href="#main-content">跳到主要内容</a>
-<header class="site-header"><a href="./" class="brand" data-home translate="no"><img src="${brandLogo}" alt="ADui Three" width="180" height="65"><span class="brand-section">Examples</span></a><nav aria-label="主导航"><a href="./" data-home>示例集</a><a href="${docs}" target="_blank" rel="noreferrer">文档 ↗</a><a href="https://github.com/adui-studio/adui-three" target="_blank" rel="noreferrer">GitHub ↗</a></nav></header>
+<header class="site-header"><a href="./" class="brand" data-home translate="no"><img src="${brandLogo}" alt="ADui Three" width="180" height="65"><span class="brand-section">Examples</span></a><nav aria-label="主导航"><a href="${docs}" target="_blank" rel="noreferrer">文档 ↗</a><div data-example-menu></div></nav></header>
 <main id="main-content" tabindex="-1"><section class="home"><div data-gallery-root></div></section>
 <section class="detail" hidden><nav class="example-switcher" aria-label="切换示例">${examples.map((item, i) => `<a href="?example=${item.id}" data-example="${item.id}"><span>0${i + 1}</span>${item.title}</a>`).join("")}</nav><div class="detail-heading"><div><a href="./" class="back" data-home>← 全部示例</a><h1 data-title></h1><p data-description></p></div><span class="live-state" data-state>ready</span></div><div class="scene-layout"><div class="scene-display"><div class="stage-topline"><span>LIVE PREVIEW</span><span>拖动旋转 · 滚轮缩放</span></div><div class="viewport" aria-label="示例画布"></div></div><aside class="scene-inspector" aria-label="场景设置"><div class="inspector-heading">场景控制 <span>CONTROLS</span></div><div class="toolbar"><label class="renderer-choice">渲染器<select aria-label="渲染器"><option value="webgl">WebGL</option><option value="webgpu">WebGPU · 允许回退</option><option value="webgpu-strict">WebGPU · 严格模式</option></select></label><span class="backend-info" aria-label="实际渲染后端">尚未创建</span><button data-command="start">运行</button><button data-command="stop">暂停</button><button data-command="render">绘制一帧</button><button data-command="dispose">销毁</button><button data-command="rebuild">重建</button></div><div class="inspector-heading">主题操作 <span>INTERACTION</span></div><div class="tools" aria-label="示例操作"></div></aside></div><details class="source"><summary>查看示例源码</summary>
 <div class="source-workspace" data-code-theme="dark" data-wrap="false">
@@ -33,6 +36,19 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 <div class="source-footer"><span>独立用法 · 仅使用公开 API · 主包尚未发布 npm</span><span class="copy-feedback" aria-live="polite"></span></div>
 </div></details></section>
 <p class="status" role="status"></p></main><footer><span>@adui/three · v0.0.0 · 尚未发布 npm</span><span>Three.js r187 / WebGL 2 + 可选 WebGPU</span></footer>`;
+const menuApp = createApp(StaggeredMenu, {
+  label: "探索",
+  items: [
+    { label: "示例集", href: "./", description: "九个主题，完整 TS / JS 用法" },
+    { label: "使用文档", href: docs, description: "指南、API 与模块组合" },
+    {
+      label: "GitHub",
+      href: "https://github.com/adui-studio/adui-three",
+      description: "源代码与开发记录",
+    },
+  ],
+});
+menuApp.mount(document.querySelector<HTMLElement>("[data-example-menu]")!);
 const galleryApp = createApp(Gallery);
 galleryApp.mount(document.querySelector<HTMLElement>("[data-gallery-root]")!);
 const home = document.querySelector<HTMLElement>(".home")!,
@@ -225,7 +241,10 @@ window.addEventListener(
 window.addEventListener(
   "pagehide",
   (event) => {
-    if (!event.persisted) galleryApp.unmount();
+    if (!event.persisted) {
+      galleryApp.unmount();
+      menuApp.unmount();
+    }
     generation++;
     disposeMotion?.();
     sourceViewer.destroy();
@@ -237,6 +256,7 @@ window.addEventListener(
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
     galleryApp.unmount();
+    menuApp.unmount();
     generation++;
     disposeMotion?.();
     sourceViewer.destroy();

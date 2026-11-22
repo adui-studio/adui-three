@@ -47,6 +47,7 @@ const decisions = readdirSync(resolve(source, "adr"))
   }));
 export default defineConfig({
   lang: "zh-CN",
+  appearance: "dark",
   title: "ADui Three",
   description: "Three.js 场景封装：公开 API、可运行示例与开发文档。",
   srcDir: "../../docs",
@@ -60,6 +61,8 @@ export default defineConfig({
     ["meta", { name: "theme-color", content: "#18171e", media: "(prefers-color-scheme: dark)" }],
   ],
   themeConfig: {
+    sidebarMenuLabel: "文档目录",
+    returnToTopLabel: "返回顶部",
     siteTitle: false,
     logo: { src: "/brand/ADui-Three-Logo.svg", alt: "ADui Three", width: 180, height: 65 },
     nav: [

@@ -1,5 +1,8 @@
 import { computed, defineComponent, h, onBeforeUnmount, onMounted, ref } from "vue";
 import SpotlightCard from "../../ui/vue-bits/SpotlightCard.ts";
+import SplitText from "../../ui/vue-bits/SplitText.ts";
+import GradientText from "../../ui/vue-bits/GradientText.ts";
+import AnimatedContent from "../../ui/vue-bits/AnimatedContent.ts";
 import { sceneDiagram } from "../../ui/scene-diagram.ts";
 import { spatialGraphic } from "../../ui/graphics.ts";
 import { examples } from "./catalog.ts";
@@ -61,7 +64,12 @@ export default defineComponent({
             h("i", { "aria-hidden": "true" }),
             "ADUI THREE / EXAMPLES",
           ]),
-          h("h1", ["从灵感，", h("br"), "到", h("span", "真实场景。")]),
+          h("h1", [
+            h(SplitText, { text: "从灵感，" }),
+            h("br"),
+            "到",
+            h(GradientText, { text: "真实场景。" }),
+          ]),
           h(
             "p",
             { class: "lead" },
@@ -79,19 +87,25 @@ export default defineComponent({
             h("span", "TypeScript + JavaScript"),
           ]),
         ]),
-        h("div", { class: "intro-graphic" }, [
-          h("div", { class: "diagram-grid", innerHTML: sceneDiagram("gallery-orbit") }),
-          h("span", { class: "diagram-label diagram-label-top", "aria-hidden": "true" }, [
-            h("i"),
-            "scene.add(ideas)",
-          ]),
-          h("span", { class: "diagram-label diagram-label-bottom", "aria-hidden": "true" }, [
-            h("i"),
-            "无限可能 / 原生对象",
-          ]),
-          h("span", { class: "graphic-caption" }, "GEOMETRY STUDY / 001"),
-          h("span", { class: "graphic-corner" }, "r187"),
-        ]),
+        h(
+          AnimatedContent,
+          { class: "intro-graphic" },
+          {
+            default: () => [
+              h("div", { class: "diagram-grid", innerHTML: sceneDiagram("gallery-orbit") }),
+              h("span", { class: "diagram-label diagram-label-top", "aria-hidden": "true" }, [
+                h("i"),
+                "scene.add(ideas)",
+              ]),
+              h("span", { class: "diagram-label diagram-label-bottom", "aria-hidden": "true" }, [
+                h("i"),
+                "无限可能 / 原生对象",
+              ]),
+              h("span", { class: "graphic-caption" }, "GEOMETRY STUDY / 001"),
+              h("span", { class: "graphic-corner" }, "r187"),
+            ],
+          },
+        ),
       ]),
       h("div", { class: "collection-heading", id: "example-collection" }, [
         h("div", [

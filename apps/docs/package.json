@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node ../../scripts/prepare-docs.mjs && vitepress dev --host 127.0.0.1 --port 5174 --strictPort",
     "build": "node ../../scripts/prepare-docs.mjs && vitepress build",
-    "preview": "vitepress preview --host 127.0.0.1 --port 4174 --strictPort"
+    "preview": "node ../../scripts/preview-site.mjs docs"
   },
   "devDependencies": {
     "@adui/three-examples": "workspace:*",

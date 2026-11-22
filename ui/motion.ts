@@ -24,8 +24,9 @@ export function mountPageMotion(root: HTMLElement, page: PageMotion): () => void
       const select = (selector: string): HTMLElement[] =>
         Array.from(root.querySelectorAll<HTMLElement>(selector));
       const entry = {
-        docs: ".hero-copy > *, .hero-study, .product-facts > div, .vp-doc h1",
-        gallery: ".gallery-intro > div, .collection-heading",
+        // Home entry belongs to the Vue Bits components; this scope owns document headings.
+        docs: ".vp-doc h1",
+        gallery: ".gallery-intro > div:not([data-vue-bits]), .collection-heading",
         detail: ".detail-heading > div, .live-state, .scene-inspector",
         studio:
           ".workbench-identity, .workbench-settings, .intro > *, .card-heading, .metrics, .capabilities > h1, #app > main > h1",

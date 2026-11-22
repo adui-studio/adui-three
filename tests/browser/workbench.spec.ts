@@ -1,5 +1,24 @@
 import { expect, test } from "@playwright/test";
 
+test("Vue Bits studio menu retains all twelve scenarios and returns keyboard focus", async ({
+  page,
+}) => {
+  await page.goto("/?demo=capabilities");
+  const trigger = page.getByRole("button", { name: "场景目录", exact: true });
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: "场景目录", exact: true });
+  await expect(dialog.getByRole("link")).toHaveCount(12);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toBeVisible();
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await dialog.getByRole("link", { name: /场景、模型与资源/ }).click();
+  await expect(page.getByTestId("scene-A").locator("canvas")).toBeVisible();
+  await expect(page.getByTestId("scene-B").locator("canvas")).toBeVisible();
+  await expect(page.locator("canvas")).toHaveCount(2);
+});
+
 test("workbench navigation preserves the core scene and exposes browser adapter diagnostics", async ({
   page,
 }) => {

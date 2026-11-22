@@ -383,6 +383,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-075  | 正式示例源码阅读器                | examples 构建插件、source-viewer与CSS            | 原文复制、文件键盘、换行、主题、模态焦点与窄屏             |
 | FR-076  | 可复制的TS/JS示例                 | recipes、生成/ZIP与外部验证脚本                  | 语言切换、原文/ZIP一致、18外部工程及像素                   |
 | FR-077  | Vue Bits 网站设计                 | Gallery、SpotlightCard、VitePress 主题           | URL 筛选、键盘/减少动态效果、无 JS 文档与原功能回归        |
+| FR-078  | 三处技术界面与文档导航            | 动效组件、目录、Workbench、预览服务              | 菜单焦点、原生目录、新资源与全部回归                       |
 | FR-071  | 统一资产任务                      | loaders/loadAssets、asset-batch                  | 限流、重试、取消、迟到清理与严格类型消费                   |
 | FR-072  | GSAP 场景适配                     | animation/attachGSAPTimeline                     | 真实 GSAP、回调重入、多宿主、scope 与暂停绘制              |
 | FR-073  | 正交双后端                        | OrthographicThreeApp.create、相机工厂            | 投影、取消/丢失、回退像素、效果及截图                      |
@@ -559,6 +560,10 @@ FR-072：attachGSAPTimeline(app,timeline,{scope?,autoPlay?,playbackRate?}) 返�
 FR-073：OrthographicThreeApp.create(container,OrthographicThreeAppCreateOptions?) 以 renderer.type 返回精确 OrthographicThreeApp<R>；同步构造不变，联合实例为 OrthographicThreeAppInstance。私有 prepared host 泛型保留具体 Camera，正交工厂在 GPU 分配前验证，坐标系统在初始化后交给相机。尺寸、丢失、取消、retirement 与透视共用，见 [ADR-0054](adr/0054-orthographic-webgpu.md)。
 
 ## 页面动效与源码阅读契约（FR-070）
+
+FR-078：四种Vue Bits网站适配沿用已有Vue/GSAP。SplitText/AnimatedContent一次显现，GradientText的sweep小于4秒；StaggeredMenu用原生dialog处理焦点圈定、Escape与归还，偏好变化回滚。不接管SceneApp或创建额外canvas。DocDirectory读取原配置，在侧栏插槽提供原生details/summary/链接与筛选；当前组SSR展开，原主题继续负责路由、移动抽屉与页脚。preview-site限定dist，GET/HEAD读取新文件并返回no-store。见[ADR-0059](adr/0059-tech-interface-navigation.md)。
+
+首屏入场由Vue Bits组件独占，旧页面编排只管理文档标题和滚动分组。有限UI动效在自然GSAP结束之外设实际时长加150ms的局部结束边界，必须把真实样式推进终态；卸载、关闭及偏好变化取消该边界。不修改全局ticker、SceneApp或模型/相机时钟，冻结RAF的浏览器专项验证文字最终可读。
 
 FR-077：Vue Bits SpotlightCard 仅在应用层使用，保留官网 registry 来源、原始哈希、许可与修改说明。Vue render 组件复用项目已有 Vue3.5.45；光斑按卡片内指针事件每帧合并，键盘焦点与减少动态效果使用居中静态光斑，离屏/页面隐藏/卸载取消 RAF 和事件/observer。examples 的 Gallery 单独挂载，不拥有 SceneApp；搜索 q 和 category 通过 replaceState 保存且 popstate 恢复。主路由继续由既有版本/AbortSignal 控制。VitePress 首页通过默认主题插槽 SSG，侧栏、目录和搜索仍使用原主题。见[ADR-0058](adr/0058-vue-bits-site-design.md)。
 

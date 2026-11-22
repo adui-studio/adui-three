@@ -78,6 +78,8 @@
 - [独立 TS/JS 用法](docs/adr/0057-copyable-examples.md)：独立入口、语言生成、完整工程和外部消费验证。
 - [Vue Bits 网站设计](docs/adr/0058-vue-bits-site-design.md)：应用组件来源、目录筛选、静态文档与动效边界。
 
+- [技术界面与目录导航](docs/adr/0059-tech-interface-navigation.md)：三处共享动效、原生目录、实时预览与回归保留。
+
 ## 工作流程与约束
 
 1. 读取相关文档与代码，定位需求编号，明确本次实现和验证范围。

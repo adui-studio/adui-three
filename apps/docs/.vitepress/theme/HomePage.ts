@@ -2,6 +2,9 @@ import { defineComponent, h } from "vue";
 import { withBase } from "vitepress";
 import { sceneDiagram } from "../../../../ui/scene-diagram.ts";
 import SpotlightCard from "../../../../ui/vue-bits/SpotlightCard.ts";
+import SplitText from "../../../../ui/vue-bits/SplitText.ts";
+import GradientText from "../../../../ui/vue-bits/GradientText.ts";
+import AnimatedContent from "../../../../ui/vue-bits/AnimatedContent.ts";
 
 export default defineComponent({
   name: "HomePage",
@@ -16,7 +19,12 @@ export default defineComponent({
               h("i", { "aria-hidden": "true" }),
               "THREE.JS, THOUGHTFULLY COMPOSED",
             ]),
-            h("h1", ["为三维场景，", h("br"), "建立", h("span", "清晰秩序。")]),
+            h("h1", [
+              h(SplitText, { text: "为三维场景，" }),
+              h("br"),
+              "建立",
+              h(GradientText, { text: "清晰秩序。" }),
+            ]),
             h(
               "p",
               { class: "hero-description" },
@@ -33,25 +41,31 @@ export default defineComponent({
               "TypeScript · ESM",
             ]),
           ]),
-          h("div", { class: "hero-study" }, [
-            h("div", { class: "study-top" }, [
-              h("span", "A SPACE FOR YOUR IDEAS"),
-              h("span", "001"),
-            ]),
-            h("div", { class: "study-graphic", innerHTML: sceneDiagram("docs-orbit") }),
-            h("div", { class: "study-label label-scene", "aria-hidden": "true" }, [
-              h("i"),
-              "原生 Three.js 对象",
-            ]),
-            h("div", { class: "study-label label-renderer", "aria-hidden": "true" }, [
-              h("i"),
-              "一套 API / 两种后端",
-            ]),
-            h("div", { class: "study-bottom" }, [
-              h("span", "GEOMETRY STUDY"),
-              h("span", "WebGL 2 + WebGPU"),
-            ]),
-          ]),
+          h(
+            AnimatedContent,
+            { class: "hero-study" },
+            {
+              default: () => [
+                h("div", { class: "study-top" }, [
+                  h("span", "A SPACE FOR YOUR IDEAS"),
+                  h("span", "001"),
+                ]),
+                h("div", { class: "study-graphic", innerHTML: sceneDiagram("docs-orbit") }),
+                h("div", { class: "study-label label-scene", "aria-hidden": "true" }, [
+                  h("i"),
+                  "原生 Three.js 对象",
+                ]),
+                h("div", { class: "study-label label-renderer", "aria-hidden": "true" }, [
+                  h("i"),
+                  "一套 API / 两种后端",
+                ]),
+                h("div", { class: "study-bottom" }, [
+                  h("span", "GEOMETRY STUDY"),
+                  h("span", "WebGL 2 + WebGPU"),
+                ]),
+              ],
+            },
+          ),
         ]),
         h(
           "div",

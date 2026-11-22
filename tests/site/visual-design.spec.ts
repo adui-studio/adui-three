@@ -54,6 +54,7 @@ test("documentation theme switches retain readable surfaces and locally rendered
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => localStorage.setItem("vitepress-theme-appearance", "light"));
   await page.goto("/");
   await page.waitForLoadState("networkidle");
   for (const dark of [true, false]) {
@@ -62,15 +63,15 @@ test("documentation theme switches retain readable surfaces and locally rendered
       .click();
     await expect(page.locator(".product-home")).toHaveCSS(
       "color",
-      dark ? "rgb(238, 234, 244)" : "rgb(36, 35, 43)",
+      dark ? "rgb(233, 238, 249)" : "rgb(36, 35, 43)",
     );
     await expect(page.locator(".hero-copy h1")).toBeVisible();
     const colors = await page.locator(".product-home").evaluate((element) => {
       const style = getComputedStyle(element);
       return { text: style.color, background: style.getPropertyValue("--ui-bg").trim() };
     });
-    expect(colors.background).toBe(dark ? "#18171e" : "#f6f5f2");
-    expect(colors.text).toBe(dark ? "rgb(238, 234, 244)" : "rgb(36, 35, 43)");
+    expect(colors.background).toBe(dark ? "#0b0f18" : "#f6f5f2");
+    expect(colors.text).toBe(dark ? "rgb(233, 238, 249)" : "rgb(36, 35, 43)");
     await page.screenshot({
       path: `test-results/redesign-docs-${dark ? "dark" : "light"}.png`,
       fullPage: true,

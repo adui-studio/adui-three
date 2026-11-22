@@ -1,5 +1,7 @@
 # 代码地图
 
+FR-078的[技术布局](../ui/tech.css)与[Vue Bits适配](../ui/vue-bits/README.md)为三处应用共用；[文档目录](../apps/docs/.vitepress/theme/DocDirectory.ts)与[预览服务](../scripts/preview-site.mjs)负责导航及构建后新资源。[workbench](../apps/website/src/workbench.ts)拥有Vue顶栏，bootstrap分派原12场景并清理界面；SDK/recipes不依赖这些模块。
+
 [目录组件](../examples/src/Gallery.ts)管理搜索/分类和 URL；[Vue Bits 适配](../ui/vue-bits/SpotlightCard.ts)、[来源与许可](../ui/vue-bits/README.md)由两处网站使用。[原创场景示意](../ui/scene-diagram.ts)是无渲染循环的静态 SVG。VitePress 的 HomePage/MotionLayout/custom.css 负责首页、文档插槽和响应式阅读，SDK 与下载 recipes 不依赖这些 UI。
 
 独立用法在 examples/recipes（9 TS、对应JS及HTML），scripts/example-recipes.mjs 定义完整工程清单，generate-example-recipes.mjs 更新/检查生成文件，prepare-example-projects.mjs 打包18 ZIP，check-example-projects.mjs 验证外部安装、构建和真实像素。源码插件由catalog指定recipe读取，原cases只负责交互演示。
@@ -202,3 +204,5 @@ EXR 位于既有 [environment.ts](../packages/three/src/environment.ts)，[专�
 ## 页面动效与源码阅读
 
 [ui/motion.ts](../ui/motion.ts) 管理作用域 GSAP 与减少动态效果；[MotionLayout.ts](../apps/docs/.vitepress/theme/MotionLayout.ts) 管理 VitePress 客户端路由/卸载。[高亮插件](../examples/plugins/source-code.ts) 在构建时生成源码模块，[source-viewer.ts](../examples/src/source-viewer.ts) 管理原代码复制和反馈；[站点测试](../tests/site/motion-source.spec.ts) 验证实际高亮、剪贴板和动效生命周期。
+
+[有限界面动效](../ui/finite-motion.ts)只负责UI终态边界，由组件作用域取消，SDK不依赖该模块。
