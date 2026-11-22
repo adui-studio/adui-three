@@ -59,6 +59,18 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 ## 验证记录
 
+2026-11-22 Vue Bits 网站设计（FR-077）已完成：通过官方 registry 核验 SpotlightCard 及 MIT + Commons Clause，适配为共享 Vue render 组件，重设 examples 目录/场景和 VitePress 首页/阅读。仅在两处网站显式声明已有 Vue3.5.45，锁文件仅增加两个已有 importer 的 Vue 声明，既有依赖、SDK 和下载工程未升级。无 shadcn MCP 工具，使用官方支持的手动源码接入，不修改全局 MCP；来源、原文哈希和完整许可保留在 ui/vue-bits。
+
+首次静态检查发现共享组件的 CSS 副作用导入在根类型上下文报 TS2882；将样式导入放到两个应用入口后通过，没有添加通用声明或关闭规则。ui-ux-pro-max 的 Python 系列命令不可用，直接核对本地样式数据与品牌，不声称生成设计系统。核验 Vue 官方编译标志与 VitePress1.6.4默认插槽，静态文档与客户端保持一致。
+
+12项首次界面专项全部通过（2.5分钟）。目视检查后补齐手机活动导航自动对齐、窄屏说明宽度与源码语言按钮的悬停选中颜色，新增两项专项；导航滚动仅作用于横向容器。首次完整站点尝试中，3项旧 a[data-example] 点击同时命中目录与新增导航，严格定位失败；改为明确的 a.example-card 范围，保留全部渲染、历史、异步与清理断言。中断的构建/回归不记作通过；原日志为 vue-bits-site-before-mobile-adjustment.log、vue-bits-site-before-hover-adjustment.log，trace/error-context保留 vue-bits-site-first-failures。
+
+冻结版本 ready 通过17文档测试、807单测（41文件）、380格式与227源文件静态检查、9份TS/JS生成一致性和全部8项构建；17入口 tarball 与4次 skipLibCheck=false 严格消费通过。完整站点51/51（7.2分钟），零自动重试，包含新增5项URL/空状态、手机活动标签、光斑键盘/实时减少动效、语言按钮明暗悬停和无JS文档；源码复制/ZIP一致、源模块失败隔离和双后端像素回归均保留。日志为 vue-bits-ready-final.log、vue-bits-package.log、vue-bits-site-final.log。
+
+开发模式另以5177端口检查9张卡片、搜索和JavaScript源码/实际ZIP逐字一致，本地SDK归档存在且不带Vue Bits；人为隐藏navigator.gpu后严格创建失败，源码仍可用。页面异常为空，无 Vue 编译标志警告，保留 Three 原生“WebGPU 不可用，采用WebGL2后端”的预期警告；未关闭控制台日志。证据为 vue-bits-dev-smoke.json/log，开发服务随后关闭。完整浏览器143通过、2原生专项跳过（145总数，10.4分钟），零自动重试，日志 vue-bits-browser.log。本轮仍为Chromium/SwiftShader，未重验NVIDIA原生设备，不将跳过或节点回退写成原生专项通过。
+
+修正后重新采集并目视检查15组桌面/375/768px及横屏截图，覆盖目录、场景、源码和文档明暗；页面异常为空，15组页面宽度溢出均为0。手机当前主题已在可视区，语言按钮悬停保持选中配色。最终图像/元数据为忽略的 vue-bits-_.png、vue-bits-captures.json 和 vue-bits-capture-final.log，初版手机/按钮截图另保留 before-_。最终文档记录后的 ready 复核见 vue-bits-ready-delivery.log；保留原大chunk、TS7实验API提示，不扩大为性能或全浏览器结论。本轮未发布npm或引入CI。
+
 2026-11-22 独立用法（FR-076）已完成：九主题单独编写TS，Oxc与vp fmt生成JS，阅读器/文档改为双语言、HTML和依赖说明。18份ZIP附当前实际SDK包和原创模型。仓库只增加开发期fflate0.8.2，既有工具未升级；独立工程固定Vite8.3.8、Three0.187.0和TS7.0.2，SDK不增加依赖。
 
 首轮外部18份严格构建和浏览器均通过，最后清理被Windows已加载的lightningcss原生模块锁住，进程以EPERM失败；诊断路径为系统临时目录adui-three-recipes-7OhDmI，初次日志保留recipes-external-initial.log。改为临时工程Vite子进程构建后，全18份严格构建/渲染及清理通过，没有绕过清理错误或降低像素断言；最终日志recipes-external-final.log。局部接入中修正重复标识符、pnpm-native.exe不能经node启动，以及共享MJS声明；静态类型上下文显露的4处原Node测试注册Promise以void明确交给运行器管理，未关闭规则或修改测试断言。
