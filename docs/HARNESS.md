@@ -59,6 +59,16 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 ## 验证记录
 
+2026-11-22 三处技术界面（FR-078）验收：examples、website、VitePress统一为深色技术主题、开放编号布局与Vue Bits分字/渐变/显现/分层菜单；website仅增加Vue界面层，保留原12场景模块、双实例与原生控件。新增已有Vue3.5.45的website显式声明，无既有版本升级，SDK和18份独立工程不带这些UI组件。官方registry原文哈希、应用适配与完整许可见[来源记录](../ui/vue-bits/README.md)。GridScan等额外GPU效果未引入，细线网格与有限扫描为原创CSS。按ui-ux-pro-max、vitepress与最新Web Interface Guidelines检查布局、语义、焦点、动态偏好和清理；本机Python命令不可用，未宣称运行设计生成器。
+
+直接检查用户停留的`/api/collision.html`发现：旧预览返回的HTML引用与磁盘HTML一致，但它对磁盘确实存在的新哈希app/theme脚本仍返回404，导致只有SSR标记而无交互。没有据此认定HTML缓存是根因。改为共享实时静态预览，逐请求读取当前dist，保留未知脚本404与no-store；新增HTTP用例在服务运行中写入/改写测试文件，两次读取新内容，finally清理。目录改为原生details/链接和筛选，当前模块SSR展开，保留VitePress的手机抽屉、搜索、路由与主题。
+
+有限动效首轮专项13/14通过，旧页面入口在5秒内未就绪；拆分初始pageshow和组件所有权后仍复现。隔离的四项动效按原超时通过，但新增真实终态断言再次发现分字和插画保留中间样式，不能用metadata或单项复验替代修复。新增仅属于界面入口的`finishFiniteMotion`：在动画自身总时长后150ms推进实际终态，并随GSAP context/动态偏好/卸载清理；不修改全局ticker或SDK时钟。强制冻结RAF的浏览器用例检查真实opacity/transform，同正常偏好实时切换、导航、无JS目录及HTTP更新用例一起最终16/16通过（2.0分钟）。两个中间构建分别暴露GSAP类型导入未使用、命名空间别名类型无效；改用显式结构接口后严格编译通过。未确认所有帧延迟的单一底层根因。
+
+工作台专项4/4通过（45.8秒），包含分层目录12链接、真实双画布、完整扩展自检/回退及手机控件。逐一打开全部12场景，11个渲染场景均有画布，能力诊断页按设计无常驻画布，页面异常与失败资源请求为空。最终375/768/1440三宽度×三处页面9组截图均无横向溢出，目录实际跳转、菜单及Escape正常；另核对明暗首页。首次768文档截图曾测得844px，修正顶栏断点后最终全部宽度相等，保留首次失败。截图已目视检查，证据位于忽略的`playwright-report/redesign/tech-final-*`，不作为全部浏览器/设备矩阵证明。
+
+首轮ready在两个新文档段落格式检查停止，格式化后最终ready通过17文档测试、9份TS/JS一致性、807单测（41文件）、391文件格式、235文件Lint/类型和8项构建任务；17入口tarball及四次skipLibCheck=false严格消费通过。完整站点58/58（8.4分钟），完整浏览器144通过、2原生WebGPU专项在软件环境跳过（146总数，13.6分钟），均零自动重试；完整门禁首次执行即通过，前述失败均为先行专项或ready格式检查。日志为`tech-ready-validated.log`、`tech-site-final.log`、`tech-browser.log`和`tech-package.log`。本轮使用Chromium/SwiftShader，未重验使用者NVIDIA设备，不将节点回退或跳过记作原生专项通过。没有新增CI或发布npm，保留TypeScript实验性与原有大chunk提示。
+
 2026-11-22 Vue Bits 网站设计（FR-077）已完成：通过官方 registry 核验 SpotlightCard 及 MIT + Commons Clause，适配为共享 Vue render 组件，重设 examples 目录/场景和 VitePress 首页/阅读。仅在两处网站显式声明已有 Vue3.5.45，锁文件仅增加两个已有 importer 的 Vue 声明，既有依赖、SDK 和下载工程未升级。无 shadcn MCP 工具，使用官方支持的手动源码接入，不修改全局 MCP；来源、原文哈希和完整许可保留在 ui/vue-bits。
 
 首次静态检查发现共享组件的 CSS 副作用导入在根类型上下文报 TS2882；将样式导入放到两个应用入口后通过，没有添加通用声明或关闭规则。ui-ux-pro-max 的 Python 系列命令不可用，直接核对本地样式数据与品牌，不声称生成设计系统。核验 Vue 官方编译标志与 VitePress1.6.4默认插槽，静态文档与客户端保持一致。
