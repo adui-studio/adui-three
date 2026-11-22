@@ -10,7 +10,7 @@ test("example source is highlighted, escaped and copied without line numbers", a
     await page.goto(`/play/?example=${id}&renderer=webgl`);
     await expect(page.locator(".detail")).toHaveAttribute("data-state", "running");
     await page.getByText("查看示例源码", { exact: true }).click();
-    const pre = page.locator(".source pre.shiki");
+    const pre = page.locator(".source .expressive-code pre");
     await expect(pre).toBeVisible();
     await expect(
       page.getByRole("region", { name: `TypeScript 源码：src/cases/${id}.ts`, exact: true }),

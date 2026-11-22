@@ -380,6 +380,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-064  | 可选 WebGPU 基础宿主契约          | webgpu、共用 SceneHost 与 SceneApp               | 异步单测/打包/节点回退，原生GPU需适配器验收                |
 | FR-065  | ThreeApp统一创建契约              | ThreeApp.create / rendererType / options         | 参数快照、取消、类型收窄、真实浏览器与示例                 |
 | FR-074  | 统一渲染统计与监视                | rendering/render-stats、共享 UI 面板             | 原生映射、墙钟窗口、节流、双实例和重建                     |
+| FR-075  | 正式示例源码阅读器                | examples 构建插件、source-viewer与CSS            | 原文复制、文件键盘、换行、主题、模态焦点与窄屏             |
 | FR-071  | 统一资产任务                      | loaders/loadAssets、asset-batch                  | 限流、重试、取消、迟到清理与严格类型消费                   |
 | FR-072  | GSAP 场景适配                     | animation/attachGSAPTimeline                     | 真实 GSAP、回调重入、多宿主、scope 与暂停绘制              |
 | FR-073  | 正交双后端                        | OrthographicThreeApp.create、相机工厂            | 投影、取消/丢失、回退像素、效果及截图                      |
@@ -559,4 +560,4 @@ FR-073：OrthographicThreeApp.create(container,OrthographicThreeAppCreateOptions
 
 GSAP 仅为根私有工作区的 UI 构建依赖。mountPageMotion 使用作用域 matchMedia 持有动画和 ScrollTrigger，减少动态效果时回滚为可读终态，销毁仅 revert 自己的作用域，不修改全局 ticker 或 killAll。只动画标题、卡片、元信息和控制面板，不移动 live canvas 及其布局祖先。ThreeApp 和 AnimationMixer 时钟保持原协议。VitePress 只在 onMounted 后动态加载，路由/卸载/pagehide 用请求版本取消迟到挂载，SSG 不访问 DOM；画廊切换与 HMR 清理原作用域。
 
-examples/plugins/source-code.ts 只读取 cases 下的 TypeScript，通过 ?example-source 导出原始代码、转义高亮 HTML 和文件名；Shiki 不进入浏览器产物。源码于模块准备完成后交付，与 GPU 创建成功分离。source-viewer 只插入构建插件产生的 HTML，复制使用原代码，不复制行号或 token 标签；版本号阻止旧复制结果污染新主题，错误反馈提供手动复制路径。
+FR-075 扩展源码阅读契约：examples/plugins/source-code.ts 只接受 cases 下真实路径的 TypeScript，并按显式白名单加入被引用的 shared.ts；通过 ?example-source 导出 files 数组，每项为 code/html/styles/filename。Expressive Code 及其 Shiki 仅在构建时执行，浏览器按需取得当前示例 HTML，不执行引擎。源码于模块准备完成后交付，与 GPU 创建成功分离。source-viewer 只插入构建插件产生的 HTML，复制使用原代码，不复制行号或 token 标签；版本号阻止旧复制结果污染新主题或文件，错误反馈提供手动复制路径。原生文件 tabs、换行和主题只改变阅读状态，dialog 借用同一节点、Escape 恢复焦点，clear/destroy 关闭并清理。见[阅读器决策](adr/0056-example-source-reader.md)。

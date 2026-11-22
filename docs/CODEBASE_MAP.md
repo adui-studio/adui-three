@@ -1,5 +1,7 @@
 # 代码地图
 
+[源码构建插件](../examples/plugins/source-code.ts)使用 Expressive Code，虚拟 CSS 与当前案例的白名单 files 独立交付；[阅读器](../examples/src/source-viewer.ts)及[样式](../examples/src/source-viewer.css)负责文件标签、主题/换行、复制和 dialog。专项为 tests/site/source-reader.spec.ts，原高亮/转义回归保留在 motion-source.spec.ts。
+
 [统计模块](../packages/three/src/rendering/render-stats.ts) 从 rendering 导出，专项为 render-stats.test.ts；[共享面板](../ui/render-stats-panel.ts)及 CSS 只用于应用。tests/site/render-stats.spec.ts 验证双后端和窄屏，tests/browser/render-stats.spec.ts 验证双实例及重建。
 
 新增资产批任务位于 `packages/three/src/loaders/asset-batch.ts`；GSAP 适配位于 `packages/three/src/animation/gsap-timeline.ts`；正交相机工厂位于 `packages/three/src/core/orthographic-camera.ts`，异步创建仍在 three-app/webgpu-host。专项分别为 asset-batch.test.ts、gsap-timeline.test.ts、webgpu.test.ts 及 tests/site/scene-features.spec.ts。

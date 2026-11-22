@@ -19,6 +19,8 @@
   --vp-button-brand-hover-bg: #5b2b82;
   --vp-button-brand-text: #fff;
   --vp-code-block-bg: #eeecf1;
+  --vp-code-font-size: 14px;
+  --vp-code-line-height: 1.8;
   --vp-sidebar-width: 276px;
 }
 .dark {
@@ -51,6 +53,17 @@
   font-size: 19px;
   letter-spacing: -0.6px;
   font-weight: 650;
+}
+
+.vp-doc div[class*="language-"] {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+}
+.vp-doc div[class*="language-"] pre {
+  scrollbar-width: thin;
+}
+.vp-doc div[class*="language-"] > span.lang {
+  font-family: var(--ui-mono);
 }
 
 .VPNavBar {

@@ -18,6 +18,8 @@
 
 ## 维护边界
 
+源码阅读器（FR-075）采用独立深色代码工作区，提供明暗切换；14px系统等宽字、1.8行高、原生行号和关键 API 标记。文件标签区与工具区分层，展示真实案例及白名单辅助文件，复制取原文。自动换行和展开阅读均有明确按钮，原生 dialog 支持 Escape 与焦点恢复，窄屏工具栏允许换行。VitePress 保留原生高亮并同步字体、行高和边框。设计决策见[ADR-0056](../adr/0056-example-source-reader.md)。
+
 共享基础令牌和静态几何位于 `ui/tokens.css` 与 `ui/graphics.ts`，只供应用使用，SDK 不依赖它们。各应用保留自己的布局样式。默认字体使用系统字体，不增加外部字体请求；文档主题使用 `vitepress/theme-without-fonts`，避免预加载未使用的 Inter。
 
 文档首页在 `apps/docs/.vitepress/theme/HomePage.ts`，通过默认主题 `home-hero-before` 插槽渲染；组件只生成确定性的 HTML/SVG，不导入浏览器 SDK、不访问 window/document，保持 SSG 和 hydration 一致。站内链接使用 withBase。未升级 VitePress，也未替换文档路由和搜索实现。

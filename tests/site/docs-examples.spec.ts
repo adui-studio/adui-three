@@ -80,7 +80,7 @@ for (const id of [
       expect(output.error).toBe(0);
       expect(output.colors).toBeGreaterThan(8);
       await page.getByText("查看示例源码", { exact: true }).click();
-      await expect(page.locator(".source pre.shiki")).toBeVisible();
+      await expect(page.locator(".source-code pre")).toBeVisible();
       await expect(page.locator(".source pre")).toContainText(/export (?:async )?function mount/);
       if (id === "effects")
         await page.screenshot({ path: "test-results/formal-effects.png", fullPage: true });
@@ -243,6 +243,6 @@ test("renderer selection rebuilds one host, restores history and keeps strict fa
     await expect(page.locator("canvas")).toHaveCount(0);
   }
   await page.getByText("查看示例源码", { exact: true }).click();
-  await expect(page.locator(".source pre.shiki")).toContainText("export async function mount");
+  await expect(page.locator(".source-code pre")).toContainText("export async function mount");
   await expect(page.getByRole("button", { name: "复制代码", exact: true })).toBeEnabled();
 });

@@ -13,8 +13,9 @@
     "three": "0.187.0"
   },
   "devDependencies": {
+    "@expressive-code/plugin-line-numbers": "catalog:",
     "@types/three": "0.187.0",
-    "shiki": "catalog:",
+    "expressive-code": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"
