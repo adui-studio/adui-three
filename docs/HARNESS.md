@@ -57,6 +57,16 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 
 ## 验证记录
 
+2026-11-22 源码阅读器（FR-075）已完成：安装固定 Expressive Code0.44.4及同行号插件，通过现有Vite插件构建输出，使用 expressive-code/hast 自带序列化入口；移除 examples 的直接 Shiki2.5依赖，VitePress链路保留。新增 Shiki4为该构建工具传递依赖，SDK不增加依赖。首次局部构建把框架集成支持的主题名数组传给底层引擎，触发 titleBar.border 错误；核对实际声明后使用引擎默认的已解析主题，随后局部构建与静态检查通过，未回退依赖或关闭主题。
+
+首轮源码专项4通过/3失败：提前展开后 set 清理把面板收起，修正为保留本轮展开意图。第二轮1通过/2失败，实际代码背景没有跟随嵌套主题变化；将主题属性同步到引擎自身根节点后桌面通过。第三轮2通过/1失败，375px实际滚动仍多5px；采用引擎原生 wrap、保留缩进并允许代码列收缩后，手机完整操作单例通过（23.6秒）。未放宽颜色、原文、溢出、焦点断言或增加重试，首次日志/trace分别保留在忽略的 reader-targeted-*、reader-initial-failures、reader-theme-failures、reader-wrap-failures。
+
+首轮完整站点发现旧 pre.shiki 定位尚未同步，停止该轮并保留 reader-site-initial.log/reader-site-initial-failures；两处定位改为源码区域 pre，保留可见性与真实 mount 原文断言。模态阅读复用一个节点，关闭后恢复焦点；复制反馈保持 aria-live，场景状态仍独立。锁文件新增构建期 Shiki4.6.0及相关包，同时重新计算 Vitest5.0.5的 peer 上下文，既有版本不升级，不手工伪造锁文件。本轮没有 CI 或 npm 发布。
+
+最终 ready 通过17文档测试、807单测（41文件）、345文件格式与199源文件静态检查及全部构建；严格 tarball 消费覆盖17入口和四次 skipLibCheck=false编译。完整站点43/43通过（9.4分钟），含新增4项阅读器：两个宽度的真实原文/颜色/换行宽度/模态焦点、跨文件迟到复制隔离，以及严格WebGPU创建失败仍可阅读。完整浏览器143通过、2原生专项跳过（145总数，9.6分钟），零自动重试，未调整既有超时或断言。
+
+目视检查桌面明暗主题、375px内嵌与模态阅读、VitePress代码区，文件标签与工具完整、没有重复显示引擎标题栏。捕获脚本记录页面异常为空、页面宽度375及代码区滚动溢出0；折叠入口补充内侧焦点框，避免圆角裁切，原生dialog支持Escape和焦点恢复。截图、日志和元数据保留在忽略的 playwright-report/redesign/reader-*。本轮使用Chromium/SwiftShader，未重新补测原生GPU；页面观感与源码阅读不作为GPU性能或设备矩阵结论。
+
 2026-11-20 统一渲染统计（FR-074）：rendering 增加 captureRenderStats/attachRenderMonitor，快照正确映射 WebGL render.calls 与节点 drawCalls，复制原生程序/资源计数与可用字节估算；不重置 info、不改 autoReset、不包装 renderer，不新增 RAF、定时器或 SDK 依赖。监视器以画布窗口 performance.now 观测完成间隔，避开 maxDelta 模拟时间，并保留不可变快照。UI 在共用目录，使用原生 details、44px目标、焦点/hover、等宽数字和缓存 Intl 格式器，按默认0.5秒更新；统计没有上传或持久化。
 
 最终 ready 通过17项文档测试、807单测（41文件）、342文件格式与198源文件静态检查及全部构建。新增11项受控计时单测覆盖原生字段差异、快照隔离、节流、粗粒度时间戳、暂停/隐藏/零尺寸、手动读取、双实例、scope 与回调销毁；严格包消费17入口及四次 skipLibCheck=false 编译通过。统计站点专项3/3（34.0秒）与双实例专项1/1（18.6秒）通过；完整站点39/39通过（6.2分钟），包含两个 renderer、真实资源、暂停单帧、重建、375px键盘与既有源码/主题检查。
