@@ -2,6 +2,8 @@
 
 ## 当前架构
 
+FR-076 将使用者源码与画廊交互分开：独立 recipes 为TS/JS与文档的共同来源，生成器及 ZIP 打包属于开发工具。Vite插件只展示独立工程文件并托管下载；完整包包含本地 SDK，SDK不包含这些工具或资产。边界及外部消费见[独立用法决策](adr/0057-copyable-examples.md)。
+
 FR-075 使用 Expressive Code 的构建期引擎和行号插件替换 examples 原始高亮调用；CSS 由虚拟模块交付，文件 HTML 按案例加载，SDK 与浏览器不包含引擎。直接引擎的 Shiki4 传递依赖与 VitePress 既有链路隔离；VitePress 只同步视觉。文件白名单和对话框生命周期见[源码阅读器](adr/0056-example-source-reader.md)。
 
 FR-074 统计函数位于 rendering，仅复制原生数值，监视器只订阅宿主完成阶段；不改变计数重置策略、renderer 方法或调度器。可选 DOM 面板在 ui/render-stats-panel，由 examples 与 website 消费公开包入口，根开发依赖显式链接本地 SDK；SDK 不依赖 UI。见[统计决策](adr/0055-render-statistics.md)。

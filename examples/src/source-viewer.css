@@ -26,7 +26,7 @@
   outline-offset: -3px;
 }
 .source > summary::after {
-  content: "文件、辅助方法与完整实现";
+  content: "TypeScript、JavaScript 与完整工程";
   margin-left: auto;
   font-size: 12px;
   color: var(--muted);
@@ -79,6 +79,66 @@
   font: 12px/1.5 var(--ui-mono);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+.source-heading .source-reading-options {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+.source-languages {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--source-line);
+  border-radius: 8px;
+}
+.source-languages button[aria-pressed="true"] {
+  background: var(--source-active);
+  color: var(--source-bg);
+}
+.source-setup {
+  padding: 16px 24px;
+  border-top: 1px solid var(--source-line);
+  color: var(--source-muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.source-setup p {
+  margin: 0 0 12px;
+}
+.source-setup > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.source-setup code {
+  font: 12px/1.8 var(--ui-mono);
+  color: var(--source-ink);
+}
+.source-download {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--source-line);
+  border-radius: 6px;
+  color: var(--source-active);
+  text-decoration: none;
+}
+.source-download:hover {
+  text-decoration: underline;
+}
+.source-download:focus-visible {
+  outline: 2px solid var(--source-active);
+  outline-offset: 2px;
+}
+.source-download:not([href]) {
+  visibility: hidden;
+}
+.source-tabs {
+  overflow-x: auto;
 }
 .source-toolbar {
   display: flex;
@@ -208,7 +268,7 @@
   background: #090b12c9;
 }
 .source-dialog .source-code pre {
-  max-height: calc(100dvh - 300px);
+  max-height: calc(100dvh - 450px);
 }
 @media (max-width: 640px) {
   .source > summary::after {
@@ -219,6 +279,13 @@
     flex-direction: column;
     gap: 8px;
     padding: 20px 16px;
+  }
+  .source-heading .source-reading-options {
+    width: 100%;
+    justify-items: start;
+  }
+  .source-setup {
+    padding-inline: 16px;
   }
   .source-toolbar {
     padding-inline: 8px;
@@ -247,6 +314,6 @@
     max-height: calc(100dvh - 16px);
   }
   .source-dialog .source-code pre {
-    max-height: calc(100dvh - 340px);
+    max-height: max(160px, calc(100dvh - 520px));
   }
 }

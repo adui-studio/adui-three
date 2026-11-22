@@ -27,11 +27,11 @@ test("VitePress renders guides and API on the server, navigates and searches loc
   await page.getByRole("link", { name: "开发", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^开发文档/, level: 1 })).toBeVisible();
   await page.goto("/examples/basic.html");
-  await expect(page.locator(".vp-doc")).toContainText(/export (?:async )?function mount/);
-  const source = page.locator('.vp-doc a[href*="github.com"][href*="shared.ts"]').first();
+  await expect(page.locator(".vp-doc")).toContainText(/ThreeApp\.create/);
+  const source = page.locator('.vp-doc a[href*="github.com"][href*="recipes/basic.ts"]').first();
   await expect(source).toHaveAttribute(
     "href",
-    /github.com\/adui-studio\/adui-three\/blob\/main\/examples\/src\/shared.ts/,
+    /github.com\/adui-studio\/adui-three\/blob\/main\/examples\/recipes\/basic.ts/,
   );
 });
 for (const id of [
@@ -81,7 +81,7 @@ for (const id of [
       expect(output.colors).toBeGreaterThan(8);
       await page.getByText("查看示例源码", { exact: true }).click();
       await expect(page.locator(".source-code pre")).toBeVisible();
-      await expect(page.locator(".source pre")).toContainText(/export (?:async )?function mount/);
+      await expect(page.locator(".source pre")).toContainText("ThreeApp.create");
       if (id === "effects")
         await page.screenshot({ path: "test-results/formal-effects.png", fullPage: true });
     },
@@ -243,6 +243,6 @@ test("renderer selection rebuilds one host, restores history and keeps strict fa
     await expect(page.locator("canvas")).toHaveCount(0);
   }
   await page.getByText("查看示例源码", { exact: true }).click();
-  await expect(page.locator(".source-code pre")).toContainText("export async function mount");
+  await expect(page.locator(".source-code pre")).toContainText("ThreeApp.create");
   await expect(page.getByRole("button", { name: "复制代码", exact: true })).toBeEnabled();
 });

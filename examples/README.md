@@ -25,23 +25,25 @@ pnpm run dev
 
 基础主题提供宿主驱动的 GSAP 时间线；模型主题提供模型/HDR 批任务、取消和预加载；渲染器主题提供正交/透视重建，可分享 `/play/?example=webgpu&projection=orthographic&renderer=webgpu`。
 
-| 主题           | 源码                                     | 内容                           |
-| -------------- | ---------------------------------------- | ------------------------------ |
-| 场景与生命周期 | [basic.ts](src/cases/basic.ts)           | 原生对象、统一更新、暂停与释放 |
-| 模型与动画     | [model.ts](src/cases/model.ts)           | 本地 GLB、异步加载与 Mixer     |
-| 相机与视角     | [camera.ts](src/cases/camera.ts)         | 取景、平滑过渡与数值视角       |
-| 交互 DOM 标签  | [labels.ts](src/cases/labels.ts)         | 输入框、按钮与完整卡片         |
-| 点云与流光     | [effects.ts](src/cases/effects.ts)       | 飞点、路径带、波纹、光柱与护罩 |
-| 光影与环境     | [shadows.ts](src/cases/shadows.ts)       | 阴影、色彩与 Room 环境         |
-| 第一与第三人称 | [navigation.ts](src/cases/navigation.ts) | 控件、输入和静态 BVH           |
-| 实例化网格     | [instances.ts](src/cases/instances.ts)   | 共享资产和独立实例数据         |
-| 渲染器与输出   | [webgpu.ts](src/cases/webgpu.ts)         | 后端、泛光、描边、环境和截图   |
+独立用法直接使用公开 API，配套 HTML 与安装步骤见[文档目录](../docs/examples/index.md)；画廊实现保留完整交互回归。
+
+| 主题           | TypeScript                             | JavaScript                             | 画廊实现                            |
+| -------------- | -------------------------------------- | -------------------------------------- | ----------------------------------- |
+| 场景与生命周期 | [basic.ts](recipes/basic.ts)           | [basic.js](recipes/basic.js)           | [交互演示](src/cases/basic.ts)      |
+| 模型与动画     | [model.ts](recipes/model.ts)           | [model.js](recipes/model.js)           | [交互演示](src/cases/model.ts)      |
+| 相机与视角     | [camera.ts](recipes/camera.ts)         | [camera.js](recipes/camera.js)         | [交互演示](src/cases/camera.ts)     |
+| 交互 DOM 标签  | [labels.ts](recipes/labels.ts)         | [labels.js](recipes/labels.js)         | [交互演示](src/cases/labels.ts)     |
+| 点云与流光     | [effects.ts](recipes/effects.ts)       | [effects.js](recipes/effects.js)       | [交互演示](src/cases/effects.ts)    |
+| 光影与环境     | [shadows.ts](recipes/shadows.ts)       | [shadows.js](recipes/shadows.js)       | [交互演示](src/cases/shadows.ts)    |
+| 角色导航       | [navigation.ts](recipes/navigation.ts) | [navigation.js](recipes/navigation.js) | [交互演示](src/cases/navigation.ts) |
+| 实例化网格     | [instances.ts](recipes/instances.ts)   | [instances.js](recipes/instances.js)   | [交互演示](src/cases/instances.ts)  |
+| 渲染器与输出   | [webgpu.ts](recipes/webgpu.ts)         | [webgpu.js](recipes/webgpu.js)         | [交互演示](src/cases/webgpu.ts)     |
 
 所有主题使用同一套 API；渲染器选择由 ExampleContext 传入，shared.createScene 使用 ThreeApp.create 并传递创建 signal。资产来自共享 [fixtures](../fixtures/README.md)，不依赖私有模型。
 
 ## 新增示例
 
-新增主题时在 src/cases 导出 async mount(context)，返回自有 SceneApp；登记 [catalog](src/catalog.ts)，再在 docs/examples 引用真实源码。控件、效果和事件沿用宿主生命周期，不另建 RAF。修改后运行 ready 和 test:site，涉及 SDK 或渲染行为时按 [Harness](../docs/HARNESS.md) 补充验证。
+新增画廊主题在src/cases导出mount(context)，另在recipes独立编写公开TS用法并登记[catalog](src/catalog.ts)。运行examples:generate生成JS，文档引用双语言与HTML。控件和资源沿用宿主生命周期，不另建RAF；修改后运行ready、test:recipes及test:site，其他门禁按[Harness](../docs/HARNESS.md)。
 
 正式使用说明见 [文档目录](../docs/examples/index.md)，集成竞争与资源诊断见 [website](../apps/website/README.md)。
 
@@ -51,4 +53,4 @@ pnpm run dev
 
 ## 源码高亮与页面动效
 
-每个主题通过 Expressive Code 在构建时生成高亮、行号和关键 API 标记；文件标签显示真实案例及实际引用的白名单 shared.ts。支持原文复制、明暗主题、自动换行、展开阅读与 Escape 返回，方向键/Home/End切换文件。权限失败时可选中后手动复制，引擎不进入浏览器或 SDK。页面 GSAP 动效随主题切换清理，并响应系统减少动态效果；不接管示例场景时钟。
+对外源码来自独立编写的recipes，提供TypeScript与自动生成JavaScript、HTML、package.json和说明；不引用画廊shared.ts或ExampleContext。完整工程下载包含当前SDK本地包与必要资产，解压后pnpm install、pnpm run dev；主包未发布npm。修改TS后执行examples:generate，ready检查生成漂移，test:recipes验证18份外部工程。阅读器保留原文复制、主题/换行、展开与Escape，页面GSAP动效仍与场景时钟独立。

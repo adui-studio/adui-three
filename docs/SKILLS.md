@@ -135,6 +135,8 @@ EXR 阶段使用 threejs-loaders，核验 r187 EXRLoader/DataTextureLoader 和 O
 
 ## 维护
 
+2026-11-22 FR-076 沿用ui-ux-pro-max、web-design-guidelines与vitepress的代码阅读、44px操作、原生键盘和code-group规则；转换及生成以锁定Vite+的transformWithOxc/vp fmt实际接口为准，未采用Skill的VitePress2.x升级。独立工程用官方Vite8.3.8和fflate固定版本，不复制旧画廊辅助实现；真实外部安装验证代替仅检查源码文字。
+
 2026-11-22 FR-075 沿用 ui-ux-pro-max 的代码阅读、44px目标、主题对比度与原生键盘交互规则；当前环境无 python/py 可执行，未运行本地搜索脚本，采用已读取规则作为回退。web-design-guidelines 按本轮获取的官方规则审查焦点、滚动和 dialog；vitepress 按项目1.6.4核验代码区样式，不使用 Skill 的2.x升级建议。Expressive Code 接口以0.44.4安装声明和官方 Core API 为准。
 
 2026-11-20 FR-074 使用 threejs-performance，核验 r187 WebGLInfo/Info/Animation 的字段与重置节奏，使用 canvas window performance.now 观测完成间隔；不照搬 r186 的渲染循环、计数 reset 或 GPU 显存推算。统计面板沿用 ui-ux-pro-max 的渐进展示、44px目标、原生键盘焦点及现有设计令牌。

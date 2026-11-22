@@ -4,8 +4,30 @@
 
 节点扩展已实现并补做 NVIDIA Ampere 原生浏览器专项；回退和原生结果分开记录，不代表完整设备矩阵。效果与限制见 [API](../api/webgpu.md)。
 
-## 示例源码
+## 独立用法
 
-点击“使用正交相机”，或访问 `/play/?example=webgpu&projection=orthographic&renderer=webgpu`，使用 OrthographicThreeApp.create 重建同一套场景。正交使用 fitOrthographicObject，透视继续 fitObject；渲染器、组合效果和截图的公开接口保持一致。本次正交的原生设备范围以 Harness 为准。
+以下代码为面向使用者编写的完整用法，不依赖画廊的 shared.ts 或 ExampleContext。画廊保留更多交互，下面聚焦本主题的最小完整接入。
 
-<<< ../../examples/src/cases/webgpu.ts
+源文件：[TypeScript](../../examples/recipes/webgpu.ts) · [JavaScript](../../examples/recipes/webgpu.js)。
+
+主包尚未发布 npm：在运行页源码区下载 TypeScript 或 JavaScript 完整工程，已包含本地 SDK 包与所需资源。解压后运行 `pnpm install`、`pnpm run dev`。已安装当前 SDK 和 three@0.187.0 的 Vite 项目可直接复制入口和对应 HTML。
+
+::: code-group
+
+<<< ../../examples/recipes/webgpu.ts [TypeScript]
+
+<<< ../../examples/recipes/webgpu.js [JavaScript]
+
+:::
+
+## HTML 容器与入口
+
+保存为 index.html，与 main.ts 或 main.js 放在同一目录。
+
+::: code-group
+
+<<< ../../examples/recipes/index-ts.html [TypeScript 入口]
+
+<<< ../../examples/recipes/index-js.html [JavaScript 入口]
+
+:::

@@ -1,6 +1,8 @@
 # 代码地图
 
-[源码构建插件](../examples/plugins/source-code.ts)使用 Expressive Code，虚拟 CSS 与当前案例的白名单 files 独立交付；[阅读器](../examples/src/source-viewer.ts)及[样式](../examples/src/source-viewer.css)负责文件标签、主题/换行、复制和 dialog。专项为 tests/site/source-reader.spec.ts，原高亮/转义回归保留在 motion-source.spec.ts。
+独立用法在 examples/recipes（9 TS、对应JS及HTML），scripts/example-recipes.mjs 定义完整工程清单，generate-example-recipes.mjs 更新/检查生成文件，prepare-example-projects.mjs 打包18 ZIP，check-example-projects.mjs 验证外部安装、构建和真实像素。源码插件由catalog指定recipe读取，原cases只负责交互演示。
+
+[源码构建插件](../examples/plugins/source-code.ts)使用 Expressive Code，虚拟 CSS 与独立用法的 TS/JS variants 分别交付；[阅读器](../examples/src/source-viewer.ts)及[样式](../examples/src/source-viewer.css)负责文件标签、主题/换行、复制和 dialog。专项为 tests/site/source-reader.spec.ts，原高亮/转义回归保留在 motion-source.spec.ts。
 
 [统计模块](../packages/three/src/rendering/render-stats.ts) 从 rendering 导出，专项为 render-stats.test.ts；[共享面板](../ui/render-stats-panel.ts)及 CSS 只用于应用。tests/site/render-stats.spec.ts 验证双后端和窄屏，tests/browser/render-stats.spec.ts 验证双实例及重建。
 

@@ -1,8 +1,8 @@
 # 示例目录
 
-每页直接引用examples/src/cases中的真实源码。导航栏“运行示例”打开同一构建的/play/画廊；也可运行 `pnpm run dev` 使用源码HMR。
+每页提供独立编写的 TypeScript、自动生成的 JavaScript 以及完整 HTML，来源为 examples/recipes，不依赖画廊内部辅助文件。导航栏“运行示例”打开同一构建的/play/画廊；也可运行 `pnpm run dev`。
 
-运行页展开“查看示例源码”可切换案例文件与其实际引用的 shared.ts，使用左右方向键、Home/End 浏览标签。工具栏提供原文复制、自动换行、明暗主题和展开阅读；展开后按 Escape 返回并恢复焦点。标记行指出当前主题的关键 API，完整原文始终保留。文档代码区与运行页采用一致的等宽字和行高。
+运行页展开“查看示例源码”可选择 TypeScript/JavaScript，并切换入口、HTML、package.json和说明，方向键/Home/End浏览文件。提供原文复制、换行、主题及展开阅读，Escape返回。主包尚未发布npm，完整工程下载包含当前SDK的本地tarball和必要资源，解压后pnpm install、pnpm run dev即可；已有SDK的Vite项目可复制入口和HTML，模型主题另需复制随附GLB。画廊交互演示保留更多控制，独立用法聚焦主题接入。
 
 | 主题                            | 说明                 |
 | ------------------------------- | -------------------- |

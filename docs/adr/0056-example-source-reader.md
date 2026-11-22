@@ -6,6 +6,8 @@
 
 ## 决策
 
+文件来源、数据形状和独立工程交付由[ADR-0057](0057-copyable-examples.md)更新；本决策的高亮、阅读交互和清理边界继续保留。
+
 examples 的 Vite 插件使用 Expressive Code 0.44.4 和同版本行号插件，在构建时生成主题、语法颜色、行号及关键 API 标记。复用官方 expressive-code/hast 序列化入口；主浏览器入口只加载 CSS，当前示例按需加载已经转义的 HTML 与原始文本。高亮引擎及其 Shiki4 传递依赖均不进入浏览器或 SDK；VitePress 继续使用既有1.6.4及其高亮链路，不升级为新的文档框架。
 
 源码入口先解析真实路径，仅接受 examples/src/cases 内的 TypeScript。除当前案例外，仅当案例实际引用 ../shared.ts 时加入该白名单辅助文件；辅助文件真实路径必须仍在 examples/src 内。不开启任意导入遍历，不读取包内部、业务源码、用户路径或外部 URL。原文件通过 addWatchFile 参与 HMR；复制保持原始文本，不带行号或高亮标记。

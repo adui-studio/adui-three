@@ -19,7 +19,7 @@ export const examples: readonly Example[] = [
     tag: "CORE",
     description: "从原生立方体开始，理解统一更新、暂停与释放。",
     load: () => import("./cases/basic.ts"),
-    source: () => import("./cases/basic.ts?example-source").then((m) => m.default),
+    source: () => import("../recipes/basic.ts?example-source").then((m) => m.default),
   },
   {
     id: "model",
@@ -27,7 +27,7 @@ export const examples: readonly Example[] = [
     tag: "ASSETS",
     description: "本地 GLB、动画控制与异步任务所有权。",
     load: () => import("./cases/model.ts"),
-    source: () => import("./cases/model.ts?example-source").then((m) => m.default),
+    source: () => import("../recipes/model.ts?example-source").then((m) => m.default),
   },
   {
     id: "camera",
@@ -35,7 +35,7 @@ export const examples: readonly Example[] = [
     tag: "CAMERA",
     description: "立即取景、平滑过渡，以及数值视角的保存恢复。",
     load: () => import("./cases/camera.ts"),
-    source: () => import("./cases/camera.ts?example-source").then((m) => m.default),
+    source: () => import("../recipes/camera.ts?example-source").then((m) => m.default),
   },
   {
     id: "labels",
@@ -43,7 +43,7 @@ export const examples: readonly Example[] = [
     tag: "INTERACTION",
     description: "用完整设备卡片展示指标、表单与按钮交互。",
     load: () => import("./cases/labels.ts"),
-    source: () => import("./cases/labels.ts?example-source").then((m) => m.default),
+    source: () => import("../recipes/labels.ts?example-source").then((m) => m.default),
   },
   {
     id: "effects",
@@ -51,7 +51,7 @@ export const examples: readonly Example[] = [
     tag: "EFFECTS",
     description: "点云飞线、路径流光、波纹、光柱和护罩。",
     load: () => import("./cases/effects.ts"),
-    source: () => import("./cases/effects.ts?example-source").then((m) => m.default),
+    source: () => import("../recipes/effects.ts?example-source").then((m) => m.default),
   },
   {
     id: "shadows",
@@ -59,7 +59,7 @@ export const examples: readonly Example[] = [
     tag: "RENDERING",
     description: "Editor 色调基准、实时阴影与可选 Room IBL。",
     load: () => import("./cases/shadows.ts"),
-    source: () => import("./cases/shadows.ts?example-source").then((m) => m.default),
+    source: () => import("../recipes/shadows.ts?example-source").then((m) => m.default),
   },
   {
     id: "navigation",
@@ -67,7 +67,7 @@ export const examples: readonly Example[] = [
     tag: "NAVIGATION",
     description: "原生相机控件、输入切换与静态 BVH 碰撞。",
     load: () => import("./cases/navigation.ts"),
-    source: () => import("./cases/navigation.ts?example-source").then((m) => m.default),
+    source: () => import("../recipes/navigation.ts?example-source").then((m) => m.default),
   },
   {
     id: "instances",
@@ -75,7 +75,7 @@ export const examples: readonly Example[] = [
     tag: "GEOMETRY",
     description: "一百个实例，共享资产与独立实例数据。",
     load: () => import("./cases/instances.ts"),
-    source: () => import("./cases/instances.ts?example-source").then((m) => m.default),
+    source: () => import("../recipes/instances.ts?example-source").then((m) => m.default),
   },
   {
     id: "webgpu",
@@ -83,6 +83,6 @@ export const examples: readonly Example[] = [
     tag: "RENDERING",
     description: "同一场景切换后端，组合泛光、环境与截图。",
     load: () => import("./cases/webgpu.ts"),
-    source: () => import("./cases/webgpu.ts?example-source").then((m) => m.default),
+    source: () => import("../recipes/webgpu.ts?example-source").then((m) => m.default),
   },
 ];

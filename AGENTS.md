@@ -75,6 +75,7 @@
 - [正交双后端创建](docs/adr/0054-orthographic-webgpu.md)：具体相机类型、共用准备流程和投影边界。
 - [渲染统计与监视](docs/adr/0055-render-statistics.md)：原生字段映射、墙钟观测和应用面板边界。
 - [示例源码阅读器](docs/adr/0056-example-source-reader.md)：构建期展示引擎、文件白名单和阅读交互。
+- [独立 TS/JS 用法](docs/adr/0057-copyable-examples.md)：独立入口、语言生成、完整工程和外部消费验证。
 
 ## 工作流程与约束
 

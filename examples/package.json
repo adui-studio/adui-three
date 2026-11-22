@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vp dev --host 127.0.0.1 --port 5173 --strictPort",
-    "build": "tsc && vp build",
+    "dev": "node ../scripts/prepare-example-projects.mjs && vp dev --host 127.0.0.1 --port 5173 --strictPort",
+    "build": "tsc && node ../scripts/prepare-example-projects.mjs && vp build",
     "preview": "vp preview"
   },
   "dependencies": {

@@ -11,6 +11,7 @@ catalog:
   "@types/node": ^24
   draco3dgltf: 1.5.7
   expressive-code: 0.44.4
+  fflate: 0.8.2
   gsap: 3.15.1
   meshoptimizer: 0.25.0
   shiki: 2.5.0

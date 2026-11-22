@@ -52,9 +52,9 @@ function change(root, file, before, after) {
   writeFileSync(path, content.replace(before, after));
 }
 
-test("repository baseline is valid", () => assert.deepEqual(validateDocs(source), []));
+void test("repository baseline is valid", () => assert.deepEqual(validateDocs(source), []));
 
-test("generated and dependency documents are outside the validation scope", (t) => {
+void test("generated and dependency documents are outside the validation scope", (t) => {
   const root = fixture(t);
   for (const directory of ["packages/three/dist", "packages/three/node_modules/example"]) {
     const target = join(root, directory);
@@ -64,7 +64,7 @@ test("generated and dependency documents are outside the validation scope", (t) 
   assert.deepEqual(validateDocs(root), []);
 });
 
-test("folded and literal Skill descriptions are accepted", (t) => {
+void test("folded and literal Skill descriptions are accepted", (t) => {
   const root = fixture(t);
   const directory = join(root, ".agents/skills/example");
   mkdirSync(directory, { recursive: true });
@@ -180,7 +180,7 @@ const cases = [
 ];
 
 for (const [name, mutate, expected] of cases) {
-  test(name, (t) => {
+  void test(name, (t) => {
     const root = fixture(t);
     mutate(root);
     assert.match(validateDocs(root).join("\n"), expected);

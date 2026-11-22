@@ -2,7 +2,7 @@
 
 ## 内容来源
 
-docs是正式内容来源。根README提供项目入口，包README提供分发后的基本用法；详细API集中在docs/api，例子引用examples/src/cases实际源文件。
+docs是正式内容来源。根README提供项目入口，包README提供分发后的基本用法；详细API集中在docs/api，例子引用examples/recipes的独立TS/JS和HTML。画廊cases属于交互回归，不再直接作为使用者复制入口。
 
 指向应用源码、资产和贡献文件的相对链接在VitePress中转换为GitHub链接；文档链接仍站内跳转。Markdown关闭原始HTML解析，使泛型和数学记号作为文字显示。
 

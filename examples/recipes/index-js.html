@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ADui Three 独立示例</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f6f5f2;
+        color: #24232b;
+        font:
+          14px/1.6 system-ui,
+          sans-serif;
+      }
+      #app {
+        position: relative;
+        width: 100%;
+        height: 75vh;
+        min-height: 320px;
+      }
+      #tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+      }
+      button {
+        min-height: 44px;
+        padding: 8px 16px;
+        border: 1px solid #d7d0e0;
+        border-radius: 8px;
+        background: #fff;
+        color: #41215e;
+        cursor: pointer;
+      }
+      button:focus-visible {
+        outline: 2px solid #78469c;
+        outline-offset: 2px;
+      }
+      button:hover {
+        background: #eee7f4;
+      }
+      #status {
+        display: block;
+        padding: 0 16px 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" aria-label="三维场景"></div>
+    <div id="tools" aria-label="示例操作"></div>
+    <output id="status" aria-live="polite">正在初始化…</output>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

@@ -40,3 +40,4 @@ dist-ssr
 # Generated documentation assets
 docs/public/play
 apps/docs/.vitepress/cache
+examples/.generated

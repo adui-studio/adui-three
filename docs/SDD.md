@@ -381,6 +381,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-065  | ThreeApp统一创建契约              | ThreeApp.create / rendererType / options         | 参数快照、取消、类型收窄、真实浏览器与示例                 |
 | FR-074  | 统一渲染统计与监视                | rendering/render-stats、共享 UI 面板             | 原生映射、墙钟窗口、节流、双实例和重建                     |
 | FR-075  | 正式示例源码阅读器                | examples 构建插件、source-viewer与CSS            | 原文复制、文件键盘、换行、主题、模态焦点与窄屏             |
+| FR-076  | 可复制的TS/JS示例                 | recipes、生成/ZIP与外部验证脚本                  | 语言切换、原文/ZIP一致、18外部工程及像素                   |
 | FR-071  | 统一资产任务                      | loaders/loadAssets、asset-batch                  | 限流、重试、取消、迟到清理与严格类型消费                   |
 | FR-072  | GSAP 场景适配                     | animation/attachGSAPTimeline                     | 真实 GSAP、回调重入、多宿主、scope 与暂停绘制              |
 | FR-073  | 正交双后端                        | OrthographicThreeApp.create、相机工厂            | 投影、取消/丢失、回退像素、效果及截图                      |
@@ -558,6 +559,10 @@ FR-073：OrthographicThreeApp.create(container,OrthographicThreeAppCreateOptions
 
 ## 页面动效与源码阅读契约（FR-070）
 
+FR-076：独立用法位于 examples/recipes，不从交互演示拼接；Oxc和vp fmt从TS生成JS，ready检查漂移。源码模块导出 variants.ts/js，各含files（code/html/styles/filename/language）及download；文件包含入口、HTML、package.json、TS配置和README。完整ZIP额外含实际SDK包与许可、模型所需GLB。语言/文件切换重置旧复制反馈，主题/换行/模态契约保留；源码不依赖宿主创建成功。外部构建及设备边界见[ADR-0057](adr/0057-copyable-examples.md)。
+
+画廊分别加载场景与源码，二者不用Promise.all互相阻塞；源码的set/fail按请求版本及signal交付。未准备好时复制/展开禁用，加载失败仅反馈刷新建议，场景控件仍独立工作。WebGPU创建失败时已加载源码仍可复制。
+
 GSAP 仅为根私有工作区的 UI 构建依赖。mountPageMotion 使用作用域 matchMedia 持有动画和 ScrollTrigger，减少动态效果时回滚为可读终态，销毁仅 revert 自己的作用域，不修改全局 ticker 或 killAll。只动画标题、卡片、元信息和控制面板，不移动 live canvas 及其布局祖先。ThreeApp 和 AnimationMixer 时钟保持原协议。VitePress 只在 onMounted 后动态加载，路由/卸载/pagehide 用请求版本取消迟到挂载，SSG 不访问 DOM；画廊切换与 HMR 清理原作用域。
 
-FR-075 扩展源码阅读契约：examples/plugins/source-code.ts 只接受 cases 下真实路径的 TypeScript，并按显式白名单加入被引用的 shared.ts；通过 ?example-source 导出 files 数组，每项为 code/html/styles/filename。Expressive Code 及其 Shiki 仅在构建时执行，浏览器按需取得当前示例 HTML，不执行引擎。源码于模块准备完成后交付，与 GPU 创建成功分离。source-viewer 只插入构建插件产生的 HTML，复制使用原代码，不复制行号或 token 标签；版本号阻止旧复制结果污染新主题或文件，错误反馈提供手动复制路径。原生文件 tabs、换行和主题只改变阅读状态，dialog 借用同一节点、Escape 恢复焦点，clear/destroy 关闭并清理。见[阅读器决策](adr/0056-example-source-reader.md)。
+FR-075 的高亮、复制、模态与清理契约继续适用，初版 cases/shared.ts 文件来源和 files 数据形状由 FR-076 取代。Expressive Code 只在构建时执行，浏览器按需取得转义 HTML；源码先于GPU创建交付。原生文件tabs、换行和主题只改变阅读状态，dialog借用同一节点，clear/destroy关闭并清理，异步复制以版本隔离。见[阅读器决策](adr/0056-example-source-reader.md)。

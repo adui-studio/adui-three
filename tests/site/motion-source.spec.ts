@@ -13,10 +13,10 @@ test("example source is highlighted, escaped and copied without line numbers", a
     const pre = page.locator(".source .expressive-code pre");
     await expect(pre).toBeVisible();
     await expect(
-      page.getByRole("region", { name: `TypeScript 源码：src/cases/${id}.ts`, exact: true }),
+      page.getByRole("region", { name: "TypeScript 源码：main.ts", exact: true }),
     ).toBeVisible();
     await expect(pre).toHaveAttribute("tabindex", "0");
-    await expect(page.locator(".source-filename")).toHaveText(`src/cases/${id}.ts`);
+    await expect(page.locator(".source-filename")).toHaveText("main.ts");
     const colors = await pre
       .locator("span[style]")
       .evaluateAll((tokens) => new Set(tokens.map((token) => getComputedStyle(token).color)).size);
@@ -25,7 +25,7 @@ test("example source is highlighted, escaped and copied without line numbers", a
     await page.getByRole("button", { name: "复制代码", exact: true }).click();
     await expect(page.locator(".copy-feedback")).toHaveText("已复制");
     const original = (
-      await readFile(new URL(`../../examples/src/cases/${id}.ts`, import.meta.url), "utf8")
+      await readFile(new URL(`../../examples/recipes/${id}.ts`, import.meta.url), "utf8")
     ).replace(/\r\n/g, "\n");
     expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, "\n")).toBe(
       original,
@@ -49,7 +49,7 @@ test("clipboard rejection gives a readable manual-copy fallback", async ({ page 
   await page.getByRole("button", { name: "复制代码", exact: true }).click();
   await expect(page.locator(".copy-feedback")).toHaveText("无法复制，请选中代码后手动复制。");
   await expect(page.getByRole("button", { name: "复制代码", exact: true })).toBeEnabled();
-  await expect(page.locator(".source pre")).toContainText("export async function mount");
+  await expect(page.locator(".source pre")).toContainText("export const app");
 });
 
 test("GSAP scroll entry, live reduced-motion changes and VitePress route cleanup work", async ({
@@ -99,7 +99,7 @@ test("example switches release old motion styles and expose the current source",
   await expect(page.locator(".detail")).toHaveAttribute("data-motion", "ready");
   await expect(page.locator(".home")).not.toHaveAttribute("data-motion");
   await expect(page.locator("canvas")).toHaveCount(1);
-  await expect(page.locator(".source-filename")).toHaveText("src/cases/labels.ts");
+  await expect(page.locator(".source-filename")).toHaveText("main.ts");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator(".detail")).toHaveAttribute("data-motion", "reduced");
   await expect(page.locator(".scene-inspector")).toHaveCSS("transform", "none");
