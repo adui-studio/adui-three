@@ -12,6 +12,8 @@ pnpm install --frozen-lockfile
 
 ## 命令
 
+独立用法：`pnpm run examples:generate`从9份TS更新JS与HTML；`pnpm run examples:check`检查漂移，已纳入ready。`pnpm run test:recipes`先打包SDK，再在工作区外解压18份完整工程，统一安装同版本依赖，严格编译9份TS并分别构建18入口，最后用Chromium验证真实像素、页面异常和资源请求。临时路径必须核验后才能删除，失败保留诊断；首次安装可能访问registry。此命令与test:package互补，不代表完全离线或npm发布。
+
 | 命令                                                | 范围                                                                   |
 | --------------------------------------------------- | ---------------------------------------------------------------------- |
 | `pnpm run dev`                                      | 先构建主包声明，再启动正式示例；development 条件指向主包 src，支持 HMR |
@@ -56,6 +58,18 @@ test:package 使用当前 pnpm 执行 pack/install，在系统临时目录安装
 [17 项检查器测试](../scripts/check-docs.test.mjs) 覆盖正确基线、包 README 锚点/公共资产来源链接、依赖与构建目录跳过、坏链接、重复需求、缺失验收/追踪、非法状态、ADR 索引、Skill 元数据和命令引用。互联网链接、Mermaid 渲染、需求语义和许可证不靠静态检查宣称正确。私钥头扫描不等同完整安全审计。
 
 ## 验证记录
+
+2026-11-22 独立用法（FR-076）已完成：九主题单独编写TS，Oxc与vp fmt生成JS，阅读器/文档改为双语言、HTML和依赖说明。18份ZIP附当前实际SDK包和原创模型。仓库只增加开发期fflate0.8.2，既有工具未升级；独立工程固定Vite8.3.8、Three0.187.0和TS7.0.2，SDK不增加依赖。
+
+首轮外部18份严格构建和浏览器均通过，最后清理被Windows已加载的lightningcss原生模块锁住，进程以EPERM失败；诊断路径为系统临时目录adui-three-recipes-7OhDmI，初次日志保留recipes-external-initial.log。改为临时工程Vite子进程构建后，全18份严格构建/渲染及清理通过，没有绕过清理错误或降低像素断言；最终日志recipes-external-final.log。局部接入中修正重复标识符、pnpm-native.exe不能经node启动，以及共享MJS声明；静态类型上下文显露的4处原Node测试注册Promise以void明确交给运行器管理，未关闭规则或修改测试断言。
+
+随后补验用户的实际dev命令：同一18工程全部通过开发服务与生产构建浏览器检查，共36次真实像素、无缺失文件/页面异常，9份TS严格编译，临时安装及清理完成（recipes-external-dev.log）。ready初轮发现Vite+隔离任务没有npm_execpath；增加已安装pnpm/Corepack的无shell定位后通过。源码专项8通过/1旧webgpu.ts定位失败，改为独立main.ts后保留断言；日志/trace在recipes-targeted-initial.log及recipes-targeted-failures。
+
+首轮完整站点43通过/1失败（11.0分钟）：768px标签场景在原5秒断言内仍为ready，尚未执行到布局断言；trace记录脚本响应成功，尚未确认全部初始化时延根因。拆除场景与独立源码之间已有Promise.all等待，增加源码延迟/失败隔离测试；阅读器及原375/768/1440布局共12项通过（1.5分钟），未改等待预算、重试或布局断言。首次证据在recipes-site-initial.log/recipes-site-initial-failures，新专项为recipes-bootstrap-targeted.log；不把专项通过写成已解决全部软件设备时延。
+
+最终ready通过17文档测试、807单测（41文件）、372文件格式与223源文件静态检查、9份TS/JS生成一致性及全部构建；17入口tarball与四次skipLibCheck=false消费编译通过。完整站点46/46（5.2分钟），包含新增JS剪贴板与ZIP逐字一致、模型资产/SDK归档完整、HTML转义、源码延迟/失败隔离，以及原375/768/1440布局；完整浏览器143通过、2原生专项跳过（145总数，11.7分钟），零自动重试。日志为recipes-ready-delivery.log、recipes-package.log、recipes-site-final.log、recipes-browser.log；最终文档记录后recipes-ready-complete.log再次通过全部ready。
+
+桌面JS明暗、375px源码与模态、仓库外运行截图已目视检查；捕获结果页面异常为空、宽度375、代码溢出0，显示main.js/index.html/package.json/README.md及正确model-js.zip路径。VitePress页面实际切换JavaScript后，JS可见且TS隐藏。图像和元数据在忽略的copyable-_，外部截图为recipe-_-build/dev.png。仅验证Chromium/SwiftShader；此轮未重验原生硬件，不将复制工程的像素检查视为性能或完整格式矩阵，也未发布npm或引入CI。
 
 2026-11-22 源码阅读器（FR-075）已完成：安装固定 Expressive Code0.44.4及同行号插件，通过现有Vite插件构建输出，使用 expressive-code/hast 自带序列化入口；移除 examples 的直接 Shiki2.5依赖，VitePress链路保留。新增 Shiki4为该构建工具传递依赖，SDK不增加依赖。首次局部构建把框架集成支持的主题名数组传给底层引擎，触发 titleBar.border 错误；核对实际声明后使用引擎默认的已解析主题，随后局部构建与静态检查通过，未回退依赖或关闭主题。
 
