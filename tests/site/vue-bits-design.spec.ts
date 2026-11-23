@@ -86,7 +86,7 @@ test("Vue Bits highlights respond to pointer, keyboard and live reduced motion",
   expect(errors).toEqual([]);
 });
 
-test("source language selection keeps its readable colors while hovered in both themes", async ({
+test("source filename and language selection remain readable in both themes and while hovered", async ({
   page,
 }) => {
   await page.goto("/play/?example=basic&renderer=webgl");
@@ -107,6 +107,11 @@ test("source language selection keeps its readable colors while hovered in both 
     .toBeLessThan(2);
   for (const light of [false, true]) {
     if (light) await page.getByRole("button", { name: "浅色主题", exact: true }).click();
+    await expect(page.locator(".source-filename")).toHaveText("main.js");
+    await expect(page.locator(".source-filename")).toHaveCSS(
+      "color",
+      light ? "rgb(36, 35, 43)" : "rgb(230, 237, 243)",
+    );
     const color = light ? "rgb(91, 43, 130)" : "rgb(233, 238, 249)";
     const background = light ? "rgb(238, 232, 247)" : "rgb(37, 32, 57)";
     await page.mouse.move(0, 0);
