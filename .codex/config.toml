@@ -1,0 +1,3 @@
+[mcp_servers.shadcn]
+command = "pnpm"
+args = ["dlx", "shadcn@4.23.0", "mcp"]
