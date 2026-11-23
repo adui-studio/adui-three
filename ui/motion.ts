@@ -1,5 +1,6 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { finishFiniteMotion } from "./finite-motion.ts";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -21,6 +22,8 @@ export function mountPageMotion(root: HTMLElement, page: PageMotion): () => void
         return;
       }
       root.dataset.motion = "active";
+      let active = true;
+      const cleanup: Array<() => void> = [];
       const select = (selector: string): HTMLElement[] =>
         Array.from(root.querySelectorAll<HTMLElement>(selector));
       const entry = {
@@ -32,11 +35,11 @@ export function mountPageMotion(root: HTMLElement, page: PageMotion): () => void
           ".workbench-identity, .workbench-settings, .intro > *, .card-heading, .metrics, .capabilities > h1, #app > main > h1",
       }[page];
       const entries = select(entry);
-      if (entries.length)
-        gsap
+      if (entries.length) {
+        const timeline = gsap
           .timeline({
             onComplete: () => {
-              if (!disposed) root.dataset.motion = "ready";
+              if (!disposed && active) root.dataset.motion = "ready";
             },
           })
           .from(entries, {
@@ -47,7 +50,8 @@ export function mountPageMotion(root: HTMLElement, page: PageMotion): () => void
             ease: "power2.out",
             clearProps: "opacity,transform",
           });
-      else root.dataset.motion = "ready";
+        cleanup.push(finishFiniteMotion(timeline));
+      } else root.dataset.motion = "ready";
       const scrolling = {
         docs: ".principle-grid article, .home-code > div, .home-explore",
         gallery: ".example-card",
@@ -55,7 +59,7 @@ export function mountPageMotion(root: HTMLElement, page: PageMotion): () => void
         studio: ".notes > div",
       }[page];
       for (const [index, element] of select(scrolling).entries()) {
-        gsap.from(element, {
+        const tween = gsap.from(element, {
           opacity: 0.65,
           y: 10,
           duration: 0.36,
@@ -64,7 +68,22 @@ export function mountPageMotion(root: HTMLElement, page: PageMotion): () => void
           clearProps: "opacity,transform",
           scrollTrigger: { trigger: element, start: "top 94%", once: true },
         });
+        // Intersection observation is independent of a delayed GSAP/RAF clock.
+        const observer = new IntersectionObserver(
+          (records) => {
+            if (!active || !records.some((record) => record.isIntersecting)) return;
+            observer.disconnect();
+            cleanup.push(finishFiniteMotion(tween));
+          },
+          { threshold: 0.05 },
+        );
+        observer.observe(element);
+        cleanup.push(() => observer.disconnect());
       }
+      return () => {
+        active = false;
+        for (const stop of cleanup) stop();
+      };
     },
     root,
   );

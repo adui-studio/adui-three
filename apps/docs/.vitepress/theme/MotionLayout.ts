@@ -4,6 +4,7 @@ import { useData, useRoute, withBase } from "vitepress";
 import HomePage from "./HomePage.ts";
 import DocDirectory from "./DocDirectory.ts";
 import StaggeredMenu from "../../../../ui/vue-bits/StaggeredMenu.ts";
+import { mountBitsControls } from "../../../../ui/vue-bits/native-controls.ts";
 
 export default defineComponent({
   name: "MotionLayout",
@@ -13,6 +14,7 @@ export default defineComponent({
     let mounted = false;
     let version = 0;
     let dispose: (() => void) | undefined;
+    let disposeBits: (() => void) | undefined;
     const stop = (): void => {
       version++;
       dispose?.();
@@ -37,12 +39,14 @@ export default defineComponent({
     watch(() => route.path, resume, { flush: "post" });
     onMounted(() => {
       mounted = true;
+      disposeBits = mountBitsControls(document.body);
       resume();
       window.addEventListener("pagehide", stop);
       window.addEventListener("pageshow", pageShow);
     });
     onBeforeUnmount(() => {
       mounted = false;
+      disposeBits?.();
       stop();
       window.removeEventListener("pagehide", stop);
       window.removeEventListener("pageshow", pageShow);

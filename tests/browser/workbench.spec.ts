@@ -1,5 +1,53 @@
 import { expect, test } from "@playwright/test";
 
+test("GlideSelect studio navigation commits real pointer and keyboard choices without extra canvases", async ({
+  page,
+}) => {
+  await page.goto("/?demo=core");
+  const select = page.getByRole("combobox", { name: "验证场景", exact: true });
+  await select.click();
+  const list = page.getByRole("listbox", { name: "验证场景", exact: true });
+  await expect(list.getByRole("option")).toHaveCount(12);
+  await list.getByRole("option", { name: "渲染能力诊断", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("检测完成");
+  await expect(page.getByRole("listbox")).toHaveCount(0);
+  await select.focus();
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("scene-A").locator("canvas")).toBeVisible();
+  await expect(page.getByTestId("scene-B").locator("canvas")).toBeVisible();
+  await expect(page.locator("canvas")).toHaveCount(2);
+  await expect(page.getByRole("listbox")).toHaveCount(0);
+});
+
+test("WakeSlider follows native programmatic values and keyboard edits without changing animation ownership", async ({
+  page,
+}) => {
+  await page.goto("/?demo=core");
+  const card = page.getByTestId("scene-A");
+  await card.getByRole("button", { name: "加载动画样例", exact: true }).click();
+  const slider = card.getByRole("slider", { name: "动画倍速", exact: true });
+  await expect(slider).toBeEnabled();
+  const programmatic = await slider.evaluate((node) => {
+    const input = node as HTMLInputElement;
+    input.value = "1.25";
+    return { value: input.value, presentation: input.parentElement!.dataset.value };
+  });
+  expect(programmatic).toEqual({ value: "1.25", presentation: "1.25" });
+  await slider.focus();
+  await page.keyboard.press("Home");
+  await expect(card.getByTestId("animation-rate")).toHaveText("0.00");
+  await expect(slider.locator("..")).toHaveAttribute("data-value", "0");
+  await page.keyboard.press("End");
+  await expect(card.getByTestId("animation-rate")).toHaveText("2.00");
+  await expect(slider.locator("..").locator('i[data-on="true"]')).toHaveCount(24);
+  await card.getByRole("button", { name: "重建 ↻", exact: true }).click();
+  await expect(slider).toBeDisabled();
+  await expect(slider.locator("..")).toHaveAttribute("data-value", "1");
+  await expect(card.locator('[data-vue-bits="wake-slider"]')).toHaveCount(2);
+  await expect(page.locator("canvas")).toHaveCount(2);
+});
+
 test("Vue Bits studio menu retains all twelve scenarios and returns keyboard focus", async ({
   page,
 }) => {

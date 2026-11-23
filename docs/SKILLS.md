@@ -2,6 +2,8 @@
 
 ## 当前状态
 
+2026-11-23 FR-079继续采用三项设计技能，优先通过用户安装的项目shadcn MCP检索组件；标准stdio握手/registry/搜索/218项清单和13次view已实测成功。view返回摘要/依赖，官方registry补取15份完整源码并记录SHA256，未假称工具返回源码。npx被pnpm devEngines拒绝后改用实际验证的pnpm/shadcn4.23.0；用户配置在项目本地，未改全局配置。适配与缺口见[组件选型](development/ui-components.md)。
+
 2026-11-22 FR-078继续使用三项设计/文档技能，核验四种Vue Bits官方registry源码和许可后进行网站适配。VitePress1.6.4目录与主题插槽按本地实际实现确认，未升级或改写安装源码；Python检索命令仍不可用，沿用已核验品牌和本地指南。预览故障用真实HTTP与磁盘对照，不以构建成功代替导航验证。
 
 2026-11-22 FR-077 继续使用 ui-ux-pro-max、web-design-guidelines、vitepress。Python系列命令不可用，直接核对本地 Minimalism & Swiss Style / Micro-interactions 数据，未声称运行设计系统生成器；核验官方 Vue Bits registry 与许可后集成网站，当前会话无 shadcn MCP，采用手动方式，不修改全局配置。VitePress 接口核对当前1.6.4实现，未升级依赖。

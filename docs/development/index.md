@@ -25,6 +25,8 @@ ready包含文档测试、静态检查、单测和工作区构建。包检查使
 
 ## 维护入口
 
+[界面设计](visual-design.md) · [UI组件选型与缺口](ui-components.md)
+
 [新增示例](examples.md) · [维护文档站](docs.md) · [架构](../ARCHITECTURE.md) · [详细设计](../SDD.md) · [Skills](../SKILLS.md) · [贡献](../../CONTRIBUTING.md)
 
 只使用本地验证，不新增或启用CI。提交采用type(scope): emoji 中文描述，不改写既有提交；npm发布需要独立授权。

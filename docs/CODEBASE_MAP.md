@@ -1,5 +1,7 @@
 # 代码地图
 
+FR-079：ui/vue-bits/native-controls.ts负责三处应用的动态控件去重和清理；GlideSelect/WakeSlider/RubberSegment/WarmTooltip/SloshGauge是借用原生节点的应用适配，BranchedMenu为SSR render组件，control-sources.json记录15份官方源码哈希。选型与保留项目实现的理由见[UI组件选型](development/ui-components.md)，这些文件不进入SDK或下载工程。
+
 FR-078的[技术布局](../ui/tech.css)与[Vue Bits适配](../ui/vue-bits/README.md)为三处应用共用；[文档目录](../apps/docs/.vitepress/theme/DocDirectory.ts)与[预览服务](../scripts/preview-site.mjs)负责导航及构建后新资源。[workbench](../apps/website/src/workbench.ts)拥有Vue顶栏，bootstrap分派原12场景并清理界面；SDK/recipes不依赖这些模块。
 
 [目录组件](../examples/src/Gallery.ts)管理搜索/分类和 URL；[Vue Bits 适配](../ui/vue-bits/SpotlightCard.ts)、[来源与许可](../ui/vue-bits/README.md)由两处网站使用。[原创场景示意](../ui/scene-diagram.ts)是无渲染循环的静态 SVG。VitePress 的 HomePage/MotionLayout/custom.css 负责首页、文档插槽和响应式阅读，SDK 与下载 recipes 不依赖这些 UI。

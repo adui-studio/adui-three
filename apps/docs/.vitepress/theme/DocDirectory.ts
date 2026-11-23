@@ -1,6 +1,7 @@
 import { computed, defineComponent, h, ref } from "vue";
 import { useData, useRoute, withBase } from "vitepress";
 import type { DefaultTheme } from "vitepress";
+import BranchedMenu from "../../../../ui/vue-bits/BranchedMenu.ts";
 
 const normalize = (path: string): string =>
   path
@@ -40,16 +41,6 @@ export default defineComponent({
         }))
         .filter((group) => group.items?.length),
     );
-    const link = (item: DefaultTheme.SidebarItem) =>
-      h(
-        "a",
-        {
-          href: href(item.link ?? "/"),
-          "aria-current": selected(item) ? "page" : undefined,
-          class: "doc-directory-link",
-        },
-        [h("span", item.text), h("span", { "aria-hidden": "true" }, selected(item) ? "↳" : "↗")],
-      );
     return () =>
       h("div", { class: "doc-directory" }, [
         h("div", { class: "directory-identity" }, [h("span", "DOCUMENTATION"), h("span", "r187")]),
@@ -67,27 +58,18 @@ export default defineComponent({
             },
           }),
         ]),
-        h(
-          "nav",
-          { "aria-label": "文档目录" },
-          visible.value.map((group, index) =>
-            h(
-              "details",
-              {
-                key: group.text,
-                open: !!query.value || !group.collapsed || active(group),
-              },
-              [
-                h("summary", [
-                  h("span", { class: "directory-index" }, String(index + 1).padStart(2, "0")),
-                  group.text,
-                  h("span", { class: "directory-chevron", "aria-hidden": "true" }, "+"),
-                ]),
-                h("div", { class: "directory-items" }, group.items!.map(link)),
-              ],
-            ),
-          ),
-        ),
+        h(BranchedMenu, {
+          "aria-label": "文档目录",
+          groups: visible.value.map((group) => ({
+            text: group.text ?? "文档",
+            open: !!query.value || !group.collapsed || active(group),
+            items: group.items!.map((item) => ({
+              text: item.text ?? "文档",
+              href: href(item.link ?? "/"),
+              selected: selected(item),
+            })),
+          })),
+        }),
         !visible.value.length
           ? h("p", { class: "directory-empty", role: "status" }, "没有匹配的文档，试试模块名称。")
           : null,

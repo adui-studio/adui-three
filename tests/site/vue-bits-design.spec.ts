@@ -94,16 +94,33 @@ test("source language selection keeps its readable colors while hovered in both 
   await page.getByText("查看示例源码", { exact: true }).click();
   const language = page.getByRole("button", { name: "JavaScript", exact: true });
   await language.click();
+  await expect
+    .poll(() =>
+      language.evaluate((node) => {
+        const item = node.getBoundingClientRect();
+        const thumb = node
+          .parentElement!.querySelector(".bits-rubber-thumb")!
+          .getBoundingClientRect();
+        return Math.max(Math.abs(item.left - thumb.left), Math.abs(item.right - thumb.right));
+      }),
+    )
+    .toBeLessThan(2);
   for (const light of [false, true]) {
     if (light) await page.getByRole("button", { name: "浅色主题", exact: true }).click();
-    const color = light ? "rgb(255, 255, 255)" : "rgb(16, 19, 25)";
-    const background = light ? "rgb(91, 43, 130)" : "rgb(202, 177, 242)";
+    const color = light ? "rgb(91, 43, 130)" : "rgb(233, 238, 249)";
+    const background = light ? "rgb(238, 232, 247)" : "rgb(37, 32, 57)";
     await page.mouse.move(0, 0);
     await expect(language).toHaveCSS("color", color);
-    await expect(language).toHaveCSS("background-color", background);
+    await expect(page.locator(".source-languages .bits-rubber-thumb")).toHaveCSS(
+      "background-color",
+      background,
+    );
     await language.hover();
     await expect(language).toHaveCSS("color", color);
-    await expect(language).toHaveCSS("background-color", background);
+    await expect(page.locator(".source-languages .bits-rubber-thumb")).toHaveCSS(
+      "background-color",
+      background,
+    );
   }
 });
 

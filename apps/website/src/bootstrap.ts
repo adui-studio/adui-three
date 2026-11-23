@@ -1,4 +1,6 @@
 import { mountPageMotion } from "../../../ui/motion.ts";
+import { mountBitsControls } from "../../../ui/vue-bits/native-controls.ts";
+import "../../../ui/vue-bits/native-controls.css";
 import { mountWorkbench } from "./workbench.ts";
 const demo = new URLSearchParams(location.search).get("demo");
 const disposeWorkbench = mountWorkbench(demo);
@@ -23,7 +25,9 @@ try {
 }
 
 const disposeMotion = mountPageMotion(document.body, "studio");
+const disposeBits = mountBitsControls(document.body);
 const cleanup = (): void => {
+  disposeBits();
   disposeMotion();
   disposeWorkbench();
   window.removeEventListener("pagehide", pageHide);

@@ -108,6 +108,7 @@ export default defineConfig({
           { text: "维护示例", link: "/development/examples" },
           { text: "维护文档站", link: "/development/docs" },
           { text: "界面设计与品牌", link: "/development/visual-design" },
+          { text: "UI组件选型与缺口", link: "/development/ui-components" },
           { text: "架构", link: "/ARCHITECTURE" },
           { text: "详细设计", link: "/SDD" },
           { text: "需求与验收", link: "/REQUIREMENTS" },

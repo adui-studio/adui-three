@@ -24,6 +24,10 @@ test("finite interface entry settles without relying on advancing animation fram
     )
     .toBe(true);
   await expect(page.locator(".hero-copy h1")).toBeVisible();
+  const article = page.locator(".principle-grid article").first();
+  await article.evaluate((node) => node.scrollIntoView({ block: "center", behavior: "instant" }));
+  await expect(article).toHaveCSS("opacity", "1");
+  await expect(article).toHaveCSS("transform", "none");
 });
 
 test("Vue Bits owns finite home entry and restores its styles when motion preferences change", async ({
@@ -31,6 +35,8 @@ test("Vue Bits owns finite home entry and restores its styles when motion prefer
 }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
+  // SSR already contains these characters; require the client before timing its animation.
+  await expect(page.locator(".VPContent")).toHaveAttribute("data-motion", "ready");
   const letters = page.locator(".hero-copy .bits-split-letter");
   await expect(letters).toHaveCount(Array.from("为三维场景，").length);
   await expect

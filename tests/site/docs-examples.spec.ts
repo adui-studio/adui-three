@@ -53,6 +53,23 @@ for (const id of [
       await expect(page.locator(".detail")).toHaveAttribute("data-example", id);
       await expect(page.locator(".detail")).toHaveAttribute("data-state", "running");
       await expect(page.locator("canvas")).toHaveCount(1);
+      // Enforce the user's complete-control policy on every formal example, not just the hero.
+      await expect
+        .poll(() =>
+          page
+            .locator(".detail button, .detail select, .detail input, .detail textarea")
+            .evaluateAll((nodes) =>
+              nodes
+                .filter((node) => {
+                  const element = node as HTMLElement;
+                  return (
+                    !element.dataset.vueBits && !element.closest('[data-vue-bits="wake-slider"]')
+                  );
+                })
+                .map((node) => node.outerHTML.slice(0, 120)),
+            ),
+        )
+        .toEqual([]);
       if (id === "model")
         await expect(page.getByRole("button", { name: "暂停动画", exact: true })).toBeVisible();
       const output = await page.locator("canvas").evaluate(

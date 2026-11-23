@@ -1,5 +1,11 @@
 # 详细设计与实现契约
 
+FR-079的SplitText/AnimatedContent应用适配保留上升、25ms错峰与650ms显现效果，改用浏览器原生有限CSS动画；基态opacity=1、transform=none，不依赖JS计时器恢复可读。AnimatedContent只由一次IntersectionObserver开启，卸载断开，减少动态效果由CSS即时处理。GSAP继续拥有菜单、分段、滑块及旧页面编排；有限边界先暂停、推进终态再kill，隐藏/离开页面也结束，仅影响界面作用域。旧滚动入口由IO在可见时启动边界，不修改场景时钟。
+
+WakeSlider为原控制器的程序赋值同步外观：仅在实例尚无value描述符时添加委托浏览器原型的实例访问器，不修改原型；清理时仅删除仍由该适配拥有的访问器。真实input/change继续来自原节点，不派发额外事件或启动轮询。已有自定义实例描述符不覆盖，交互仍可通过原input/change刷新。
+
+FR-079的网站控件采用Vue Bits优先策略，映射与缺口见[选型清单](development/ui-components.md)，边界见[ADR-0060](adr/0060-vue-bits-controls.md)。mountBitsControls只在应用挂载，借用原生节点并监听动态新增/ARIA/进度变化，以Map去重；新增浮层、事件和observer自有，移除或卸载时释放。GlideSelect保留select身份和值，原选项在自定义弹层打开时暂时从可访问性树隐藏，关闭恢复；真实提交回原input/change，Escape/Tab/外部点击/失焦/滚动关闭。WakeSlider保留range真实输入，RubberSegment保留ARIA协议，BranchedMenu保持SSR/无JS；有限动效不改变SDK时钟或画布所有权。视觉子集不冒充完整官方SFC。
+
 ## 当前实现
 
 核心位于 [packages/three](../packages/three/package.json)，提供 `ThreeApp`、`OrthographicThreeApp`、`ResourceScope` 和类型；可选 controls、loaders、interaction、labels、animation、camera、postprocessing、environment、textures、capture、geometry 分别提供控制器/变换、模型加载、拾取、DOM 标签、动画/定位、取景、泛光/描边、HDR 环境、独立图片纹理、画布截图和实例化网格。可选 collision、navigation、effects、lighting、rendering 覆盖静态 BVH、角色导航、动态特效、阴影与渲染配置，通过主入口按需选择 WebGPU，保留原始17个公开入口。examples 与 website 使用工作区公开入口，apps/docs 呈现正式文档。未引用的初始化模板包和素材已删除；现有工程模板、Skills 与文档校验继续使用。
@@ -384,6 +390,7 @@ NFR-002 的包验收由 [check-package](../scripts/check-package.mjs) 构建后�
 | FR-076  | 可复制的TS/JS示例                 | recipes、生成/ZIP与外部验证脚本                  | 语言切换、原文/ZIP一致、18外部工程及像素                   |
 | FR-077  | Vue Bits 网站设计                 | Gallery、SpotlightCard、VitePress 主题           | URL 筛选、键盘/减少动态效果、无 JS 文档与原功能回归        |
 | FR-078  | 三处技术界面与文档导航            | 动效组件、目录、Workbench、预览服务              | 菜单焦点、原生目录、新资源与全部回归                       |
+| FR-079  | Vue Bits优先的网站控件            | native-controls、BranchedMenu与来源清单          | 真实选择/滑块、动态控件与浮层清理、完整回归                |
 | FR-071  | 统一资产任务                      | loaders/loadAssets、asset-batch                  | 限流、重试、取消、迟到清理与严格类型消费                   |
 | FR-072  | GSAP 场景适配                     | animation/attachGSAPTimeline                     | 真实 GSAP、回调重入、多宿主、scope 与暂停绘制              |
 | FR-073  | 正交双后端                        | OrthographicThreeApp.create、相机工厂            | 投影、取消/丢失、回退像素、效果及截图                      |

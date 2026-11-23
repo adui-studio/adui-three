@@ -1,0 +1,156 @@
+{
+  "checkedAt": "2026-11-23",
+  "method": "shadcn MCP discovery; official registry source verification",
+  "components": [
+    {
+      "name": "StarBorder",
+      "registry": "https://vue-bits.dev/r/StarBorder.json",
+      "files": [
+        {
+          "path": "StarBorder/StarBorder.vue",
+          "sha256": "435facd9d6432b89bb04a4e5b0019790cd462fb2d8d213494b929f26903b4334"
+        }
+      ]
+    },
+    {
+      "name": "GlideSelect",
+      "registry": "https://vue-bits.dev/r/GlideSelect.json",
+      "files": [
+        {
+          "path": "GlideSelect/GlideSelect.vue",
+          "sha256": "e9f5796f1e1aeadccbf5ff28ead5c1c0d9105f752ced40c6f9af39fb5e1449a9"
+        }
+      ]
+    },
+    {
+      "name": "RubberSegment",
+      "registry": "https://vue-bits.dev/r/RubberSegment.json",
+      "files": [
+        {
+          "path": "RubberSegment/RubberSegment.vue",
+          "sha256": "b017c6798a52d31d0f2ba7892713cc859a7c948c60f89ae20ee435d519d771ad"
+        }
+      ]
+    },
+    {
+      "name": "WakeSlider",
+      "registry": "https://vue-bits.dev/r/WakeSlider.json",
+      "files": [
+        {
+          "path": "WakeSlider/WakeSlider.vue",
+          "sha256": "1ebde34e46d5b93047483a73c0e173385a14dba9fbcace71b924cb5ea990f3f3"
+        }
+      ]
+    },
+    {
+      "name": "SquishSwitch",
+      "registry": "https://vue-bits.dev/r/SquishSwitch.json",
+      "files": [
+        {
+          "path": "SquishSwitch/SquishSwitch.vue",
+          "sha256": "065a32f4202effed9c09449be145c68adb056b81faf27cfc037f8ff2c58f4c25"
+        }
+      ]
+    },
+    {
+      "name": "SpringCheck",
+      "registry": "https://vue-bits.dev/r/SpringCheck.json",
+      "files": [
+        {
+          "path": "SpringCheck/SpringCheck.vue",
+          "sha256": "456d9dcdfd9d7837434e55b21252d98513c874a93e0dcd16f6bc46e4ad27dee8"
+        }
+      ]
+    },
+    {
+      "name": "JellyRadio",
+      "registry": "https://vue-bits.dev/r/JellyRadio.json",
+      "files": [
+        {
+          "path": "JellyRadio/JellyRadio.vue",
+          "sha256": "9d1e6b569cfb8ebdc5acbcd9d715440eea6f17f2f7c63d22accfe57bf9c5c559"
+        }
+      ]
+    },
+    {
+      "name": "StatusMark",
+      "registry": "https://vue-bits.dev/r/StatusMark.json",
+      "files": [
+        {
+          "path": "StatusMark/StatusMark.vue",
+          "sha256": "684f637893d882206a208909f471b30da4f05dac243cb71135f22a25514ce344"
+        }
+      ]
+    },
+    {
+      "name": "BranchedMenu",
+      "registry": "https://vue-bits.dev/r/BranchedMenu.json",
+      "files": [
+        {
+          "path": "BranchedMenu/BranchedMenu.vue",
+          "sha256": "9f8dcca500d26932162fb35e4b0e22bbcb0dc41df711ee73743a482127c97153"
+        }
+      ]
+    },
+    {
+      "name": "PromptBar",
+      "registry": "https://vue-bits.dev/r/PromptBar.json",
+      "files": [
+        {
+          "path": "PromptBar/PromptBar.vue",
+          "sha256": "cf7f72235880eed321c07f4f42f17dc164fe312d80112180ea191631af941f61"
+        }
+      ]
+    },
+    {
+      "name": "ScrubField",
+      "registry": "https://vue-bits.dev/r/ScrubField.json",
+      "files": [
+        {
+          "path": "ScrubField/ScrubField.vue",
+          "sha256": "88caca7b25335348540a02181013bd44bccc24120cf971035c0afb768674943b"
+        }
+      ]
+    },
+    {
+      "name": "GlassSurface",
+      "registry": "https://vue-bits.dev/r/GlassSurface.json",
+      "files": [
+        {
+          "path": "GlassSurface/GlassSurface.vue",
+          "sha256": "2ad9c6672d820c464973e8efd8e806911d6698a573f0dd556135867ec10f6741"
+        }
+      ]
+    },
+    {
+      "name": "FlowingMenu",
+      "registry": "https://vue-bits.dev/r/FlowingMenu.json",
+      "files": [
+        {
+          "path": "FlowingMenu/FlowingMenu.vue",
+          "sha256": "b0f756eb546c22726e04ae60d6c3d2584b68c3fd60fa784f485c8c050c13d329"
+        }
+      ]
+    },
+    {
+      "name": "WarmTooltip",
+      "registry": "https://vue-bits.dev/r/WarmTooltip.json",
+      "files": [
+        {
+          "path": "WarmTooltip/WarmTooltip.vue",
+          "sha256": "f889362042edf1124fd92de565a7418397f10a6980d082844578aa7cd986f521"
+        }
+      ]
+    },
+    {
+      "name": "SloshGauge",
+      "registry": "https://vue-bits.dev/r/SloshGauge.json",
+      "files": [
+        {
+          "path": "SloshGauge/SloshGauge.vue",
+          "sha256": "37e9a7d66e4357d8315f10c34c76f2eadcbff9404bac17fc4588f2512d67489b"
+        }
+      ]
+    }
+  ]
+}

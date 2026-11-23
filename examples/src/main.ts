@@ -5,11 +5,13 @@ import "../../ui/tech.css";
 import "./style.css";
 import "virtual:example-source.css";
 import "./source-viewer.css";
+import "../../ui/vue-bits/native-controls.css";
 import "../../ui/render-stats-panel.css";
 import { createApp } from "vue";
 import Gallery from "./Gallery.ts";
 import StaggeredMenu from "../../ui/vue-bits/StaggeredMenu.ts";
 import { mountPageMotion } from "../../ui/motion.ts";
+import { mountBitsControls } from "../../ui/vue-bits/native-controls.ts";
 import { createSourceViewer } from "./source-viewer.ts";
 import { mountRenderStatsPanel } from "../../ui/render-stats-panel.ts";
 import type { RenderStatsPanel } from "../../ui/render-stats-panel.ts";
@@ -184,6 +186,7 @@ async function open(id: string | null, history = false): Promise<void> {
   }
 }
 const listeners = new AbortController();
+const disposeBits = mountBitsControls(document.body);
 rendererSelect.addEventListener(
   "change",
   () => {
@@ -242,6 +245,7 @@ window.addEventListener(
   "pagehide",
   (event) => {
     if (!event.persisted) {
+      disposeBits();
       galleryApp.unmount();
       menuApp.unmount();
     }
@@ -255,6 +259,7 @@ window.addEventListener(
 );
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
+    disposeBits();
     galleryApp.unmount();
     menuApp.unmount();
     generation++;
